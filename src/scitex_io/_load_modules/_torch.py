@@ -4,12 +4,11 @@
 # File: ./scitex_repo/src/scitex/io/_load_modules/_torch.py
 
 
-try:
-    import torch as _torch  # noqa: F401
+import importlib.util as _importlib_util
 
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
+# Probe via find_spec instead of `import torch` so double-import during
+# audit doesn't trigger TORCH_LIBRARY re-registration.
+TORCH_AVAILABLE = _importlib_util.find_spec("torch") is not None
 
 
 def _load_torch(lpath, **kwargs):

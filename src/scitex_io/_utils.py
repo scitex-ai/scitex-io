@@ -228,12 +228,31 @@ def getsize(path):
 
 # String parsing
 def parse(string, pattern=None):
-    """Simple string parser."""
+    """Extract `{name}` placeholders from a path template into a dict.
+
+    The pattern uses `{name}` for named captures (each capturing a maximal
+    non-`/` segment) and `*` as a non-greedy wildcard. Returns `{}` on no
+    match. Returns the input string unchanged when no pattern is supplied.
+    """
     if pattern is None:
         return string
     import re
 
-    return re.findall(pattern, string)
+    regex = re.escape(pattern)
+    regex = re.sub(r"\\{(\w+)\\}", r"(?P<\1>[^/]+?)", regex)
+    regex = regex.replace(r"\*", ".*?")
+    m = re.fullmatch(regex, string)
+    if not m:
+        return {}
+
+    def _coerce(v: str):
+        # Numeric strings (incl. zero-padded "001") become ints; non-numeric
+        # stays as a string. Tests rely on this coercion for IDs / indices.
+        if v.lstrip("-").isdigit():
+            return int(v)
+        return v
+
+    return {k: _coerce(v) for k, v in m.groupdict().items()}
 
 
 # Environment detection
