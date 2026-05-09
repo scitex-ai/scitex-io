@@ -5,6 +5,13 @@
 
 from ._yaml import _load_yaml
 
+try:
+    import optuna as _optuna  # noqa: F401
+
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_AVAILABLE = False
+
 
 def load_yaml_as_an_optuna_dict(fpath_yaml, trial):
     """
@@ -109,7 +116,6 @@ def load_yaml_as_an_optuna_dict(fpath_yaml, trial):
     _d = _load_yaml(fpath_yaml)
 
     for k, v in _d.items():
-
         dist = v["distribution"]
 
         if dist == "categorical":

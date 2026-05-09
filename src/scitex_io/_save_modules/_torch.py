@@ -4,6 +4,14 @@
 # File: /data/gpfs/projects/punim2354/ywatanabe/scitex_repo/src/scitex/io/_save_modules/_torch.py
 
 
+try:
+    import torch as _torch  # noqa: F401
+
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+
+
 def _save_torch(obj, spath, **kwargs):
     """
     Save a PyTorch model or tensor.

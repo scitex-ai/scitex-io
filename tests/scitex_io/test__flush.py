@@ -7,8 +7,7 @@
 import io
 import os
 import sys
-import warnings
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -45,9 +44,11 @@ class TestFlushBasic:
         from scitex_io import flush
 
         # Mock the actual sys module's stdout and stderr
-        with patch("sys.stdout.flush") as mock_stdout_flush, patch(
-            "sys.stderr.flush"
-        ) as mock_stderr_flush, patch("os.sync") as mock_sync:
+        with (
+            patch("sys.stdout.flush") as mock_stdout_flush,
+            patch("sys.stderr.flush") as mock_stderr_flush,
+            patch("os.sync") as mock_sync,
+        ):
             # Call flush without parameters (uses default sys)
             flush()
 
@@ -56,22 +57,14 @@ class TestFlushBasic:
             mock_stderr_flush.assert_called_once()
             mock_sync.assert_called_once()
 
-    def test_flush_with_none_sys(self, caplog):
+    def test_flush_with_none_sys(self):
         """Test flush behavior when sys is None."""
-        import logging
-
         from scitex_io import flush
 
-        with caplog.at_level(logging.WARNING):
-            with patch("os.sync") as mock_sync:
-                # Call flush with None
+        with patch("os.sync") as mock_sync:
+            with pytest.warns(UserWarning, match="flush needs sys"):
                 flush(sys=None)
-
-                # Should log warning but not crash
-                assert "flush needs sys" in caplog.text
-
-                # sync should not be called
-                mock_sync.assert_not_called()
+            mock_sync.assert_not_called()
 
 
 class TestFlushErrorHandling:

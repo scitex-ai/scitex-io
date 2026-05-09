@@ -4,8 +4,17 @@
 # File: ./scitex_repo/src/scitex/io/_save_optuna_study_as_csv_and_pngs.py
 
 
+try:
+    import optuna as _optuna  # noqa: F401
+
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_AVAILABLE = False
+
+
 def save_optuna_study_as_csv_and_pngs(study, sdir):
     import optuna
+
     from .._save import save
 
     ## Trials DataFrame

@@ -45,28 +45,36 @@ def _load_eeg_data(lpath: str, **kwargs) -> Any:
     This function uses MNE-Python to load the EEG data. It automatically detects the file format
     based on the file extension and uses the appropriate MNE function to load the data.
     """
-    # Get the file extension
-    extension = lpath.split(".")[-1]
+    # Get the file extension (no leading dot — branch comparisons below
+    # assume the bare suffix).
+    extension = lpath.rsplit(".", 1)[-1]
 
     allowed_extensions = [
-        ".vhdr",
-        ".vmrk",
-        ".edf",
-        ".bdf",
-        ".gdf",
-        ".cnt",
-        ".egi",
-        ".eeg",
-        ".set",
+        "vhdr",
+        "vmrk",
+        "edf",
+        "bdf",
+        "gdf",
+        "cnt",
+        "egi",
+        "eeg",
+        "set",
     ]
 
     if extension not in allowed_extensions:
         raise ValueError(
-            f"File must have one of these extensions: {', '.join(allowed_extensions)}"
+            "File must have one of these extensions: "
+            + ", ".join("." + e for e in allowed_extensions)
         )
+
+    # `preload=True` is enforced — drop any caller-supplied value so we
+    # don't pass `preload` twice into mne.io.read_raw_*.
+    kwargs.pop("preload", None)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
+
+        raw = None
 
         # Load the data based on the file extension
         if extension in ["vhdr", "vmrk"]:
@@ -107,6 +115,12 @@ def _load_eeg_data(lpath: str, **kwargs) -> Any:
             if is_NihonKoden:
                 # raw = mne.io.read_raw_nihon(lpath, preload=True, **kwargs)
                 raw = mne.io.read_raw(lpath, preload=True, **kwargs)
+            if raw is None:
+                raise ValueError(
+                    f"No associated files found for .eeg file: {lpath!r} "
+                    "(expected BrainVision .vhdr/.vmrk or Nihon Koden "
+                    ".21e/.pnt/.log alongside the .eeg)."
+                )
         else:
             raise ValueError(f"Unsupported file extension: {extension}")
 

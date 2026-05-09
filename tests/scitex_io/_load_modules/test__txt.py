@@ -10,7 +10,6 @@ which handles loading text files with various encodings and formats.
 
 import os
 import tempfile
-import warnings
 
 import pytest
 
@@ -91,7 +90,7 @@ def test_load_txt_different_extensions():
             os.unlink(temp_path)
 
 
-def test_load_txt_unexpected_extension_warning(caplog):
+def test_load_txt_unexpected_extension_warning():
     """Test warning for unexpected file extensions."""
     from scitex_io._load_modules._txt import _load_txt
 
@@ -102,12 +101,9 @@ def test_load_txt_unexpected_extension_warning(caplog):
         temp_path = f.name
 
     try:
-        # Should still load the file
-        loaded = _load_txt(temp_path, as_lines=False)
+        with pytest.warns(UserWarning, match="Unexpected extension"):
+            loaded = _load_txt(temp_path, as_lines=False)
         assert loaded == content
-
-        # Should have logged warning about unexpected extension
-        assert "Unexpected extension" in caplog.text
     finally:
         os.unlink(temp_path)
 
