@@ -255,3 +255,8 @@ def io_skills_get(name: str) -> str:
         )
     except Exception as e:
         return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+# Register §6 parity tools (glob, registry, metadata, cache, h5/zarr, json2md).
+# Imported at the bottom so `mcp` is already defined when decorators run.
+from . import _tools_extra  # noqa: E402, F401

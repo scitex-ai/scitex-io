@@ -26,6 +26,11 @@ Format Table
      - ``.xlsx``/``.xls`` only
      - Yes
      - openpyxl / xlrd
+   * - **Columnar**
+     - ``.parquet``, ``.feather``
+     - Yes
+     - Yes
+     - pyarrow / fastparquet
    * - **NumPy**
      - ``.npy``, ``.npz``
      - Yes
@@ -158,7 +163,7 @@ Two-Tier Registry
 User handlers always take precedence. This means you can:
 
 - **Override** a built-in format (e.g., use a custom CSV parser)
-- **Extend** with new formats (e.g., ``.parquet``, ``.feather``)
+- **Extend** with new formats (e.g., ``.arrow``, ``.orc``, custom binary)
 - **Swap** backends without changing calling code
 
 

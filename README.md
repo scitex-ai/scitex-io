@@ -318,10 +318,17 @@ AI agents can save, load, and discover formats autonomously.
 | Tool | Description |
 |------|-------------|
 | `io_list_formats` | List all registered save/load formats |
-| `io_load` | Load data from any supported format |
-| `io_save` | Save data to any supported format |
+| `io_load` / `io_save` | Load / save data in any supported format |
 | `io_load_configs` | Load YAML project configurations |
 | `io_register_info` | Show how to register custom formats |
+| `io_glob` / `io_parse_glob` | Natsorted globbing with `{placeholder}` parsing |
+| `io_get_loader` / `io_get_saver` | Look up the registered handler for an extension |
+| `io_read_metadata` / `io_has_metadata` / `io_embed_metadata` | Image provenance metadata |
+| `io_get_cache_info` / `io_clear_load_cache` / `io_configure_cache` | Load-cache management |
+| `io_explore_h5` / `io_explore_zarr` | Print group/dataset trees |
+| `io_has_h5_key` / `io_has_zarr_key` | Cheap existence checks |
+| `io_json2md` | Render JSON as Markdown |
+| `io_skills_list` / `io_skills_get` | Discover and fetch skill pages |
 
 ```bash
 scitex-io mcp start
