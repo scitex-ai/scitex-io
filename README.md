@@ -9,7 +9,7 @@
 <p align="center"><b>Universal scientific data I/O with plugin registry</b></p>
 
 <p align="center">
-  <a href="https://scitex-io.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-io</code>
+  <a href="https://scitex-io.readthedocs.io/">Full Documentation</a> · <code>uv pip install scitex-io[all]</code>
 </p>
 
 <p align="center">
