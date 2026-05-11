@@ -361,33 +361,6 @@ Also available via MCP: `io_skills_list()` / `io_skills_get(name)`.
 
 </details>
 
-## Demo
-
-```mermaid
-flowchart LR
-    A["scitex_io.save(obj, 'x.ext')"] --> R["registry: lookup(.ext)"]
-    R --> H["per-format saver"]
-    H --> F["file on disk + sidecar (csv/yaml)"]
-    L["scitex_io.load('x.ext')"] --> R2["registry: lookup(.ext)"]
-    R2 --> H2["per-format loader"]
-    H2 --> O["Python object<br/>(DataFrame, ndarray, ...)"]
-    G["glob('data/**/*.csv')"] --> N["natural-sorted paths"]
-    N --> L
-```
-
-```python
->>> import pandas as pd, scitex_io as sio
->>> df = pd.DataFrame({"x": [1, 2, 3]})
->>> sio.save(df, "out.csv")          # routes by extension
->>> sio.load("out.csv").equals(df)
-True
->>> sio.list_formats()[:5]
-['.csv', '.tsv', '.xlsx', '.npy', '.npz']
-```
-
-A figure save additionally emits the underlying CSV + a figrecipe YAML
-sidecar, keeping figure-and-data atomically in sync.
-
 <details>
 <summary><b>Lint Rules (STX-IO001..014 + STX-PA001..005)</b></summary>
 
