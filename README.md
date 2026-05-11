@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2026-05-11 16:11:57
+!-- Timestamp: 2026-05-11 16:16:11
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/proj/scitex-io/README.md
 !-- --- -->
@@ -80,7 +80,7 @@ assert obj_loaded["df"].equals(df_orig) and obj_loaded["tag"] == "experiment-042
 
 
 <details>
-<summary><b>Native Supported Formats (30+)</b></summary>
+<summary><b>Native Supported Formats (30+) and Customization</b></summary>
 
 <br>
 
@@ -191,6 +191,33 @@ directory and outputs land beside their producer.
 > **Intermediate directories created automatically** — no
 > `os.makedirs()` / `Path.mkdir()` calls needed on the caller side.
 
+<details>
+<summary><b>Advanced <code>save()</code> — absolute paths, symlinks, dry-run</b></summary>
+
+<br>
+
+> **Absolute paths bypass auto-routing.** `sio.save(df, "/data/x.csv")`
+> writes to `/data/x.csv` as-is — caller-anchored routing (§2) only
+> applies when the path is relative.
+
+```python
+sio.save(df, "/data/x.csv")                            # absolute → used as-is
+```
+
+> **Symlinks and dry-run.** `symlink_from_cwd=True` drops a symlink at
+> `./results.csv` pointing into the auto-routed location;
+> `symlink_to=…` plants a symlink at a custom path; `dry_run=True`
+> prints the resolved path without writing.
+
+```python
+sio.save(df,  "results.csv", symlink_from_cwd=True)
+sio.save(fig, "fig1.png",    symlink_to="/data/latest/fig1.png")
+sio.save(df,  "results.csv", use_caller_path=True)     # resolve from caller script
+sio.save(df,  "results.csv", dry_run=True)             # print path, don't write
+```
+
+</details>
+
 ### 3. Centralized project configuration
 
 Scientific projects benefit from keeping parameters — sample rates,
@@ -252,33 +279,6 @@ values.
 > **Equivalent triggers** — these three all enable debug mode:
 > `IS_DEBUG.yaml` with `IS_DEBUG: true`, `load_configs(IS_DEBUG=True)`,
 > or running under `CI=True`.
-
-</details>
-
-<details>
-<summary><b>Advanced <code>save()</code> — absolute paths, symlinks, dry-run</b></summary>
-
-<br>
-
-> **Absolute paths bypass auto-routing.** `sio.save(df, "/data/x.csv")`
-> writes to `/data/x.csv` as-is — caller-anchored routing (§2) only
-> applies when the path is relative.
-
-```python
-sio.save(df, "/data/x.csv")                            # absolute → used as-is
-```
-
-> **Symlinks and dry-run.** `symlink_from_cwd=True` drops a symlink at
-> `./results.csv` pointing into the auto-routed location;
-> `symlink_to=…` plants a symlink at a custom path; `dry_run=True`
-> prints the resolved path without writing.
-
-```python
-sio.save(df,  "results.csv", symlink_from_cwd=True)
-sio.save(fig, "fig1.png",    symlink_to="/data/latest/fig1.png")
-sio.save(df,  "results.csv", use_caller_path=True)     # resolve from caller script
-sio.save(df,  "results.csv", dry_run=True)             # print path, don't write
-```
 
 </details>
 
