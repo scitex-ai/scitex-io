@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2026-05-11 16:24:18
+!-- Timestamp: 2026-05-11 16:28:10
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/proj/scitex-io/README.md
 !-- --- -->
@@ -179,10 +179,8 @@ notebook**, not the working directory. Scripts and outputs are tied as locations
 
 ```
 /path/to/project/
-├── config/                              # consumed by load_configs() — see §3
-│   ├── PATHS.yaml
-│   ├── MODEL.yaml
-│   └── IS_DEBUG.yaml
+├── config/                              # see §3
+│   └── ...
 └── scripts/
     └── xxx/
         ├── filename.py                  # sio.save(df, "results.csv")
@@ -250,13 +248,19 @@ then accessible as `CONFIG.YAML_FILE_NAME.FIELD_NAME`.
 > `hidden_dim`), the UPPER variant is prioritised and a `UserWarning`
 > is emitted pointing at the conflict.
 
+
 ```
-project/
-  config/
-    PATHS.yaml          # DATA_DIR: /data/experiment_01
-    PREPROCESS.yaml     # SAMPLE_RATE: 1000, BANDPASS: [0.5, 40]
-    MODEL.yaml          # HIDDEN_DIM: 256, DROPOUT: 0.3
-    IS_DEBUG.yaml       # IS_DEBUG: true
+/path/to/project/
+├── config/
+│   ├── PATHS.yaml                       # DATA_DIR: /data/experiment_01
+│   ├── PREPROCESS.yaml                  # SAMPLE_RATE: 1000, BANDPASS: [0.5, 40]
+│   ├── MODEL.yaml                       # HIDDEN_DIM: 256, DROPOUT: 0.3
+│   └── IS_DEBUG.yaml                    # IS_DEBUG: true
+└── scripts/
+    └── xxx/
+        └── filename.py                  # CONFIG = sio.load_configs()
+                                         #   CONFIG.MODEL.DROPOUT       → 0.3
+                                         #   CONFIG.PREPROCESS.SAMPLE_RATE → 1000
 ```
 
 ```python
