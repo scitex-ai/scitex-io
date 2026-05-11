@@ -30,27 +30,10 @@
 
 | # | Problem | Solution |
 |---|---------|----------|
-| 1 | **Format zoo** -- save/load scattered across `pd.read_csv`, `np.load`, `pickle`, `json`, `h5py`, `torch.save`, `cv2.imread`, etc. Every format = a different API | **One call** -- `stx.io.save(obj, "x.ext")` / `stx.io.load("x.ext")` routes by extension across 30+ formats; plugin registry lets users register custom handlers |
-| 2 | **FileNotFoundError after save** -- `save()` auto-routes to `{script}_out/` but `load()` resolves cwd-relative, so the naive round-trip breaks for new users | **Predictable paths** -- `symlink_from_cwd=True` flag, `CONFIG.SDIR_RUN` session path, or absolute path on both sides — documented prominently in the skill |
-| 3 | **Figure + data diverge** -- save a PNG; the underlying DataFrame lives in a separate `.csv` that goes out of sync | **Auto-CSV export** -- `stx.io.save(fig, "plot.png")` writes `plot.png` + `plot.csv` + `plot.yaml` (figrecipe recipe) atomically, hash-tracked by Clew |
-
-## Problem
-
-Three problems recur in every scientific Python project:
-
-1. **Format fragmentation.** Loading a CSV requires `pandas.read_csv()`, an HDF5 file requires `h5py.File()`, a NumPy array requires `numpy.load()`. Each format demands its own library, its own API, and its own boilerplate. Operating systems solved this decades ago — double-click any file and the OS dispatches to the right application. Python has no equivalent.
-
-2. **Hard-coded parameters scattered across scripts.** Sample rates, thresholds, model hyperparameters, plot dimensions — magic numbers buried in code, duplicated across files, impossible to track or share. Changing one parameter means grepping through the entire project.
-
-3. **Figures without provenance.** A saved PNG has no record of the code, parameters, or session that produced it. Months later, reproducing a figure means reverse-engineering which script with which settings generated it.
-
-## Solution
-
-scitex-io addresses all three:
-
-- **`save()`/`load()`** — One interface for 30+ formats with automatic extension-based dispatch. A plugin registry lets you add custom formats without modifying the library.
-- **`load_configs()`** — Loads all YAML files from a `config/` directory into a single `DotDict` with dot-notation access. Parameters are version-controlled, centralized, and separate from code.
-- **`embed_metadata()`/`read_metadata()`** — Embeds provenance (timestamps, session IDs, parameters) directly into image and PDF files. The figure carries its own history.
+| 1 | **Format zoo** — save/load scattered across `pd.read_csv`, `np.load`, `pickle`, `json`, `h5py`, `torch.save`, `cv2.imread`, etc. Every format = a different API | **One call** — `stx.io.save(obj, "x.ext")` / `stx.io.load("x.ext")` routes by extension across 30+ formats; plugin registry lets users register custom handlers |
+| 2 | **FileNotFoundError after save** — `save()` auto-routes to `{script}_out/` but `load()` resolves cwd-relative, so the naive round-trip breaks for new users | **Predictable paths** — `symlink_from_cwd=True` flag, `CONFIG.SDIR_RUN` session path, or absolute path on both sides — documented prominently in the skill |
+| 3 | **Hard-coded parameters scattered across scripts** — sample rates, thresholds, hyperparameters duplicated across files, impossible to track or share | **`load_configs()`** — loads all YAML files from `config/` into a single `DotDict` with dot-notation access; parameters version-controlled and centralized |
+| 4 | **Figure + data diverge / figures without provenance** — a saved PNG has no record of the underlying DataFrame, code, or session that produced it | **Auto-CSV export + embedded metadata** — `stx.io.save(fig, "plot.png")` writes `plot.png` + `plot.csv` + `plot.yaml` atomically; `embed_metadata()` writes timestamps/session IDs into the image itself |
 
 <details>
 <summary><b>Supported Formats (30+)</b></summary>
@@ -89,28 +72,26 @@ For MCP server support:
 pip install scitex-io[mcp]
 ```
 
-## Architecture
+## How it works
 
-```
-scitex_io/
-├── _save.py / _save_modules/      ← extension-based dispatcher + per-format savers
-├── _loading/ / _load_modules/     ← unified load() + per-format loaders
-├── _registry.py                   ← plugin registry (register_saver / register_loader)
-├── _cache.py / _flush.py / _reload.py  ← path+mtime cache
-├── _glob.py                       ← natural-sorted glob, brace expansion, parse_glob
-├── _path.py                       ← auto-routing path resolver (script_out/, etc.)
-├── _metadata.py / _metadata_modules/   ← embed_metadata / read_metadata (PNG/JPEG/SVG/PDF)
-├── _builtin_handlers.py           ← bundled handlers wired to the registry
-├── _image_csv_handler.py          ← figure → png + csv + yaml triplet
-├── _linter_plugin.py              ← STX-IO001..007 rule plugins for scitex-linter
-├── _cli/                          ← `scitex-io` Click CLI
-├── _mcp/                          ← MCP server tools
-└── _skills/                       ← agent-facing skill pages
+```mermaid
+flowchart LR
+    A["save(obj, 'x.ext')"] --> B{Registry}
+    L["load('x.ext')"] --> B
+    B -->|.csv| C[pandas]
+    B -->|.npy/.npz| D[numpy]
+    B -->|.h5 / .zarr| E[h5py / zarr]
+    B -->|.pkl / .joblib| F[pickle / joblib]
+    B -->|.pt / .pth| G[torch]
+    B -->|.png / .jpg / .svg| H[Pillow + auto-CSV + metadata]
+    B -->|.yaml / .json| I[PyYAML / json]
+    B -->|.bib / .pdf / .docx / ...| J[30+ handlers]
+    B -.->|register_saver/loader| K[Your custom format]
 ```
 
-`save()` and `load()` route by file extension through `_registry`;
-every format is a small handler module discovered eagerly at import. The
-registry is the extension point — see "Custom Format Registration" below.
+One call routes by extension to the right handler; the registry is the
+extension point — see "Custom Format Registration" below. Figures get an
+auto-CSV+yaml sidecar atomically so plot data never drifts from the image.
 
 ## Quickstart
 
