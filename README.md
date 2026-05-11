@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2026-05-11 16:50:42
+!-- Timestamp: 2026-05-11 17:27:04
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/proj/scitex-io/README.md
 !-- --- -->
@@ -413,7 +413,7 @@ Supports PNG (tEXt), JPEG (EXIF), SVG (XML metadata), PDF (XMP).
 
 ## Four Interfaces
 
-<details open>
+<details>
 <summary><strong>Python API</strong></summary>
 
 <br>
@@ -457,7 +457,7 @@ scitex-io mcp list-tools -vv        # List MCP tools with parameters
 </details>
 
 <details>
-<summary><strong>MCP Server — for AI Agents</strong></summary>
+<summary><strong>MCP Server</strong></summary>
 
 <br>
 
@@ -487,7 +487,7 @@ scitex-io mcp start
 </details>
 
 <details>
-<summary><strong>Skills — for AI Agent Discovery</strong></summary>
+<summary><strong>Skills</strong></summary>
 
 <br>
 
