@@ -38,7 +38,7 @@ jobs:
             --cov=src/${{ steps.pkg.outputs.import_name }} \
             --cov-report=xml --cov-report=term
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
+        if: always() && matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
