@@ -93,29 +93,32 @@ One call routes by extension to the right handler; the registry is the
 extension point — see "Custom Format Registration" below. Figures get an
 auto-CSV+yaml sidecar atomically so plot data never drifts from the image.
 
-## Quickstart
-
-### Save and Load
+## Demo
 
 ```python
-from scitex_io import save, load
+import scitex as stx
+import pandas as pd, numpy as np
 
-# Universal save/load — format auto-detected from extension
-import pandas as pd
-df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
-save(df, "data.csv")
-loaded = load("data.csv")
+# One call — any of 30+ formats, auto-dispatched by extension
+stx.io.save(pd.DataFrame({"x": [1, 2, 3]}), "data.csv")
+stx.io.save(np.array([1, 2, 3]),            "data.npy")
+stx.io.save({"lr": 1e-3, "epochs": 10},     "config.yaml")
+stx.io.save(fig,                            "plot.png")   # + plot.csv + plot.yaml
 
-# 30+ formats work the same way
-import numpy as np
-save(np.array([1, 2, 3]), "data.npy")
-save({"key": "value"}, "config.yaml")
-save({"nested": [1, 2]}, "data.json")
+# One call to load — extension picks the right reader
+df  = stx.io.load("data.csv")
+arr = stx.io.load("data.npy")
+cfg = stx.io.load("config.yaml")
+
+# Load every config/*.yaml as a DotDict (UPPER_CASE = constants)
+CONFIG = stx.io.load_configs()
+CONFIG.MODEL.HIDDEN_DIM            # 256
 ```
 
-### Project Configuration
+<details>
+<summary><b>Project configuration (<code>load_configs</code>) — full example</b></summary>
 
-Hard-coded parameters belong in config files, not in code. Use **UPPER_CASE** keys — Python's convention for constants — to signal that these are user-defined values:
+<br>
 
 ```
 project/
@@ -123,123 +126,96 @@ project/
     PATHS.yaml          # DATA_DIR: /data/experiment_01
     PREPROCESS.yaml     # SAMPLE_RATE: 1000, BANDPASS: [0.5, 40]
     MODEL.yaml          # HIDDEN_DIM: 256, DROPOUT: 0.3
-    PLOT.yaml           # FIGSIZE: [180, 60], DPI: 300
     IS_DEBUG.yaml       # IS_DEBUG: true
 ```
 
 ```python
-from scitex_io import load_configs
-
-CONFIG = load_configs()          # loads ./config/*.yaml
-CONFIG.PATHS.DATA_DIR            # "/data/experiment_01"
-CONFIG.PREPROCESS.SAMPLE_RATE    # 1000
-CONFIG.MODEL.HIDDEN_DIM          # 256
+CONFIG = stx.io.load_configs()           # loads ./config/*.yaml
+CONFIG.PREPROCESS.SAMPLE_RATE            # 1000
 
 # Debug mode: DEBUG_ prefixed keys override their counterparts
 # In MODEL.yaml: { HIDDEN_DIM: 256, DEBUG_HIDDEN_DIM: 32 }
-CONFIG = load_configs(IS_DEBUG=True)
-CONFIG.MODEL.HIDDEN_DIM          # 32 (debug value promoted)
+CONFIG = stx.io.load_configs(IS_DEBUG=True)
+CONFIG.MODEL.HIDDEN_DIM                  # 32 (debug value promoted)
 ```
 
-Returns a `DotDict` — a nested dictionary with dot-notation access. Parameters become version-controlled, shareable, and separate from code.
-
-### Metadata Embedding
-
-Embed provenance into figures so they carry their own history:
-
-```python
-from scitex_io import embed_metadata, read_metadata, has_metadata
-
-# Embed metadata into an image
-embed_metadata("figure.png", {
-    "experiment": "exp_042",
-    "model": "resnet50",
-    "accuracy": 0.94,
-    "timestamp": "2026-03-11",
-})
-
-# Read it back — months later, from the file alone
-meta = read_metadata("figure.png")
-print(meta["experiment"])    # "exp_042"
-
-# Check if a file has embedded metadata
-has_metadata("figure.png")   # True
-```
-
-Supports PNG (tEXt chunks), JPEG (EXIF), SVG (XML metadata), and PDF (XMP metadata).
-
-### Advanced Save Features
-
-`save()` auto-routes relative paths based on execution context and supports symlinks and dry runs:
-
-```python
-from scitex_io import save
-
-# Auto path routing — relative paths resolve based on context:
-#   Script analysis.py  → analysis_out/results.csv
-#   Notebook exp.ipynb  → exp_out/results.csv
-#   Interactive/IPython → /tmp/{USER}/results.csv
-#   Absolute paths      → used as-is
-save(df, "results.csv")
-
-# Create symlink from cwd to the auto-routed save location
-save(df, "results.csv", symlink_from_cwd=True)
-
-# Create symlink at a specific path
-save(fig, "fig1.png", symlink_to="/data/latest/fig1.png")
-
-# Skip auto CSV export for image saves
-save(fig, "plot.png", no_csv=True)
-
-# use_caller_path=True — resolve path from the calling script,
-# not the immediate caller. Essential when save() is wrapped by a library.
-save(df, "results.csv", use_caller_path=True)
-
-# Dry run — print resolved path without writing
-save(df, "results.csv", dry_run=True)
-```
-
-### Glob and Caching
-
-```python
-from scitex_io import glob, parse_glob, load
-
-# Natural-sorted file matching (1, 2, 10 — not 1, 10, 2)
-paths = glob("data/**/*.csv")
-paths = glob("results/{exp1,exp2}/*.npy")  # brace expansion
-
-# Parse named placeholders from paths
-paths, parsed = parse_glob("sub_{id}/ses_{session}/*.vhdr")
-# parsed = [{'id': '001', 'session': 'pre'}, ...]
-
-# Glob patterns work directly in load()
-dfs = load("results/*.csv")  # → list of DataFrames
-
-# Caching is automatic (by path + mtime)
-data = load("large.hdf5")        # disk read
-data = load("large.hdf5")        # cache hit (instant)
-```
+</details>
 
 <details>
-<summary><b>Custom Format Registration</b></summary>
+<summary><b>Embed provenance into figures (<code>embed_metadata</code>)</b></summary>
 
 <br>
 
 ```python
-from scitex_io import register_saver, register_loader, save, load
+stx.io.embed_metadata("figure.png", {
+    "experiment": "exp_042", "model": "resnet50",
+    "accuracy": 0.94, "timestamp": "2026-03-11",
+})
+meta = stx.io.read_metadata("figure.png")
+meta["experiment"]              # "exp_042"
+```
+
+Supports PNG (tEXt), JPEG (EXIF), SVG (XML metadata), PDF (XMP).
+
+</details>
+
+<details>
+<summary><b>Advanced <code>save()</code> — auto-routing, symlinks, dry-run</b></summary>
+
+<br>
+
+```python
+# Auto path routing — relative paths resolve based on execution context:
+#   Script analysis.py  → analysis_out/results.csv
+#   Notebook exp.ipynb  → exp_out/results.csv
+#   Interactive/IPython → /tmp/{USER}/results.csv
+#   Absolute paths      → used as-is
+stx.io.save(df, "results.csv")
+
+stx.io.save(df,  "results.csv", symlink_from_cwd=True)
+stx.io.save(fig, "fig1.png",    symlink_to="/data/latest/fig1.png")
+stx.io.save(fig, "plot.png",    no_csv=True)              # skip auto-CSV sidecar
+stx.io.save(df,  "results.csv", use_caller_path=True)     # resolve from caller script
+stx.io.save(df,  "results.csv", dry_run=True)             # print path, don't write
+```
+
+</details>
+
+<details>
+<summary><b>Glob, parse, cache</b></summary>
+
+<br>
+
+```python
+paths = stx.io.glob("data/**/*.csv")                        # natural sort: 1, 2, 10
+paths = stx.io.glob("results/{exp1,exp2}/*.npy")            # brace expansion
+paths, parsed = stx.io.parse_glob("sub_{id}/ses_{session}/*.vhdr")
+# parsed = [{'id': '001', 'session': 'pre'}, ...]
+
+dfs = stx.io.load("results/*.csv")                          # list of DataFrames
+data = stx.io.load("large.hdf5"); data = stx.io.load("large.hdf5")  # 2nd call: cache hit
+```
+
+</details>
+
+<details>
+<summary><b>Custom format registration</b></summary>
+
+<br>
+
+```python
+from scitex_io import register_saver, register_loader
 
 @register_saver(".custom")
-def save_custom(obj, path, **kwargs):
-    with open(path, "w") as f:
-        f.write(str(obj))
+def save_custom(obj, path, **kw):
+    open(path, "w").write(str(obj))
 
 @register_loader(".custom")
-def load_custom(path, **kwargs):
-    with open(path) as f:
-        return f.read()
+def load_custom(path, **kw):
+    return open(path).read()
 
-save("hello", "data.custom")
-assert load("data.custom") == "hello"
+stx.io.save("hello", "data.custom")
+assert stx.io.load("data.custom") == "hello"
 ```
 
 </details>
