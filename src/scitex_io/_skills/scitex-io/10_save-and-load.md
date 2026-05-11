@@ -89,7 +89,7 @@ def save_results(df):
     # → ~/proj/scripts/analysis_out/results.csv  (CORRECT — resolves to calling script)
 ```
 
-This is essential for `stx.io.save()` inside the scitex framework, where `save()` is wrapped by `scitex.io.save()`. Without it, all saves would route to the scitex package directory.
+This is essential for `sio.save()` inside the scitex framework, where `save()` is wrapped by `scitex.io.save()`. Without it, all saves would route to the scitex package directory.
 
 ### symlink_from_cwd
 
