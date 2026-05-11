@@ -12,6 +12,8 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
+# Optional dep for the optuna loader (`import optuna`).
+pytest.importorskip("optuna")
 from unittest.mock import MagicMock, patch
 
 import yaml

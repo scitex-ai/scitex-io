@@ -14,10 +14,18 @@ import tempfile
 
 import pytest
 
+# Optional deps for the markdown loader (`scitex_io._load_modules._markdown`
+# imports both at runtime). Skip cleanly when either is missing so the
+# suite stays green on fresh installs.
+pytest.importorskip("markdown")
+pytest.importorskip("html2text")
+
+import pytest
+
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import Mock, patch
 
 
 class TestLoadMarkdown:

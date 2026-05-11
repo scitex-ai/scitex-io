@@ -11,6 +11,9 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
+# PyMuPDF is required by the PDF loader itself; without it every test
+# here would fail at import time.
+pytest.importorskip("fitz")
 from unittest.mock import MagicMock, patch
 
 

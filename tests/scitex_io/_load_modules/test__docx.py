@@ -12,6 +12,8 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
+# python-docx (`from docx import Document`) is required by the DOCX loader.
+pytest.importorskip("docx")
 from unittest.mock import MagicMock, patch
 
 

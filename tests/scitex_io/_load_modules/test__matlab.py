@@ -25,6 +25,8 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
+# scipy is required by the MATLAB loader (`from scipy.io import loadmat`).
+pytest.importorskip("scipy")
 from unittest.mock import patch
 
 import numpy as np
