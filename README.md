@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2026-05-11 15:59:46
+!-- Timestamp: 2026-05-11 16:02:36
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/proj/scitex-io/README.md
 !-- --- -->
@@ -53,22 +53,25 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Demo data
-df = pd.DataFrame({"x": [1, 2, 3]})
-arr = np.array([1, 2, 3])
-params = {"lr": 1e-3, "epochs": 10}
-fig, ax = plt.subplots(); ax.plot([1, 2, 3])
+# Demo Data
+df_orig = pd.DataFrame({"x": [1, 2, 3]})
+arr_orig = np.array([1, 2, 3])
+params_orig = {"lr": 1e-3, "epochs": 10}
 
-# One call — any of 30+ formats, auto-dispatched by extension
-sio.save(df,     "data.csv")
-sio.save(arr,    "data.npy")
-sio.save(params, "config.yaml")
-sio.save(fig,    "plot.png")
+# Unified Saving API
+sio.save(df_orig, "data.csv")
+sio.save(arr_orig, "data.npy")
+sio.save(params_orig, "config.yaml")
 
-# One call to load — extension picks the right reader
-df     = sio.load("data.csv")
-arr    = sio.load("data.npy")
-params = sio.load("config.yaml")
+# Unified Loading API
+df_loaded = sio.load("data.csv")
+arr_loaded = sio.load("data.npy")
+params_loaded = sio.load("config.yaml")
+
+# Round-trip check
+assert df_loaded.equals(df_orig)
+assert np.array_equal(arr_loaded, arr_orig)
+assert params_loaded == params_orig
 ```
 
 
