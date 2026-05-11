@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2026-05-11 16:30:00
+!-- Timestamp: 2026-05-11 16:31:12
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/proj/scitex-io/README.md
 !-- --- -->
@@ -51,31 +51,26 @@
 import scitex_io as sio
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Demo Data
 df_orig = pd.DataFrame({"x": [1, 2, 3]})
 arr_orig = np.array([1, 2, 3])
 params_orig = {"lr": 1e-3, "epochs": 10}
-obj_orig = {"df": df_orig, "arr": arr_orig, "tag": "experiment-042"}
 
 # Unified Saving API
 sio.save(df_orig, "data.csv")
 sio.save(arr_orig, "data.npy")
 sio.save(params_orig, "config.yaml")
-sio.save(obj_orig, "bundle.pkl")
 
 # Unified Loading API
 df_loaded = sio.load("data.csv")
 arr_loaded = sio.load("data.npy")
 params_loaded = sio.load("config.yaml")
-obj_loaded = sio.load("bundle.pkl")
 
 # Round-trip check
 assert df_loaded.equals(df_orig)
 assert np.array_equal(arr_loaded, arr_orig)
 assert params_loaded == params_orig
-assert obj_loaded["df"].equals(df_orig) and obj_loaded["tag"] == "experiment-042"
 ```
 
 
