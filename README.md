@@ -90,7 +90,15 @@ uv pip install -e ".[dev]"               # editable install for contributors
 
 </details>
 
-## Architecture
+## How it works
+
+### 1. Routing by extension
+
+One `save()` / `load()` call dispatches on the file extension through a
+plugin registry — every format is a small handler module, and
+`register_saver` / `register_loader` is the user-facing extension point.
+Figures additionally emit a CSV + figrecipe-YAML sidecar so plot data
+never drifts from the image.
 
 ```mermaid
 flowchart LR
@@ -107,13 +115,11 @@ flowchart LR
     B -.->|register_saver/loader| K[Your custom format]
 ```
 
-One call routes by extension to the right handler; the registry is the
-extension point — see "Custom Format Registration" below. Figures get an
-auto-CSV+yaml sidecar atomically so plot data never drifts from the image.
+### 2. Output paths anchored to the caller
 
-**Where does the file actually go?** Relative paths in `save()` are
-auto-routed based on the execution context — you never specify the
-output directory by hand:
+Relative paths in `save()` resolve **relative to the calling script /
+notebook**, not the working directory — you never hand-write the output
+directory and outputs land beside their producer.
 
 | Caller | `sio.save(df, "results.csv")` writes to |
 |---|---|
@@ -130,10 +136,13 @@ Opt-in extras: `symlink_from_cwd=True` drops a symlink at
 plants a symlink at a custom path; `dry_run=True` prints the resolved
 path without writing.
 
-**Project configuration** — `load_configs()` collects every YAML under
-`./config/` into one nested `DotDict`. UPPER_CASE filenames become
-top-level keys; UPPER_CASE keys inside become constants. Debug mode
-promotes any `DEBUG_*` sibling over its non-debug counterpart:
+### 3. Centralized project configuration
+
+`load_configs()` collects every YAML under `./config/` into one nested
+`DotDict`. UPPER_CASE filenames become top-level keys and UPPER_CASE
+keys inside become constants. Debug mode promotes any `DEBUG_*` sibling
+over its non-debug counterpart, so a single `IS_DEBUG.yaml` flips the
+whole project between production and debug values.
 
 ```mermaid
 flowchart LR
