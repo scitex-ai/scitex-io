@@ -47,6 +47,7 @@
 | Category | Extensions |
 |----------|-----------|
 | Spreadsheet | `.csv`, `.tsv`, `.xlsx`, `.xls`, `.xlsm`, `.xlsb` |
+| Columnar | `.parquet`, `.feather` |
 | Scientific | `.npy`, `.npz`, `.mat`, `.hdf5`, `.h5`, `.zarr` |
 | Serialization | `.pkl`, `.pickle`, `.pkl.gz`, `.joblib` |
 | ML/DL | `.pth`, `.pt`, `.cbm` |
@@ -82,7 +83,7 @@ pip install scitex-io[mcp]
 flowchart LR
     A["scitex_io.save(obj, 'x.ext')"] --> B{Registry}
     L["scitex_io.load('x.ext')"] --> B
-    B -->|.csv| C[pandas]
+    B -->|.csv / .parquet / .feather| C[pandas / pyarrow]
     B -->|.npy/.npz| D[numpy]
     B -->|.h5 / .zarr| E[h5py / zarr]
     B -->|.pkl / .joblib| F[pickle / joblib]
