@@ -66,7 +66,9 @@
 | Bibliography | `.bib` |
 | EEG | `.vhdr`, `.vmrk`, `.edf`, `.bdf`, `.gdf`, `.cnt`, `.egi`, `.eeg`, `.set`, `.con` |
 
-Beyond them, custom formats can be registered. # revise this english
+Need a format not listed above? Register a custom handler with
+`register_saver` / `register_loader` and `sio.save()` / `sio.load()`
+will dispatch to it by extension just like a built-in.
 
 </details>
 
