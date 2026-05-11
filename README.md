@@ -22,12 +22,12 @@
 <!-- scitex-badges:start -->
 <a href="https://pypi.org/project/scitex-io/"><img src="https://img.shields.io/pypi/v/scitex-io.svg" alt="PyPI"></a>
 <a href="https://pypi.org/project/scitex-io/"><img src="https://img.shields.io/pypi/pyversions/scitex-io.svg" alt="Python"></a>
-<a href="https://scitex-io.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/scitex-io/badge/?version=latest" alt="Read the Docs"></a>
+<a href="https://scitex-io.readthedocs.io/en/latest/"><img src="https://img.shields.io/readthedocs/scitex-io?label=Read%20the%20Docs" alt="Read the Docs"></a>
 </p>
 <p align="center">
 <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-io/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
 <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/install-test.yml"><img src="https://github.com/ywatanabe1989/scitex-io/actions/workflows/install-test.yml/badge.svg" alt="Install Test"></a>
-<a href="https://codecov.io/gh/ywatanabe1989/scitex-io"><img src="https://codecov.io/gh/ywatanabe1989/scitex-io/branch/develop/graph/badge.svg" alt="Coverage"></a>
+<a href="https://codecov.io/gh/ywatanabe1989/scitex-io"><img src="https://codecov.io/gh/ywatanabe1989/scitex-io/graph/badge.svg" alt="Coverage"></a>
 <!-- scitex-badges:end -->
 </p>
 
