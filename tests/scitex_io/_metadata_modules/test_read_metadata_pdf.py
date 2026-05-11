@@ -1,71 +1,66 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Tests for read_metadata_pdf."""
 
-# Add your tests here
+import json
 
-if __name__ == "__main__":
-    import os
+import pytest
 
-    import pytest
+pypdf = pytest.importorskip("pypdf")
 
-    pytest.main([os.path.abspath(__file__)])
+from scitex_io._metadata_modules.embed_metadata_pdf import embed_metadata_pdf
+from scitex_io._metadata_modules.read_metadata_pdf import read_metadata_pdf
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/read_metadata_pdf.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # File: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/read_metadata_pdf.py
-#
-# """PDF metadata reading from PDF Info Dictionary."""
-#
-# import json
-# from typing import Any, Dict, Optional
-#
-#
-# def read_metadata_pdf(image_path: str) -> Optional[Dict[str, Any]]:
-#     """
-#     Read metadata from a PDF file.
-#
-#     Args:
-#         image_path: Path to the PDF file.
-#
-#     Returns:
-#         Dictionary containing metadata, or None if no metadata found.
-#     """
-#     metadata = None
-#
-#     try:
-#         from pypdf import PdfReader
-#
-#         reader = PdfReader(image_path)
-#
-#         # Try to read metadata from PDF Info Dictionary
-#         if reader.metadata:
-#             # Check Subject field for JSON metadata
-#             if "/Subject" in reader.metadata:
-#                 subject = reader.metadata["/Subject"]
-#                 try:
-#                     metadata = json.loads(subject)
-#                 except json.JSONDecodeError:
-#                     # If not JSON, create metadata dict from available fields
-#                     metadata = {
-#                         "title": reader.metadata.get("/Title", ""),
-#                         "author": reader.metadata.get("/Author", ""),
-#                         "subject": subject,
-#                         "creator": reader.metadata.get("/Creator", ""),
-#                     }
-#     except ImportError:
-#         pass  # pypdf not available, return None
-#     except Exception:
-#         pass  # PDF metadata corrupted or not readable
-#
-#     return metadata
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/read_metadata_pdf.py
-# --------------------------------------------------------------------------------
+def _make_pdf(path):
+    from pypdf import PdfWriter
+
+    w = PdfWriter()
+    w.add_blank_page(width=72, height=72)
+    with open(path, "wb") as f:
+        w.write(f)
+    return path
+
+
+def test_read_returns_none_when_no_metadata(tmp_path):
+    p = _make_pdf(tmp_path / "no_meta.pdf")
+    assert read_metadata_pdf(str(p)) is None
+
+
+def test_read_json_round_trip(tmp_path):
+    p = _make_pdf(tmp_path / "with_meta.pdf")
+    payload = {"abc": 123, "nested": {"x": 1}}
+    embed_metadata_pdf(
+        str(p), json.dumps(payload), metadata={"title": "T", "author": "A"}
+    )
+    out = read_metadata_pdf(str(p))
+    assert out == payload
+
+
+def test_read_non_json_subject_falls_back_to_field_dict(tmp_path):
+    p = _make_pdf(tmp_path / "plain.pdf")
+    # Write a Subject that isn't JSON so the parser falls into the
+    # "build from available fields" branch.
+    from pypdf import PdfWriter
+
+    reader = pypdf.PdfReader(str(p))
+    writer = PdfWriter()
+    for page in reader.pages:
+        writer.add_page(page)
+    writer.add_metadata(
+        {
+            "/Title": "T2",
+            "/Author": "A2",
+            "/Subject": "not-json",
+            "/Creator": "X",
+        }
+    )
+    with open(p, "wb") as f:
+        writer.write(f)
+
+    out = read_metadata_pdf(str(p))
+    assert out == {
+        "title": "T2",
+        "author": "A2",
+        "subject": "not-json",
+        "creator": "X",
+    }
