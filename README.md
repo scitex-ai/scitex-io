@@ -424,12 +424,23 @@ Also available via MCP: `io_skills_list()` / `io_skills_get(name)`.
 
 </details>
 
+## Lint Rules
+
+`scitex-io` ships 14 IO-specific (`STX-IO001..014`) and 5 path-handling
+(`STX-PA001..005`) lint rules. They are detected automatically by
+[`scitex-dev`](https://github.com/ywatanabe1989/scitex-dev)'s linter,
+which is already a hard dependency of `scitex-io` — no extra install
+needed.
+
+```bash
+scitex-dev linter check-files src/           # lint a tree
+scitex-dev linter list-rules --category io   # show live rule definitions
+```
+
 <details>
-<summary><b>Lint Rules (STX-IO001..014 + STX-PA001..005)</b></summary>
+<summary><b>Rule reference (STX-IO001..014 + STX-PA001..005)</b></summary>
 
 <br>
-
-Detected by [scitex-linter](https://github.com/ywatanabe1989/scitex-linter) when this package is installed. Run `scitex-linter list-rules --plugin io` to see live definitions.
 
 | Rule | Severity | Trigger |
 |------|----------|---------|
@@ -447,7 +458,7 @@ Detected by [scitex-linter](https://github.com/ywatanabe1989/scitex-linter) when
 | `STX-IO012` | warning | `cv2.imread / imwrite`, `PIL.Image.open`, `plt.imsave / imread`, `imageio.*` → use `sio.save()/load()` |
 | `STX-IO013` | warning | `h5py.File(...)` → use `sio.save()/load()` for HDF5 |
 | `STX-IO014` | warning | `sio.save / load` called with an extension that has no registered handler — register one with `register_saver/register_loader` |
-| `STX-PA001` | warning | Absolute path passed to `stx.io` — prefer relative for reproducibility |
+| `STX-PA001` | warning | Absolute path passed to `sio.*` — prefer relative for reproducibility |
 | `STX-PA002` | warning | `open(...)` → use `sio.save()/load()` for auto-logging |
 | `STX-PA003` | info | `os.makedirs / mkdir` — `sio.save()` auto-creates directories |
 | `STX-PA004` | warning | `os.chdir(...)` — scripts should run from project root |
