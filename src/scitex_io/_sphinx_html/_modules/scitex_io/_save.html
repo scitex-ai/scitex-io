@@ -352,36 +352,61 @@
     <span class="n">use_caller_path</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Save an object to a file with the specified format.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save ``obj`` by extension; ``specified_path`` is caller-anchored.</span>
+
+<span class="sd">    The file format is selected from ``specified_path``&#39;s extension via</span>
+<span class="sd">    the plugin registry — `.csv`, `.npy`, `.pkl`, `.yaml`, `.png`,</span>
+<span class="sd">    `.h5`, ... 30+ formats are built in; custom extensions can be added</span>
+<span class="sd">    with ``register_saver``.</span>
+
+<span class="sd">    Path resolution rules (when ``specified_path`` is relative):</span>
+
+<span class="sd">    - Called from a script ``/path/to/analysis.py`` →</span>
+<span class="sd">      ``/path/to/analysis_out/&lt;specified_path&gt;``.</span>
+<span class="sd">    - Called from a notebook ``/path/to/exp.ipynb`` →</span>
+<span class="sd">      ``/path/to/exp_out/&lt;specified_path&gt;``.</span>
+<span class="sd">    - Called from ``python -i`` / IPython / interactive REPL →</span>
+<span class="sd">      ``$SCITEX_DIR/io/runtime/cache/&lt;specified_path&gt;`` (default</span>
+<span class="sd">      ``~/.scitex/io/runtime/cache/``). Honours the canonical scitex</span>
+<span class="sd">      local-state convention; see scitex-dev skills/general</span>
+<span class="sd">      ``01_ecosystem_06_local-state-directories.md``.</span>
+<span class="sd">    - Absolute path → used as-is, no routing.</span>
+
+<span class="sd">    Intermediate directories are created automatically — callers do</span>
+<span class="sd">    not need ``os.makedirs()`` / ``Path.mkdir()``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    obj : Any</span>
 <span class="sd">        The object to be saved.</span>
 <span class="sd">    specified_path : Union[str, Path]</span>
-<span class="sd">        The file name or path where the object should be saved.</span>
+<span class="sd">        The filename or relative path under which to save ``obj``. May</span>
+<span class="sd">        contain subdirectories (``&quot;sub/dir/file.csv&quot;``); intermediates</span>
+<span class="sd">        are auto-created. Absolute paths bypass routing.</span>
 <span class="sd">    makedirs : bool, optional</span>
-<span class="sd">        If True, create the directory path if it does not exist. Default is True.</span>
+<span class="sd">        Create parent directories on demand. Default ``True``.</span>
 <span class="sd">    verbose : bool, optional</span>
-<span class="sd">        If True, print a message upon successful saving. Default is True.</span>
+<span class="sd">        Print a one-line success message. Default ``True``.</span>
 <span class="sd">    symlink_from_cwd : bool, optional</span>
-<span class="sd">        If True, create a symlink from the current working directory. Default is False.</span>
+<span class="sd">        Drop a symlink at ``./&lt;specified_path&gt;`` pointing into the</span>
+<span class="sd">        auto-routed location. Default ``False``.</span>
 <span class="sd">    symlink_to : Union[str, Path], optional</span>
-<span class="sd">        If specified, create a symlink at this path pointing to the saved file.</span>
+<span class="sd">        Plant a symlink at this custom path pointing to the saved file.</span>
 <span class="sd">    dry_run : bool, optional</span>
-<span class="sd">        If True, simulate the saving process without writing files. Default is False.</span>
+<span class="sd">        Print the resolved path without writing. Default ``False``.</span>
 <span class="sd">    no_csv : bool, optional</span>
-<span class="sd">        If True, skip CSV export for image saves. Default is False.</span>
+<span class="sd">        Skip the auto-CSV sidecar for figure saves. Default ``False``.</span>
 <span class="sd">    use_caller_path : bool, optional</span>
-<span class="sd">        If True, skip internal library frames for path detection. Default is False.</span>
+<span class="sd">        Resolve the anchor from the calling script, not the immediate</span>
+<span class="sd">        caller — needed when ``save`` is wrapped by a library. Default</span>
+<span class="sd">        ``False``.</span>
 <span class="sd">    **kwargs</span>
-<span class="sd">        Additional keyword arguments to pass to the underlying save function.</span>
+<span class="sd">        Passed through to the per-format handler.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    Path or None</span>
-<span class="sd">        Path to saved file on success, False on error.</span>
+<span class="sd">        Path to saved file on success, ``None``/``False`` on error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">specified_path</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>

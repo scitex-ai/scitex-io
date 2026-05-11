@@ -366,24 +366,48 @@ User registrations always override built-ins.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.save">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specified_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">makedirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_from_cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_csv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_caller_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_save.html#save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.save" title="Link to this definition"></a></dt>
-<dd><p>Save an object to a file with the specified format.</p>
+<dd><p>Save <code class="docutils literal notranslate"><span class="pre">obj</span></code> by extension; <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is caller-anchored.</p>
+<p>The file format is selected from <code class="docutils literal notranslate"><span class="pre">specified_path</span></code>’s extension via
+the plugin registry — <cite>.csv</cite>, <cite>.npy</cite>, <cite>.pkl</cite>, <cite>.yaml</cite>, <cite>.png</cite>,
+<cite>.h5</cite>, … 30+ formats are built in; custom extensions can be added
+with <code class="docutils literal notranslate"><span class="pre">register_saver</span></code>.</p>
+<p>Path resolution rules (when <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is relative):</p>
+<ul class="simple">
+<li><p>Called from a script <code class="docutils literal notranslate"><span class="pre">/path/to/analysis.py</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/analysis_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from a notebook <code class="docutils literal notranslate"><span class="pre">/path/to/exp.ipynb</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/exp_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-i</span></code> / IPython / interactive REPL →
+<code class="docutils literal notranslate"><span class="pre">$SCITEX_DIR/io/runtime/cache/&lt;specified_path&gt;</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">~/.scitex/io/runtime/cache/</span></code>). Honours the canonical scitex
+local-state convention; see scitex-dev skills/general
+<code class="docutils literal notranslate"><span class="pre">01_ecosystem_06_local-state-directories.md</span></code>.</p></li>
+<li><p>Absolute path → used as-is, no routing.</p></li>
+</ul>
+<p>Intermediate directories are created automatically — callers do
+not need <code class="docutils literal notranslate"><span class="pre">os.makedirs()</span></code> / <code class="docutils literal notranslate"><span class="pre">Path.mkdir()</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>obj</strong> (<em>Any</em>) – The object to be saved.</p></li>
-<li><p><strong>specified_path</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The file name or path where the object should be saved.</p></li>
-<li><p><strong>makedirs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, create the directory path if it does not exist. Default is True.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, print a message upon successful saving. Default is True.</p></li>
-<li><p><strong>symlink_from_cwd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, create a symlink from the current working directory. Default is False.</p></li>
-<li><p><strong>symlink_to</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – If specified, create a symlink at this path pointing to the saved file.</p></li>
-<li><p><strong>dry_run</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, simulate the saving process without writing files. Default is False.</p></li>
-<li><p><strong>no_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, skip CSV export for image saves. Default is False.</p></li>
-<li><p><strong>use_caller_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, skip internal library frames for path detection. Default is False.</p></li>
-<li><p><strong>**kwargs</strong> – Additional keyword arguments to pass to the underlying save function.</p></li>
+<li><p><strong>specified_path</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The filename or relative path under which to save <code class="docutils literal notranslate"><span class="pre">obj</span></code>. May
+contain subdirectories (<code class="docutils literal notranslate"><span class="pre">&quot;sub/dir/file.csv&quot;</span></code>); intermediates
+are auto-created. Absolute paths bypass routing.</p></li>
+<li><p><strong>makedirs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Create parent directories on demand. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print a one-line success message. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>symlink_from_cwd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Drop a symlink at <code class="docutils literal notranslate"><span class="pre">./&lt;specified_path&gt;</span></code> pointing into the
+auto-routed location. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>symlink_to</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Plant a symlink at this custom path pointing to the saved file.</p></li>
+<li><p><strong>dry_run</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print the resolved path without writing. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>no_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Skip the auto-CSV sidecar for figure saves. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>use_caller_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Resolve the anchor from the calling script, not the immediate
+caller — needed when <code class="docutils literal notranslate"><span class="pre">save</span></code> is wrapped by a library. Default
+<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed through to the per-format handler.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Path to saved file on success, False on error.</p>
+<dd class="field-even"><p>Path to saved file on success, <code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">False</span></code> on error.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Path or None</p>
@@ -446,24 +470,48 @@ Examples: ‘pdf’, ‘json’, ‘csv’</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.load_configs">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load_configs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IS_DEBUG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_configs.html#load_configs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.load_configs" title="Link to this definition"></a></dt>
-<dd><p>Load YAML configuration files from specified directory.</p>
+<dd><p>Load and merge every YAML under <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> into one <code class="docutils literal notranslate"><span class="pre">DotDict</span></code>.</p>
+<p>Filename stems become top-level keys; YAML keys become nested
+attributes. Every key (filename stem and every nested key) is
+normalised to UPPER_CASE at load time so the in-memory tree is
+case-stable regardless of source casing — <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code> with
+<code class="docutils literal notranslate"><span class="pre">hidden_dim:</span> <span class="pre">256</span></code> lands at <code class="docutils literal notranslate"><span class="pre">CONFIG.MODEL.HIDDEN_DIM</span></code>.</p>
+<p>If two siblings fold to the same UPPER key (e.g. <code class="docutils literal notranslate"><span class="pre">MODEL.yaml</span></code>
+next to <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code>, or <code class="docutils literal notranslate"><span class="pre">HIDDEN_DIM</span></code> next to <code class="docutils literal notranslate"><span class="pre">hidden_dim</span></code>),
+a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> is emitted pointing at the conflict, the
+UPPER variant’s value is kept, and the lowercase one is dropped.</p>
+<p>Debug mode promotes any <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span></code> sibling over its non-debug
+counterpart, so a single <code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> flips the whole project
+between production and debug values. Equivalent triggers:
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> with <code class="docutils literal notranslate"><span class="pre">IS_DEBUG:</span> <span class="pre">true</span></code>, the <code class="docutils literal notranslate"><span class="pre">IS_DEBUG=True</span></code>
+kwarg, or running under <code class="docutils literal notranslate"><span class="pre">CI=True</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Debug mode flag. If None, reads from IS_DEBUG.yaml</p></li>
-<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Show configuration changes</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information</p></li>
-<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing configuration files. Can be a string or pathlib.Path object.
-Defaults to “./config” if None</p></li>
+<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Force debug mode. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), inferred from
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> inside <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> or from the <code class="docutils literal notranslate"><span class="pre">CI</span></code>
+env var.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Echo the <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span> <span class="pre">-&gt;</span> <span class="pre">&lt;KEY&gt;</span></code> substitutions to stdout.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information.</p></li>
+<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing the YAML files. Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;./config&quot;</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Merged configuration dictionary</p>
+<dd class="field-even"><p>Merged configuration tree with UPPER_CASE keys throughout.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#id50" title="scitex_io.DotDict">DotDict</a></p>
 </dd>
 </dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">()</span>                       <span class="c1"># ./config/*.yaml</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 256</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">(</span><span class="n">IS_DEBUG</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 32 (DEBUG_ promoted)</span>
+</pre></div>
+</div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -930,24 +978,48 @@ when indi_suffix=None is passed, only ‘{}’.format(i) will be added.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specified_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">makedirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_from_cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_csv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_caller_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_save.html#save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
-<dd><p>Save an object to a file with the specified format.</p>
+<dd><p>Save <code class="docutils literal notranslate"><span class="pre">obj</span></code> by extension; <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is caller-anchored.</p>
+<p>The file format is selected from <code class="docutils literal notranslate"><span class="pre">specified_path</span></code>’s extension via
+the plugin registry — <cite>.csv</cite>, <cite>.npy</cite>, <cite>.pkl</cite>, <cite>.yaml</cite>, <cite>.png</cite>,
+<cite>.h5</cite>, … 30+ formats are built in; custom extensions can be added
+with <code class="docutils literal notranslate"><span class="pre">register_saver</span></code>.</p>
+<p>Path resolution rules (when <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is relative):</p>
+<ul class="simple">
+<li><p>Called from a script <code class="docutils literal notranslate"><span class="pre">/path/to/analysis.py</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/analysis_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from a notebook <code class="docutils literal notranslate"><span class="pre">/path/to/exp.ipynb</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/exp_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-i</span></code> / IPython / interactive REPL →
+<code class="docutils literal notranslate"><span class="pre">$SCITEX_DIR/io/runtime/cache/&lt;specified_path&gt;</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">~/.scitex/io/runtime/cache/</span></code>). Honours the canonical scitex
+local-state convention; see scitex-dev skills/general
+<code class="docutils literal notranslate"><span class="pre">01_ecosystem_06_local-state-directories.md</span></code>.</p></li>
+<li><p>Absolute path → used as-is, no routing.</p></li>
+</ul>
+<p>Intermediate directories are created automatically — callers do
+not need <code class="docutils literal notranslate"><span class="pre">os.makedirs()</span></code> / <code class="docutils literal notranslate"><span class="pre">Path.mkdir()</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>obj</strong> (<em>Any</em>) – The object to be saved.</p></li>
-<li><p><strong>specified_path</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The file name or path where the object should be saved.</p></li>
-<li><p><strong>makedirs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, create the directory path if it does not exist. Default is True.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, print a message upon successful saving. Default is True.</p></li>
-<li><p><strong>symlink_from_cwd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, create a symlink from the current working directory. Default is False.</p></li>
-<li><p><strong>symlink_to</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – If specified, create a symlink at this path pointing to the saved file.</p></li>
-<li><p><strong>dry_run</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, simulate the saving process without writing files. Default is False.</p></li>
-<li><p><strong>no_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, skip CSV export for image saves. Default is False.</p></li>
-<li><p><strong>use_caller_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, skip internal library frames for path detection. Default is False.</p></li>
-<li><p><strong>**kwargs</strong> – Additional keyword arguments to pass to the underlying save function.</p></li>
+<li><p><strong>specified_path</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The filename or relative path under which to save <code class="docutils literal notranslate"><span class="pre">obj</span></code>. May
+contain subdirectories (<code class="docutils literal notranslate"><span class="pre">&quot;sub/dir/file.csv&quot;</span></code>); intermediates
+are auto-created. Absolute paths bypass routing.</p></li>
+<li><p><strong>makedirs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Create parent directories on demand. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print a one-line success message. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>symlink_from_cwd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Drop a symlink at <code class="docutils literal notranslate"><span class="pre">./&lt;specified_path&gt;</span></code> pointing into the
+auto-routed location. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>symlink_to</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Plant a symlink at this custom path pointing to the saved file.</p></li>
+<li><p><strong>dry_run</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print the resolved path without writing. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>no_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Skip the auto-CSV sidecar for figure saves. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>use_caller_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Resolve the anchor from the calling script, not the immediate
+caller — needed when <code class="docutils literal notranslate"><span class="pre">save</span></code> is wrapped by a library. Default
+<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed through to the per-format handler.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Path to saved file on success, False on error.</p>
+<dd class="field-even"><p>Path to saved file on success, <code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">False</span></code> on error.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Path or None</p>
@@ -1010,24 +1082,48 @@ Examples: ‘pdf’, ‘json’, ‘csv’</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="id17">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load_configs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IS_DEBUG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_configs.html#load_configs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id17" title="Link to this definition"></a></dt>
-<dd><p>Load YAML configuration files from specified directory.</p>
+<dd><p>Load and merge every YAML under <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> into one <code class="docutils literal notranslate"><span class="pre">DotDict</span></code>.</p>
+<p>Filename stems become top-level keys; YAML keys become nested
+attributes. Every key (filename stem and every nested key) is
+normalised to UPPER_CASE at load time so the in-memory tree is
+case-stable regardless of source casing — <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code> with
+<code class="docutils literal notranslate"><span class="pre">hidden_dim:</span> <span class="pre">256</span></code> lands at <code class="docutils literal notranslate"><span class="pre">CONFIG.MODEL.HIDDEN_DIM</span></code>.</p>
+<p>If two siblings fold to the same UPPER key (e.g. <code class="docutils literal notranslate"><span class="pre">MODEL.yaml</span></code>
+next to <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code>, or <code class="docutils literal notranslate"><span class="pre">HIDDEN_DIM</span></code> next to <code class="docutils literal notranslate"><span class="pre">hidden_dim</span></code>),
+a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> is emitted pointing at the conflict, the
+UPPER variant’s value is kept, and the lowercase one is dropped.</p>
+<p>Debug mode promotes any <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span></code> sibling over its non-debug
+counterpart, so a single <code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> flips the whole project
+between production and debug values. Equivalent triggers:
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> with <code class="docutils literal notranslate"><span class="pre">IS_DEBUG:</span> <span class="pre">true</span></code>, the <code class="docutils literal notranslate"><span class="pre">IS_DEBUG=True</span></code>
+kwarg, or running under <code class="docutils literal notranslate"><span class="pre">CI=True</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Debug mode flag. If None, reads from IS_DEBUG.yaml</p></li>
-<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Show configuration changes</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information</p></li>
-<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing configuration files. Can be a string or pathlib.Path object.
-Defaults to “./config” if None</p></li>
+<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Force debug mode. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), inferred from
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> inside <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> or from the <code class="docutils literal notranslate"><span class="pre">CI</span></code>
+env var.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Echo the <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span> <span class="pre">-&gt;</span> <span class="pre">&lt;KEY&gt;</span></code> substitutions to stdout.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information.</p></li>
+<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing the YAML files. Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;./config&quot;</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Merged configuration dictionary</p>
+<dd class="field-even"><p>Merged configuration tree with UPPER_CASE keys throughout.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#id50" title="scitex_io.DotDict">DotDict</a></p>
 </dd>
 </dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">()</span>                       <span class="c1"># ./config/*.yaml</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 256</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">(</span><span class="n">IS_DEBUG</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 32 (DEBUG_ promoted)</span>
+</pre></div>
+</div>
+</div>
 </dd></dl>
 
 <dl class="py function">

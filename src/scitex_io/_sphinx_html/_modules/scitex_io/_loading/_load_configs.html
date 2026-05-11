@@ -321,24 +321,49 @@
     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">config_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load YAML configuration files from specified directory.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load and merge every YAML under ``config_dir`` into one ``DotDict``.</span>
+
+<span class="sd">    Filename stems become top-level keys; YAML keys become nested</span>
+<span class="sd">    attributes. Every key (filename stem and every nested key) is</span>
+<span class="sd">    normalised to UPPER_CASE at load time so the in-memory tree is</span>
+<span class="sd">    case-stable regardless of source casing — ``model.yaml`` with</span>
+<span class="sd">    ``hidden_dim: 256`` lands at ``CONFIG.MODEL.HIDDEN_DIM``.</span>
+
+<span class="sd">    If two siblings fold to the same UPPER key (e.g. ``MODEL.yaml``</span>
+<span class="sd">    next to ``model.yaml``, or ``HIDDEN_DIM`` next to ``hidden_dim``),</span>
+<span class="sd">    a ``UserWarning`` is emitted pointing at the conflict, the</span>
+<span class="sd">    UPPER variant&#39;s value is kept, and the lowercase one is dropped.</span>
+
+<span class="sd">    Debug mode promotes any ``DEBUG_&lt;KEY&gt;`` sibling over its non-debug</span>
+<span class="sd">    counterpart, so a single ``IS_DEBUG.yaml`` flips the whole project</span>
+<span class="sd">    between production and debug values. Equivalent triggers:</span>
+<span class="sd">    ``IS_DEBUG.yaml`` with ``IS_DEBUG: true``, the ``IS_DEBUG=True``</span>
+<span class="sd">    kwarg, or running under ``CI=True``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    IS_DEBUG : bool, optional</span>
-<span class="sd">        Debug mode flag. If None, reads from IS_DEBUG.yaml</span>
+<span class="sd">        Force debug mode. If ``None`` (default), inferred from</span>
+<span class="sd">        ``IS_DEBUG.yaml`` inside ``config_dir`` or from the ``CI``</span>
+<span class="sd">        env var.</span>
 <span class="sd">    show : bool</span>
-<span class="sd">        Show configuration changes</span>
+<span class="sd">        Echo the ``DEBUG_&lt;KEY&gt; -&gt; &lt;KEY&gt;`` substitutions to stdout.</span>
 <span class="sd">    verbose : bool</span>
-<span class="sd">        Print detailed information</span>
+<span class="sd">        Print detailed information.</span>
 <span class="sd">    config_dir : Union[str, Path], optional</span>
-<span class="sd">        Directory containing configuration files. Can be a string or pathlib.Path object.</span>
-<span class="sd">        Defaults to &quot;./config&quot; if None</span>
+<span class="sd">        Directory containing the YAML files. Defaults to ``&quot;./config&quot;``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    DotDict</span>
-<span class="sd">        Merged configuration dictionary</span>
+<span class="sd">        Merged configuration tree with UPPER_CASE keys throughout.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG = load_configs()                       # ./config/*.yaml</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG.MODEL.HIDDEN_DIM                       # 256</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG = load_configs(IS_DEBUG=True)</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG.MODEL.HIDDEN_DIM                       # 32 (DEBUG_ promoted)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">apply_debug_values</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">IS_DEBUG</span><span class="p">):</span>
