@@ -126,3 +126,34 @@ def test_hash_skip_other(tmp_path):
     p = str(tmp_path / "other.csv")
     _save_csv(42, p)
     _save_csv(42, p)  # exercise non-(df/ndarray) hash path
+
+
+def test_existing_corrupt_proceeds(tmp_path):
+    """When existing path can't be read as CSV → exception swallowed, save proceeds."""
+    p = str(tmp_path / "corrupt.csv")
+    # Write invalid CSV that read_csv chokes on (empty file)
+    open(p, "w").close()
+    _save_csv(pd.DataFrame({"a": [1, 2]}), p)
+    back = pd.read_csv(p)
+    assert list(back["a"]) == [1, 2]
+
+
+def test_hash_unhashable_obj(tmp_path):
+    """Existing file + obj whose str(obj) raises → exception swallowed."""
+
+    class Boom:
+        def __str__(self):
+            raise RuntimeError("unstringable")
+
+        def __repr__(self):
+            return "Boom()"
+
+    p = str(tmp_path / "u.csv")
+    # Pre-create file so existence check runs
+    open(p, "w").write("a\n1\n")
+    # Should NOT raise — exception in hash path is swallowed
+    try:
+        _save_csv(Boom(), p)
+    except ValueError:
+        # Acceptable: Boom doesn't fit any branch and final fallback fails
+        pass

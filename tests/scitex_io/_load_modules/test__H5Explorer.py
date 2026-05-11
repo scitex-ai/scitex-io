@@ -168,6 +168,65 @@ def test_has_h5_key_corrupted(tmp_path):
     assert out is False
 
 
+def test_has_h5_key_lock_indicator_retries(tmp_path, monkeypatch):
+    """Lock-style OSError → retries then returns False."""
+    import scitex_io._load_modules._H5Explorer as mod
+
+    p = tmp_path / "lock.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("present", data=[1])
+
+    calls = {"n": 0}
+    real_file = h5py.File
+
+    def fake_file(path, mode):
+        calls["n"] += 1
+        raise OSError("unable to lock file")
+
+    monkeypatch.setattr(mod.h5py, "File", fake_file)
+    out = has_h5_key(str(p), "present", max_retries=3)
+    assert out is False
+    # max_retries=3 → 3 attempts
+    assert calls["n"] == 3
+
+
+def test_has_h5_key_unknown_oserror_reraises(tmp_path, monkeypatch):
+    import scitex_io._load_modules._H5Explorer as mod
+
+    p = tmp_path / "x.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("k", data=[1])
+
+    def fake_file(path, mode):
+        raise OSError("some completely different error")
+
+    monkeypatch.setattr(mod.h5py, "File", fake_file)
+    with pytest.raises(OSError, match="completely different"):
+        has_h5_key(str(p), "k")
+
+
+def test_has_h5_key_corruption_action_raise(tmp_path):
+    """corruption indicator with action_on_corrupted != 'delete' → returns False without delete."""
+    p = tmp_path / "broken.h5"
+    p.write_bytes(b"\x00\x01\x02 not hdf5 truncated file")
+    out = has_h5_key(str(p), "k", action_on_corrupted="ignore")
+    assert out is False
+
+
+def test_has_h5_key_keyerror_path(tmp_path, monkeypatch):
+    import scitex_io._load_modules._H5Explorer as mod
+
+    p = tmp_path / "x.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("k", data=[1])
+
+    def fake_file(path, mode):
+        raise KeyError("missing key")
+
+    monkeypatch.setattr(mod.h5py, "File", fake_file)
+    assert has_h5_key(str(p), "anything") is False
+
+
 def test_delete_corrupted_entry_swallows_errors(tmp_path):
     # Real file, missing key → returns False (no exception)
     p = tmp_path / "x.h5"

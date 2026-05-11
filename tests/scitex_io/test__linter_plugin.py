@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for scitex_io._linter_plugin."""
 
-
 from scitex_dev.linter.checker import lint_source
 
 from scitex_io._linter_plugin import (
@@ -166,6 +165,12 @@ def test_io014_non_stx_io_call_ignored():
     assert "STX-IO014" not in _ids(lint_source(src))
 
 
+def test_io014_bare_function_call_ignored():
+    """Bare function call (not an Attribute) → checker returns None early."""
+    src = "save(obj, 'y.unknownext')\n"
+    assert "STX-IO014" not in _ids(lint_source(src))
+
+
 def test_pa003_makedirs():
     src = "import os\nos.makedirs('out')\n"
     assert "STX-PA003" in _ids(lint_source(src))
@@ -194,19 +199,15 @@ def test_unknownextchecker_direct():
 
 
 def test_builtin_extensions_fallback(monkeypatch):
-    """Force the registry-import path to fail → fallback set returned."""
-    import builtins
-
+    """Force registry attribute access to fail → fallback set returned."""
     import scitex_io._linter_plugin as mod
+    import scitex_io._registry as reg
 
-    real_import = builtins.__import__
-
-    def fake(name, *a, **kw):
-        if "_registry" in name or "_builtin_handlers" in name:
-            raise ImportError("boom")
-        return real_import(name, *a, **kw)
-
-    monkeypatch.setattr(builtins, "__import__", fake)
+    # Clobber the registry tier attrs so the function raises and hits except
+    monkeypatch.setattr(reg, "_builtin_savers", None)
     exts = mod._builtin_extensions()
     assert ".csv" in exts
     assert ".h5" in exts
+    # Returns a set of strings
+    assert isinstance(exts, set)
+    assert ".png" in exts
