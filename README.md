@@ -146,13 +146,14 @@ hyperparameters, paths, thresholds — out of the scripts that consume
 them to keep single source of truth.
 
 `load_configs()` collects every YAML under `./config/` into one nested
-`DotDict`. **Use UPPER_CASE for filenames and keys** — Python's
-convention for constants. Lowercase still parses, but if a YAML file or
-key collides with its UPPER_CASE sibling (e.g. `model.yaml` next to
-`MODEL.yaml`, or `hidden_dim` next to `HIDDEN_DIM`), `load_configs()`
-emits a `UserWarning` and drops the lowercase variant. In your own
-source, always reference the UPPER_CASE form
-(`CONFIG.MODEL.HIDDEN_DIM`).
+`DotDict`. Filename stems become top-level keys; YAML keys become
+attributes. Every key is normalised to UPPER_CASE at load time, so
+`model.yaml` with `hidden_dim: 256` lands at `CONFIG.MODEL.HIDDEN_DIM`
+regardless of source casing — and your code always reads the same
+shape. If two siblings fold to the same UPPER key (e.g. `MODEL.yaml`
+next to `model.yaml`, or `HIDDEN_DIM` next to `hidden_dim`),
+`load_configs()` emits a `UserWarning` pointing at the conflict and
+keeps the value from the UPPER variant, dropping the lowercase one.
 
 Debug mode promotes any `DEBUG_*` sibling over its non-debug
 counterpart, so a single `IS_DEBUG.yaml` flips the whole project

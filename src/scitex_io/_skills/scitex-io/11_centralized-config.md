@@ -58,12 +58,18 @@ cfg.to_dict()              # convert back to plain dict
 
 Nested dicts auto-wrapped. Supports `keys()`, `values()`, `items()`, `get()`, `copy()`, `update()`, `in`.
 
-## UPPER_CASE convention for config files / keys
+## How filenames and keys are normalised
 
-Within `./config/*.yaml`, use UPPER_CASE filenames and keys
-(`MODEL.yaml`, `HIDDEN_DIM: 256`) — Python's convention for
-constants. Lowercase still parses, but `load_configs()` emits a
-`UserWarning` if a lowercase sibling collides with an UPPER_CASE
-variant (e.g. `model.yaml` next to `MODEL.yaml`) and drops the
-lowercase one. In source code, always reference the UPPER form
-(`CONFIG.MODEL.HIDDEN_DIM`, never `CONFIG.model.hidden_dim`).
+`load_configs()` normalises every filename stem and every YAML key to
+`UPPER_CASE` at load time, so the in-memory tree is always
+case-stable regardless of how the source YAML was written:
+
+- `model.yaml` → top-level key `MODEL`
+- `hidden_dim: 256` inside the file → `CONFIG.MODEL.HIDDEN_DIM`
+
+If two siblings fold to the same UPPER key (e.g. `MODEL.yaml` next to
+`model.yaml`, or `HIDDEN_DIM` next to `hidden_dim`), `load_configs()`
+emits a `UserWarning` pointing at the conflict, keeps the value from
+the UPPER variant, and drops the lowercase one. In source code,
+reference the UPPER form (`CONFIG.MODEL.HIDDEN_DIM`) — it is the only
+shape the loader ever produces.
