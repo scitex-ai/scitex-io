@@ -145,6 +145,10 @@ path without writing.
 
 ### 3. Centralized project configuration
 
+Scientific projects benefit from keeping parameters — sample rates,
+hyperparameters, paths, thresholds — out of the scripts that consume
+them: one place to edit, one place to diff, one place to version.
+
 `load_configs()` collects every YAML under `./config/` into one nested
 `DotDict`. UPPER_CASE filenames become top-level keys and UPPER_CASE
 keys inside become constants. Debug mode promotes any `DEBUG_*` sibling
