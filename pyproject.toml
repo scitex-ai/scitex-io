@@ -91,6 +91,8 @@ dev = [
     "pypdf",              # current pdf reader path
     "pdfplumber",         # _pdf_content_extractors table extraction
     "PyMuPDF",            # _pdf_content_extractors fitz backend (image/metadata)
+    "scikit-learn",       # optuna visualization (importances plot)
+    "piexif",             # JPEG metadata sidecar in _image_csv_handler
     "markdown",           # md handler
     "html2text",          # html2md handler
     "ruamel.yaml",        # YAML round-trip tests
