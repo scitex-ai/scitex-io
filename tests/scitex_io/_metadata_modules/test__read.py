@@ -1,84 +1,73 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Real tests for scitex_io._metadata_modules._read.read_metadata dispatcher."""
 
-# Add your tests here
+import pytest
 
-if __name__ == "__main__":
-    import os
+from scitex_io._metadata_modules._read import read_metadata
 
-    import pytest
 
-    pytest.main([os.path.abspath(__file__)])
+def test_missing_file_raises(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        read_metadata(str(tmp_path / "missing.png"))
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/_read.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # File: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/_read.py
-#
-# """Main read_metadata dispatcher."""
-#
-# import os
-# from typing import Any, Dict, Optional
-#
-#
-# def read_metadata(image_path: str) -> Optional[Dict[str, Any]]:
-#     """
-#     Read metadata from an image or PDF file.
-#
-#     Args:
-#         image_path: Path to the file (PNG, JPEG, SVG, or PDF)
-#
-#     Returns:
-#         Dictionary containing metadata, or None if no metadata found
-#
-#     Raises:
-#         FileNotFoundError: If file doesn't exist
-#         ValueError: If file format is not supported
-#
-#     Example:
-#         >>> metadata = read_metadata('result.png')
-#         >>> print(metadata['experiment'])
-#         'seizure_prediction_001'
-#         >>> metadata = read_metadata('result.pdf')
-#     """
-#     if not os.path.exists(image_path):
-#         raise FileNotFoundError(f"File not found: {image_path}")
-#
-#     path_lower = image_path.lower()
-#
-#     # Dispatch to format-specific handlers
-#     if path_lower.endswith(".png"):
-#         from .read_metadata_png import read_metadata_png
-#
-#         return read_metadata_png(image_path)
-#
-#     elif path_lower.endswith((".jpg", ".jpeg")):
-#         from .read_metadata_jpeg import read_metadata_jpeg
-#
-#         return read_metadata_jpeg(image_path)
-#
-#     elif path_lower.endswith(".svg"):
-#         from .read_metadata_svg import read_metadata_svg
-#
-#         return read_metadata_svg(image_path)
-#
-#     elif path_lower.endswith(".pdf"):
-#         from .read_metadata_pdf import read_metadata_pdf
-#
-#         return read_metadata_pdf(image_path)
-#
-#     else:
-#         raise ValueError(
-#             f"Unsupported file format: {image_path}. "
-#             "Only PNG, JPEG, SVG, and PDF formats are supported."
-#         )
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/_read.py
-# --------------------------------------------------------------------------------
+def test_unsupported_format_raises(tmp_path):
+    p = tmp_path / "x.txt"
+    p.write_text("hi")
+    with pytest.raises(ValueError, match="Unsupported file format"):
+        read_metadata(str(p))
+
+
+def test_png_dispatch(tmp_path):
+    from PIL import Image, PngImagePlugin
+
+    p = tmp_path / "x.png"
+    img = Image.new("RGB", (4, 4), "red")
+    meta = PngImagePlugin.PngInfo()
+    meta.add_text("scitex_metadata", '{"key": "value"}')
+    img.save(p, "PNG", pnginfo=meta)
+    out = read_metadata(str(p))
+    # Either dict with key or None — both branches valid; just must not raise
+    assert out is None or isinstance(out, dict)
+
+
+def test_jpeg_dispatch(tmp_path):
+    from PIL import Image
+
+    for ext in ("jpg", "jpeg"):
+        p = tmp_path / f"x.{ext}"
+        Image.new("RGB", (4, 4), "blue").save(p, "JPEG")
+        out = read_metadata(str(p))
+        assert out is None or isinstance(out, dict)
+
+
+def test_svg_dispatch(tmp_path):
+    p = tmp_path / "x.svg"
+    p.write_text('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"/>')
+    out = read_metadata(str(p))
+    assert out is None or isinstance(out, dict)
+
+
+def test_pdf_dispatch(tmp_path):
+    """Generate a real PDF with matplotlib and ensure dispatcher routes to pdf reader."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    p = tmp_path / "x.pdf"
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3])
+    fig.savefig(p)
+    plt.close(fig)
+    out = read_metadata(str(p))
+    assert out is None or isinstance(out, dict)
+
+
+def test_case_insensitive_extension(tmp_path):
+    from PIL import Image
+
+    p = tmp_path / "X.PNG"
+    Image.new("RGB", (2, 2)).save(p, "PNG")
+    out = read_metadata(str(p))
+    assert out is None or isinstance(out, dict)

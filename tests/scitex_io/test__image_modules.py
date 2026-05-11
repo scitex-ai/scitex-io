@@ -841,6 +841,162 @@ def test_handle_image_symlink_from_cwd_with_specified_path(tmp_path, monkeypatch
     assert sym_calls[0][1].endswith("myplot.csv")
 
 
+def test_embed_jpeg_raises_without_piexif(tmp_path, monkeypatch):
+    """ImportError branch when piexif is unavailable."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *a, **kw):
+        if name == "piexif":
+            raise ImportError("simulated")
+        return real_import(name, *a, **kw)
+
+    p = str(tmp_path / "x.jpg")
+    Image.new("RGB", (5, 5)).save(p, "JPEG")
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(ImportError, match="piexif is required"):
+        embed_metadata_jpeg(p, "{}")
+
+
+def test_embed_pdf_raises_without_pypdf(tmp_path, monkeypatch):
+    """ImportError branch when pypdf is unavailable."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *a, **kw):
+        if name == "pypdf":
+            raise ImportError("simulated")
+        return real_import(name, *a, **kw)
+
+    p = str(tmp_path / "x.pdf")
+    _make_pdf(p)
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(ImportError, match="pypdf is required"):
+        embed_metadata_pdf(p, "{}", {})
+
+
+def test_read_jpeg_without_piexif(tmp_path, monkeypatch):
+    """piexif missing → returns None gracefully (no raise)."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *a, **kw):
+        if name == "piexif":
+            raise ImportError("simulated")
+        return real_import(name, *a, **kw)
+
+    p = str(tmp_path / "any.jpg")
+    Image.new("RGB", (5, 5)).save(p, "JPEG")
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    assert read_metadata_jpeg(p) is None
+
+
+def test_read_jpeg_corrupted_exif(tmp_path, monkeypatch):
+    """piexif.load raising Exception → caught, returns None."""
+    import piexif
+
+    p = str(tmp_path / "c.jpg")
+    Image.new("RGB", (5, 5)).save(p, "JPEG")
+    monkeypatch.setattr(
+        piexif, "load", lambda *a, **k: (_ for _ in ()).throw(ValueError("bad"))
+    )
+    # Image.info needs 'exif' key — embed something first
+    import piexif as real_piexif
+
+    Image.new("RGB", (5, 5)).save(
+        p, "JPEG", exif=real_piexif.dump({"0th": {}, "Exif": {}, "GPS": {}, "1st": {}})
+    )
+    monkeypatch.setattr(
+        piexif, "load", lambda *a, **k: (_ for _ in ()).throw(ValueError("bad"))
+    )
+    assert read_metadata_jpeg(p) is None
+
+
+def test_read_pdf_without_pypdf(tmp_path, monkeypatch):
+    """pypdf missing → returns None."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *a, **kw):
+        if name == "pypdf":
+            raise ImportError("simulated")
+        return real_import(name, *a, **kw)
+
+    p = str(tmp_path / "x.pdf")
+    _make_pdf(p)
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    assert read_metadata_pdf(p) is None
+
+
+def test_jpeg_metadata_preserves_existing_exif(tmp_path):
+    """Existing EXIF in other IFDs is preserved during embedding."""
+    import piexif
+
+    p = str(tmp_path / "preexif.jpg")
+    pre_exif = {
+        "0th": {},
+        "Exif": {piexif.ExifIFD.UserComment: b"prior-comment"},
+        "GPS": {},
+        "1st": {},
+    }
+    Image.new("RGB", (20, 20)).save(p, "JPEG", exif=piexif.dump(pre_exif))
+    embed_metadata_jpeg(p, json.dumps({"new": 1}))
+    # New metadata is readable
+    assert read_metadata_jpeg(p) == {"new": 1}
+    # Old EXIF UserComment preserved
+    full = piexif.load(Image.open(p).info["exif"])
+    assert full["Exif"].get(piexif.ExifIFD.UserComment) == b"prior-comment"
+
+
+def test_save_image_plotly_png(tmp_path):
+    import plotly.graph_objects as go
+
+    fig = go.Figure(data=[go.Scatter(x=[1, 2, 3], y=[1, 2, 3])])
+    p = str(tmp_path / "plotly.png")
+    save_image(fig, p)
+    assert os.path.getsize(p) > 0
+
+
+def test_save_image_plotly_jpeg(tmp_path):
+    import plotly.graph_objects as go
+
+    fig = go.Figure(data=[go.Scatter(x=[1, 2, 3], y=[1, 2, 3])])
+    p = str(tmp_path / "plotly.jpg")
+    save_image(fig, p)
+    assert os.path.getsize(p) > 0
+
+
+def test_save_image_plotly_gif(tmp_path):
+    import plotly.graph_objects as go
+
+    fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[1, 2])])
+    p = str(tmp_path / "plotly.gif")
+    save_image(fig, p)
+    assert os.path.getsize(p) > 0
+
+
+def test_save_image_plotly_svg(tmp_path):
+    import plotly.graph_objects as go
+
+    fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[1, 2])])
+    p = str(tmp_path / "plotly.svg")
+    save_image(fig, p)
+    assert os.path.getsize(p) > 0
+
+
+def test_save_image_plotly_pdf(tmp_path):
+    import plotly.graph_objects as go
+
+    fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[1, 2])])
+    p = str(tmp_path / "plotly.pdf")
+    save_image(fig, p)
+    assert os.path.getsize(p) > 0
+
+
 def test_read_jpeg_no_exif_info(tmp_path):
     """JPEG without any 'exif' key in img.info → returns None."""
     p = str(tmp_path / "noexif.jpg")

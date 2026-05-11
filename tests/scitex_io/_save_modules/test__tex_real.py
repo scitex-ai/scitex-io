@@ -111,3 +111,57 @@ def test_wrap_in_document_contains_packages():
     assert "\\documentclass" in out
     assert "\\usepackage{booktabs}" in out
     assert "X" in out
+
+
+def test_save_tex_dict_with_convert_results_available(tmp_path, monkeypatch):
+    """Inject a stub convert_results into scitex_stats._utils._normalizers to
+    exercise the success branch of the dict-input code path."""
+    import sys
+    import types
+
+    fake_pkg = types.ModuleType("scitex_stats")
+    fake_utils = types.ModuleType("scitex_stats._utils")
+    fake_norm = types.ModuleType("scitex_stats._utils._normalizers")
+
+    def convert_results(obj, return_as="latex", **kw):
+        return r"\begin{tabular}{ll}a & 1\end{tabular}"
+
+    fake_norm.convert_results = convert_results
+    fake_utils._normalizers = fake_norm
+    fake_pkg._utils = fake_utils
+    monkeypatch.setitem(sys.modules, "scitex_stats", fake_pkg)
+    monkeypatch.setitem(sys.modules, "scitex_stats._utils", fake_utils)
+    monkeypatch.setitem(sys.modules, "scitex_stats._utils._normalizers", fake_norm)
+
+    p = str(tmp_path / "dict.tex")
+    save_tex({"a": 1}, p, caption="Cap", label="Lab")
+    out = _read(p)
+    assert "tabular" in out
+    # caption/label wrap was applied
+    assert "Cap" in out and "Lab" in out
+
+
+def test_save_tex_dict_convert_results_failure_falls_back(tmp_path, monkeypatch):
+    """convert_results raising a non-ImportError → fallback to str()."""
+    import sys
+    import types
+
+    fake_pkg = types.ModuleType("scitex_stats")
+    fake_utils = types.ModuleType("scitex_stats._utils")
+    fake_norm = types.ModuleType("scitex_stats._utils._normalizers")
+
+    def convert_results(obj, return_as="latex", **kw):
+        raise RuntimeError("simulated failure")
+
+    fake_norm.convert_results = convert_results
+    fake_utils._normalizers = fake_norm
+    fake_pkg._utils = fake_utils
+    monkeypatch.setitem(sys.modules, "scitex_stats", fake_pkg)
+    monkeypatch.setitem(sys.modules, "scitex_stats._utils", fake_utils)
+    monkeypatch.setitem(sys.modules, "scitex_stats._utils._normalizers", fake_norm)
+
+    p = str(tmp_path / "fb.tex")
+    save_tex({"a": 1}, p)
+    out = _read(p)
+    # Fallback writes str(obj) — contains the dict repr.
+    assert "'a'" in out or "a" in out

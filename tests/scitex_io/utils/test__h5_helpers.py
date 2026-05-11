@@ -312,6 +312,126 @@ def test_migrate_dataset_object_scalar_non_string_pickled(tmp_path):
     assert out is not None
 
 
+def test_migrate_dataset_large_show_progress(tmp_path, capsys):
+    """show_progress=True + large array triggers the print branch (line 143)."""
+    p = tmp_path / "big.h5"
+    with h5py.File(p, "w") as f:
+        # ~1.1M elements > 1e6 threshold
+        f.create_dataset("big", data=np.zeros((1200, 1000), dtype="float32"))
+    z_store = zarr.open(str(tmp_path / "big.zarr"), mode="w")
+    with h5py.File(p, "r") as f:
+        out = migrate_dataset(
+            f["big"], z_store, "big", compressor=None, chunks=True, show_progress=True
+        )
+    assert out is not None
+    captured = capsys.readouterr()
+    assert "Migrating large dataset" in captured.out
+
+
+def test_migrate_dataset_data_copy_error_emits_warning(tmp_path):
+    """Force the inner copy-data except branch."""
+    import warnings as _w
+
+    p = tmp_path / "ok.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("d", data=np.arange(10))
+
+    # Build a fake h5-like dataset whose slicing raises.
+    class BadDS:
+        shape = (10,)
+        dtype = np.dtype("int64")
+        attrs = {}
+
+        def __getitem__(self, idx):
+            raise RuntimeError("boom on read")
+
+    z_store = zarr.open(str(tmp_path / "ok.zarr"), mode="w")
+    with _w.catch_warnings(record=True) as caught:
+        _w.simplefilter("always")
+        out = migrate_dataset(BadDS(), z_store, "d", compressor=None, chunks=True)
+    # The array was created, but the data copy emitted a warning.
+    assert out is not None
+    assert any("Error copying data" in str(w.message) for w in caught)
+
+
+def test_migrate_group_unknown_object_warns(tmp_path):
+    """Force the branch that warns on unknown HDF5 object types."""
+    import warnings as _w
+
+    p = tmp_path / "u.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("a", data=np.arange(2))
+
+    # Wrap a real h5py group with a fake that yields a non-Dataset/Group item.
+    z_store = zarr.open(str(tmp_path / "u.zarr"), mode="w")
+
+    class FakeGroup:
+        attrs = {}
+
+        def keys(self):
+            return ["x"]
+
+        def __getitem__(self, k):
+            return object()  # not a Dataset nor Group
+
+    with _w.catch_warnings(record=True) as caught:
+        _w.simplefilter("always")
+        migrate_group(FakeGroup(), z_store, compressor=None)
+    assert any("Unknown HDF5 object type" in str(w.message) for w in caught)
+
+
+def test_migrate_group_keys_error_warns(tmp_path):
+    """Cover the branch where listing keys raises."""
+    import warnings as _w
+
+    z_store = zarr.open(str(tmp_path / "ke.zarr"), mode="w")
+
+    class BadKeysGroup:
+        attrs = {}
+
+        def keys(self):
+            raise RuntimeError("nope")
+
+    with _w.catch_warnings(record=True) as caught:
+        _w.simplefilter("always")
+        migrate_group(BadKeysGroup(), z_store, compressor=None)
+    assert any("Cannot access group keys" in str(w.message) for w in caught)
+
+
+def test_migrate_group_item_access_error_warns(tmp_path):
+    """Cover branch where accessing an item raises."""
+    import warnings as _w
+
+    z_store = zarr.open(str(tmp_path / "ia.zarr"), mode="w")
+
+    class BadItemGroup:
+        attrs = {}
+
+        def keys(self):
+            return ["broken"]
+
+        def __getitem__(self, k):
+            raise RuntimeError("nope")
+
+    with _w.catch_warnings(record=True) as caught:
+        _w.simplefilter("always")
+        migrate_group(BadItemGroup(), z_store, compressor=None)
+    assert any("Cannot access item" in str(w.message) for w in caught)
+
+
+def test_migrate_dataset_shape_access_error_returns_none(tmp_path):
+    """Cover the branch where reading .shape itself raises."""
+    z_store = zarr.open(str(tmp_path / "bad.zarr"), mode="w")
+
+    class BrokenDS:
+        @property
+        def shape(self):
+            raise RuntimeError("broken")
+
+    out = migrate_dataset(BrokenDS(), z_store, "x", compressor=None)
+    assert out is None
+
+
 def test_migrate_dataset_object_array_non_string_pickled(tmp_path):
     """Object-dtype array whose first element isn't str/bytes → pickled branch."""
     p = tmp_path / "obj_a.h5"

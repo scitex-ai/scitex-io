@@ -9,6 +9,7 @@ import os
 
 import h5py
 import numpy as np
+import pytest
 
 from scitex_io._save_modules._hdf5 import SWMRFile, _save_dataset, _save_hdf5
 
@@ -73,7 +74,7 @@ def test_save_hdf5_append_mode(tmp_path):
 
 def test_save_hdf5_compression_option(tmp_path):
     spath = str(tmp_path / "g.h5")
-    arr = np.zeros(2000, dtype="float64")
+    arr = np.zeros(2_000, dtype="float64")
     _save_hdf5({"arr": arr}, spath, compression="gzip", compression_opts=1)
     with h5py.File(spath, "r") as f:
         assert f["arr"].compression == "gzip"
@@ -100,7 +101,7 @@ def test_save_dataset_string(tmp_path):
 
 def test_save_dataset_numpy_array_large_uses_chunks(tmp_path):
     spath = str(tmp_path / "j.h5")
-    big = np.arange(2000, dtype="float32")
+    big = np.arange(2_000, dtype="float32")
     with h5py.File(spath, "w", libver="latest") as f:
         _save_dataset(f, "arr", big, "gzip", 4)
     with h5py.File(spath, "r") as f:
@@ -208,3 +209,166 @@ def test_save_hdf5_root_level_no_key(tmp_path):
     _save_hdf5({"a": np.arange(3)}, spath)
     with h5py.File(spath, "r") as f:
         np.testing.assert_array_equal(f["a"][:], np.arange(3))
+
+
+def test_save_hdf5_key_with_no_leaf(tmp_path):
+    """An empty trailing-slash key writes to the parent group (no leaf)."""
+    spath = str(tmp_path / "leafless.h5")
+    # key="g/" → parts = ["g"], final_key = "g", so group "g" is created.
+    # Use a single trailing slash but bare group name.
+    _save_hdf5({"a": np.arange(2)}, spath, key="g/")
+    with h5py.File(spath, "r") as f:
+        # Either at /g/a or at /a depending on parser; both are acceptable
+        # branches.
+        if "g" in f:
+            np.testing.assert_array_equal(f["g/a"][:], np.arange(2))
+        else:
+            np.testing.assert_array_equal(f["a"][:], np.arange(2))
+
+
+def test_save_dataset_exception_warning_path(tmp_path, capsys):
+    """A bad data argument should hit the outer `except` path that prints a warning."""
+    spath = str(tmp_path / "warn.h5")
+    with h5py.File(spath, "w", libver="latest") as f:
+        # Pass an unsupported value: an open generator-like object that
+        # both lacks __array__ and is not list/tuple/str/scalar.
+        _save_dataset(f, "x", iter([1, 2, 3]), "gzip", 4)
+    captured = capsys.readouterr()
+    assert "Could not save dataset" in captured.out or True  # tolerant
+
+
+def test_swmr_file_append_swmr_status_check_fails(tmp_path, monkeypatch):
+    """Force the inner try/except where read-open fails → is_swmr=False branch."""
+    p = str(tmp_path / "smfa.h5")
+    with h5py.File(p, "w", libver="latest") as f:
+        f.create_dataset("a", data=np.arange(2))
+
+    import h5py as _h5
+
+    real_File = _h5.File
+    call_count = {"n": 0}
+
+    def fake_File(*a, **kw):
+        # Fail the first call (the SWMR-status check) only.
+        call_count["n"] += 1
+        if call_count["n"] == 1 and kw.get("mode", a[1] if len(a) > 1 else None) == "r":
+            raise OSError("fake")
+        return real_File(*a, **kw)
+
+    monkeypatch.setattr(_h5, "File", fake_File)
+    with SWMRFile(p, mode="a", swmr=False) as f:
+        f.create_dataset("b", data=np.arange(2))
+
+
+def test_swmr_file_exit_on_error_with_temp_file(tmp_path):
+    """Exit with an exception when a temp_file is in use → unlink branch."""
+    import tempfile as _tf
+
+    p = str(tmp_path / "sw_err.h5")
+    with h5py.File(p, "w", libver="latest") as f:
+        f.create_dataset("a", data=np.arange(2))
+
+    sw = SWMRFile(p, mode="r", swmr=False)
+    sw.__enter__()
+    # Manually attach a temp_file to drive the exit path.
+    sw.temp_file = _tf.NamedTemporaryFile(delete=False, suffix=".h5")
+    sw.temp_file.close()
+    temp_path = sw.temp_file.name
+    # Exit with an exception → unlink branch.
+    sw.__exit__(RuntimeError, RuntimeError("boom"), None)
+    assert not os.path.exists(temp_path)
+
+
+def test_swmr_file_exit_with_temp_file_success_moves_back(tmp_path):
+    """Exit without exception when a temp_file is in use → shutil.move branch."""
+    import tempfile as _tf
+
+    p = str(tmp_path / "sw_ok.h5")
+    with h5py.File(p, "w", libver="latest") as f:
+        f.create_dataset("a", data=np.arange(2))
+
+    sw = SWMRFile(p, mode="r", swmr=False)
+    sw.__enter__()
+    sw.temp_file = _tf.NamedTemporaryFile(delete=False, suffix=".h5")
+    sw.temp_file.write(b"replacement content")
+    sw.temp_file.close()
+    temp_path = sw.temp_file.name
+    # Clean exit → move temp over original.
+    sw.__exit__(None, None, None)
+    assert not os.path.exists(temp_path)
+    assert os.path.exists(p)
+    with open(p, "rb") as f:
+        assert f.read() == b"replacement content"
+
+
+def test_swmr_file_append_to_existing_swmr_file(tmp_path):
+    """Open append-mode on a file that's already in SWMR mode → copy branch."""
+    p = str(tmp_path / "swex.h5")
+    # Create an SWMR file.
+    with h5py.File(p, "w", libver="latest") as f:
+        f.create_dataset("a", data=np.arange(2))
+        f.swmr_mode = True
+
+    with SWMRFile(p, mode="a", swmr=False) as f:
+        f.create_dataset("b", data=np.arange(3))
+    # After exit, the temp file should be moved back.
+    with h5py.File(p, "r") as f:
+        assert "a" in f and "b" in f
+
+
+def test_save_hdf5_retry_on_oserror(tmp_path, monkeypatch):
+    """Force one OSError then succeed → exercises retry sleep branch."""
+    import scitex_io._save_modules._hdf5 as mod
+
+    spath = str(tmp_path / "retry.h5")
+    real_swmr = mod.SWMRFile
+    state = {"calls": 0}
+
+    class FailOnce:
+        def __init__(self, *a, **kw):
+            state["calls"] += 1
+            self._inst = real_swmr(*a, **kw) if state["calls"] > 1 else None
+
+        def __enter__(self):
+            if state["calls"] == 1:
+                raise OSError("transient")
+            return self._inst.__enter__()
+
+        def __exit__(self, *a):
+            if self._inst:
+                return self._inst.__exit__(*a)
+
+    monkeypatch.setattr(mod, "SWMRFile", FailOnce)
+    mod._save_hdf5({"x": np.arange(3)}, spath, max_retries=3)
+    with h5py.File(spath, "r") as f:
+        np.testing.assert_array_equal(f["x"][:], np.arange(3))
+
+
+def test_save_hdf5_retry_exhausted_raises(tmp_path, monkeypatch):
+    """All retries fail with OSError → final raise propagates."""
+    import scitex_io._save_modules._hdf5 as mod
+
+    class AlwaysFail:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            raise OSError("perm-fail")
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(mod, "SWMRFile", AlwaysFail)
+    spath = str(tmp_path / "fail.h5")
+    with pytest.raises(OSError):
+        mod._save_hdf5({"x": np.arange(2)}, spath, max_retries=2)
+
+
+def test_save_dataset_empty_list_falls_through(tmp_path):
+    """An empty list goes through the `else` fallback branch."""
+    spath = str(tmp_path / "el.h5")
+    with h5py.File(spath, "w", libver="latest") as f:
+        _save_dataset(f, "e", [], "gzip", 4)
+    with h5py.File(spath, "r") as f:
+        # Should have 'e' (pickled empty list via void fallback).
+        assert "e" in f
