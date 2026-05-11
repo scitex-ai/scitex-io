@@ -65,17 +65,34 @@
 
 ## Installation
 
-Requires Python >= 3.9.
-
 ```bash
-pip install scitex-io
+uv pip install "scitex-io[all]"
 ```
 
-For MCP server support:
+Requires Python ≥ 3.10. `uv` resolves SciTeX's transitive deps in parallel
+(~1 min vs. ~30 min with plain pip on `[all]`). Plain `pip install
+"scitex-io[all]"` also works.
+
+<details>
+<summary><b>Per-module extras</b></summary>
+
+<br>
+
+| Extra | Pulls in |
+|---|---|
+| `scientific` | scipy, h5py, zarr, numcodecs, matplotlib (HDF5 / zarr / scientific I/O) |
+| `mcp` | fastmcp (MCP server for agents) |
+| `all` | `scientific` + `mcp` (recommended) |
+| `dev` | pytest, pytest-cov, plotly, Pillow, + every optional dep so the test suite runs |
+| `docs` | Sphinx + RTD theme + myst-parser (docs build only) |
 
 ```bash
-pip install scitex-io[mcp]
+uv pip install "scitex-io[scientific]"   # HDF5 / zarr / parquet stack
+uv pip install "scitex-io[mcp]"          # MCP server only
+uv pip install -e ".[dev]"               # editable install for contributors
 ```
+
+</details>
 
 ## Architecture
 
