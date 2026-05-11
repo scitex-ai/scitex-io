@@ -16,7 +16,7 @@ keywords = [
     "scientific-data",
     "io",
     "hdf5",
-    "zarr",
+    "zarr>=3",
     "csv",
     "numpy",
     "pandas",
@@ -62,7 +62,7 @@ mcp = [
 scientific = [
     "scipy",
     "h5py",
-    "zarr",
+    "zarr>=3",
     "numcodecs",
     "matplotlib",
 ]
