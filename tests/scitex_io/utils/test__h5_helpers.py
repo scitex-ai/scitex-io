@@ -457,7 +457,7 @@ def test_validate_migration_dtype_warning(tmp_path):
 
     z_path = tmp_path / "v4.zarr"
     z_store = zarr.open(str(z_path), mode="w")
-    z_store.create_dataset("a", shape=(4,), dtype="float64")
+    z_store.create_array("a", shape=(4,), dtype="float64")
 
     with h5py.File(p, "r") as f, warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
