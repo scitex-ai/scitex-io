@@ -1,5 +1,5 @@
 <!-- ---
-!-- Timestamp: 2026-05-11 16:16:11
+!-- Timestamp: 2026-05-11 16:24:18
 !-- Author: ywatanabe
 !-- File: /home/ywatanabe/proj/scitex-io/README.md
 !-- --- -->
@@ -172,17 +172,29 @@ flowchart LR
     B -.->|register_saver/loader| K[Your custom format]
 ```
 
-### 2. Output paths → `"./relative/path/to/results.csv"`
+### 2. `save(obj, out.ext)` in `/path/to/script.py` → `/path/to/script_out/out.ext`
 
 Relative paths in `save()` resolve **relative to the calling script /
-notebook**, not the working directory — you never hand-write the output
-directory and outputs land beside their producer.
+notebook**, not the working directory. Scripts and outputs are tied as locations.
 
-| Caller | `sio.save(df, "sub/dir/results.csv")` writes to |
-|---|---|
-| `/path/to/analysis.py` (script) | `/path/to/analysis_out/sub/dir/results.csv` |
-| `/path/to/exp.ipynb` (notebook) | `/path/to/exp_out/sub/dir/results.csv` |
-| `python -i` / IPython / REPL | `~/.scitex/io/runtime/cache/sub/dir/results.csv` |
+```
+/path/to/project/
+├── config/                              # consumed by load_configs() — see §3
+│   ├── PATHS.yaml
+│   ├── MODEL.yaml
+│   └── IS_DEBUG.yaml
+└── scripts/
+    └── xxx/
+        ├── filename.py                  # sio.save(df, "results.csv")
+        └── filename_out/                # auto-created sibling of the script
+            └── results.csv              # output lands here
+```
+
+> | Caller                          | `sio.save(df, "sub/dir/results.csv")` writes to  |
+> |---------------------------------|--------------------------------------------------|
+> | `/path/to/analysis.py` (script) | `/path/to/analysis_out/sub/dir/results.csv`      |
+> | `/path/to/exp.ipynb` (notebook) | `/path/to/exp_out/sub/dir/results.csv`           |
+> | `python -i` / IPython / REPL    | `~/.scitex/io/runtime/cache/sub/dir/results.csv` |
 
 > **Bare filename or any relative path** — `"results.csv"`,
 > `"sub/dir/results.csv"`, and `"./sub/dir/results.csv"` all work; the
@@ -220,7 +232,7 @@ sio.save(df,  "results.csv", dry_run=True)             # print path, don't write
 
 ### 3. Centralized project configuration
 
-Scientific projects benefit from keeping parameters — sample rates,
+Scientific projects benefit from keeping parameters — 
 hyperparameters, paths, thresholds — out of the scripts that consume
 them, as a single source of truth.
 
