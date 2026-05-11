@@ -1,0 +1,24 @@
+codecov:
+  require_ci_to_pass: false
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 80%
+
+ignore:
+  - "src/scitex_io/_sphinx_html/**"
+  - "src/scitex_io/_skills/**"
+  - "src/scitex_io/_completion.py"
+  - "src/scitex_io/_cli/_completion.py"
+  - "tests/**"
+  - "examples/**"
+
+comment:
+  layout: "diff, files"
+  require_changes: true
