@@ -89,6 +89,8 @@ dev = [
     "joblib",             # tested via _save_modules/_joblib
     "PyPDF2",             # legacy pdf reader path
     "pypdf",              # current pdf reader path
+    "pdfplumber",         # _pdf_content_extractors table extraction
+    "PyMuPDF",            # _pdf_content_extractors fitz backend (image/metadata)
     "markdown",           # md handler
     "html2text",          # html2md handler
     "ruamel.yaml",        # YAML round-trip tests
