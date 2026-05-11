@@ -1,3 +1,9 @@
+<!-- ---
+!-- Timestamp: 2026-05-11 15:16:52
+!-- Author: ywatanabe
+!-- File: /home/ywatanabe/proj/scitex-io/README.md
+!-- --- -->
+
 # SciTeX IO (<code>scitex-io</code>)
 
 <p align="center">
@@ -212,24 +218,6 @@ CONFIG.MODEL.HIDDEN_DIM                  # 32 (debug value promoted)
 </details>
 
 <details>
-<summary><b>Embed provenance into figures (<code>embed_metadata</code>)</b></summary>
-
-<br>
-
-```python
-sio.embed_metadata("figure.png", {
-    "experiment": "exp_042", "model": "resnet50",
-    "accuracy": 0.94, "timestamp": "2026-03-11",
-})
-meta = sio.read_metadata("figure.png")
-meta["experiment"]              # "exp_042"
-```
-
-Supports PNG (tEXt), JPEG (EXIF), SVG (XML metadata), PDF (XMP).
-
-</details>
-
-<details>
 <summary><b>Advanced <code>save()</code> — auto-routing, symlinks, dry-run</b></summary>
 
 <br>
@@ -265,6 +253,24 @@ paths, parsed = sio.parse_glob("sub_{id}/ses_{session}/*.vhdr")
 dfs = sio.load("results/*.csv")                          # list of DataFrames
 data = sio.load("large.hdf5"); data = sio.load("large.hdf5")  # 2nd call: cache hit
 ```
+
+</details>
+
+<details>
+<summary><b>Embed provenance into figures (<code>embed_metadata</code>)</b></summary>
+
+<br>
+
+```python
+sio.embed_metadata("figure.png", {
+    "experiment": "exp_042", "model": "resnet50",
+    "accuracy": 0.94, "timestamp": "2026-03-11",
+})
+meta = sio.read_metadata("figure.png")
+meta["experiment"]              # "exp_042"
+```
+
+Supports PNG (tEXt), JPEG (EXIF), SVG (XML metadata), PDF (XMP).
 
 </details>
 
