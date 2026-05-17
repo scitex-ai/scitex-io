@@ -123,6 +123,9 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">scitex_io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#functionalities">Functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#io">IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.register_saver"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.register_loader"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.get_saver"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
@@ -247,8 +250,41 @@
              
   <section id="module-scitex_io">
 <span id="scitex-io"></span><h1>scitex_io<a class="headerlink" href="#module-scitex_io" title="Link to this heading"></a></h1>
-<p>scitex-io: Universal scientific data I/O with plugin registry.</p>
-<p>Supports 30+ formats out of the box. Register custom handlers via:</p>
+<p>scitex-io — Universal scientific data I/O with plugin registry.</p>
+<section id="functionalities">
+<h2>Functionalities<a class="headerlink" href="#functionalities" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><cite>save(obj, “path.ext”)</cite> / <cite>load(“path.ext”)</cite> — extension-dispatched
+one-call I/O for 30+ formats (CSV, Parquet, Feather, NumPy,
+pickle, YAML, JSON, HDF5, Zarr, MATLAB, images, matplotlib figures,
+PyTorch, MNE, EDF, video).</p></li>
+<li><p><cite>register_saver(“.ext”)</cite> / <cite>register_loader(“.ext”)</cite> — plugin hooks
+for user-defined formats; dispatch lookup follows the same registry.</p></li>
+<li><p><cite>load_configs()</cite> — collect every <cite>&lt;project-root&gt;/config/*.yaml</cite> into
+a single <cite>DotDict</cite> with UPPER_CASE normalisation + <a href="#id64"><span class="problematic" id="id65">DEBUG_</span></a> overrides.</p></li>
+<li><p><cite>glob</cite> / <cite>parse_glob</cite> — natural-sorted globbing with <cite>{placeholder}</cite>
+parsing; <cite>cache</cite> / <cite>reload</cite> / <cite>flush</cite> — load-cache management.</p></li>
+</ul>
+</section>
+<section id="io">
+<h2>IO<a class="headerlink" href="#io" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Reads: any registered extension; <cite>./config/*.yaml</cite>; <cite>$SCITEX_DIR</cite>
+cache; figure metadata (PNG tEXt, JPEG EXIF, SVG XML, PDF XMP).</p></li>
+<li><p>Writes: relative paths resolve under <cite>{caller}_out/</cite> (script /
+notebook) or <cite>$SCITEX_DIR/io/runtime/cache/</cite> (REPL); absolute paths
+pass through unchanged.</p></li>
+</ul>
+</section>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Hard: <cite>tqdm</cite>, <cite>PyYAML</cite>, <cite>ruamel.yaml</cite>, <cite>mne</cite>, <cite>numpy</cite>, <cite>pandas</cite>,
+<cite>click</cite>, <cite>rich</cite>, <cite>natsort</cite>, <cite>scitex-dev</cite>, <cite>scitex-logging</cite>.</p></li>
+<li><p>Optional (<cite>[scientific]</cite>): <cite>scipy</cite>, <cite>h5py</cite>, <cite>zarr&gt;=3</cite>, <cite>numcodecs</cite>,
+<cite>matplotlib</cite>. (<cite>[mcp]</cite>): <cite>fastmcp</cite>.</p></li>
+</ul>
+<p>Register custom handlers:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_saver</span><span class="p">,</span> <span class="n">register_loader</span>
 
 <span class="nd">@register_saver</span><span class="p">(</span><span class="s2">&quot;.myformat&quot;</span><span class="p">)</span>
@@ -261,6 +297,7 @@
 <p>Top-level imports are PEP 562 lazy — <cite>import scitex_io</cite> is cheap.
 Public symbols load on first attribute access. See
 <cite>_skills/general/03_interface_01_python-api/04_lazy-imports-and-optional-deps.md</cite>.</p>
+</section>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.register_saver">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.register_saver" title="Link to this definition"></a></dt>
