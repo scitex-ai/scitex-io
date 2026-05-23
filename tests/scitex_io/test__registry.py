@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Tests for the format registry system."""
 
+import pytest
+
 from scitex_io import _builtin_handlers  # noqa: F401 — registers builtin formats
+from scitex_io import _registry
 from scitex_io._registry import (
     _normalize_ext,
     get_loader,
@@ -10,6 +13,31 @@ from scitex_io._registry import (
     register_saver,
     unregister_saver,
 )
+
+
+@pytest.fixture(autouse=True)
+def _restore_registry():
+    """Snapshot the user-registry and restore it after each test.
+
+    Tests that call ``register_saver`` (a user override) without an
+    explicit ``unregister_saver`` leak state into sibling tests — e.g.
+    a leaked ``.json`` override makes a later "is original" assertion
+    capture the leak as the baseline. Restoring the four user dicts
+    after every test guarantees isolation regardless of cleanup hygiene
+    inside individual tests.
+    """
+    # Arrange
+    saved = {
+        "savers": dict(_registry._user_savers),
+        "loaders": dict(_registry._user_loaders),
+    }
+    # Act
+    yield
+    # Assert
+    _registry._user_savers.clear()
+    _registry._user_savers.update(saved["savers"])
+    _registry._user_loaders.clear()
+    _registry._user_loaders.update(saved["loaders"])
 
 
 class TestNormalizeExt:
@@ -62,7 +90,6 @@ class TestRegistry:
         # Assert
         assert len(fmts["load"]["builtin"]) > 20
 
-
     def test_get_builtin_saver(self):
         # Arrange
         # Act
@@ -99,12 +126,12 @@ class TestRegistry:
         # Assert
         assert get_loader(".unknown_xyz") is None
 
-
     def test_user_override_get_saver_test_ov_is_my_saver(self):
         # Arrange
         # Arrange
         def my_saver(obj, path, **kw):
             pass
+
         # Act
         register_saver(".test_ov", my_saver)
         # Act
@@ -117,6 +144,7 @@ class TestRegistry:
         # Arrange
         def my_saver(obj, path, **kw):
             pass
+
         # Act
         register_saver(".test_ov", my_saver)
         # Assert
@@ -125,7 +153,6 @@ class TestRegistry:
         # Act
         # Assert
         assert get_saver(".test_ov") is None
-
 
     def test_decorator_pattern_get_saver_test_deco_is_save_deco(self):
         @register_saver(".test_deco")
@@ -145,8 +172,10 @@ class TestRegistry:
         # Arrange
         # Arrange
         original = get_saver(".json")
+
         def custom_json(obj, path, **kw):
             pass
+
         # Act
         register_saver(".json", custom_json)
         # Act
@@ -158,8 +187,10 @@ class TestRegistry:
         # Arrange
         # Arrange
         original = get_saver(".json")
+
         def custom_json(obj, path, **kw):
             pass
+
         # Act
         register_saver(".json", custom_json)
         # Assert
@@ -168,4 +199,3 @@ class TestRegistry:
         # Act
         # Assert
         assert get_saver(".json") is original
-
