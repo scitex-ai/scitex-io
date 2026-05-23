@@ -11,7 +11,6 @@ __FILE__ = "./src/scitex/io/_load_configs.py"
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
 
-import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -20,17 +19,39 @@ from .._utils import DotDict
 from ._load import load
 
 
-def _normalize_to_upper(d, path="CONFIG"):
-    """Normalize every key in a config tree to UPPER_CASE.
+def _normalize_to_upper(d, file=None, path="CONFIG"):
+    """Normalize every string key in a config tree to UPPER_CASE.
 
     Walks a (possibly nested) dict/DotDict in place and renames every
     string key to its ``str.upper()`` form so the loaded config is
     case-stable regardless of how filenames and YAML keys were written.
+    Non-string keys (ints, etc.) are left untouched. Lookups on the
+    resulting :class:`~scitex_io._utils.DotDict` are case-insensitive
+    for string keys, so a YAML mapping written ``{"seizure": "red"}``
+    (stored as ``{"SEIZURE": "red"}``) can still be read with the
+    lowercase key the author wrote.
 
-    If two siblings fold to the same UPPER key (e.g. ``MODEL`` +
-    ``model``, or ``HIDDEN_DIM`` + ``hidden_dim``), keep the value
-    associated with the already-UPPER variant and drop the lowercase
-    one, emitting a ``UserWarning`` pointing at the conflict location.
+    Collision fail-loud
+    -------------------
+    If two keys *inside one mapping* fold to the same UPPER form (e.g.
+    literally both ``"seizure"`` and ``"SEIZURE"``, or a ``MODEL.yaml``
+    next to a ``model.yaml`` whose stems collide), this raises a loud
+    :class:`ValueError` naming the source file, the mapping path, and
+    both offending keys. The collision is detected here, at load time —
+    never silently merged, dropped, or deferred to a lookup-time
+    surprise.
+
+    Parameters
+    ----------
+    d : dict | DotDict
+        Mapping to normalise in place.
+    file : str | None
+        Source YAML stem for error messages. ``None`` at the top level,
+        where the keys are themselves filename stems; in that case a
+        collision message names the config directory rather than a file.
+    path : str
+        Dotted mapping path used in error messages (e.g.
+        ``CONFIG.SEIZURE.STR2COLOR``).
     """
     if not isinstance(d, (dict, DotDict)):
         return d
@@ -40,30 +61,32 @@ def _normalize_to_upper(d, path="CONFIG"):
         if isinstance(k, str):
             by_upper.setdefault(k.upper(), []).append(k)
 
+    # Track the original (pre-normalisation) string key behind each UPPER
+    # form so the recursion can name children by the stem the author
+    # actually wrote (``m.yaml`` → file 'm', not the folded 'M').
+    upper_to_original: dict[str, str] = {}
     for upper, variants in by_upper.items():
         if len(variants) > 1:
-            keep = upper if upper in variants else variants[0]
-            for v in variants:
-                if v != keep:
-                    warnings.warn(
-                        f"load_configs: case conflict at {path}.* — "
-                        f"{variants!r} fold to {upper!r}; keeping value "
-                        f"from {keep!r}, dropping {v!r}.",
-                        UserWarning,
-                        stacklevel=3,
-                    )
-                    d.pop(v, None)
-            # After de-duplication, rename keep → upper if needed.
-            if keep != upper:
-                d[upper] = d.pop(keep)
-        else:
-            (only,) = variants
-            if only != upper:
-                d[upper] = d.pop(only)
+            where = f"file {file!r}" if file is not None else "the config directory"
+            a, b = variants[0], variants[1]
+            raise ValueError(
+                f"load_configs: case collision in {where} at mapping "
+                f"{path!r}: keys {a!r} and {b!r} both normalise to "
+                f"{upper!r}. Rename one of them so the loaded config has "
+                f"unambiguous UPPER_CASE keys."
+            )
+        (only,) = variants
+        upper_to_original[upper] = only
+        if only != upper:
+            d[upper] = d.pop(only)
 
     for k, v in list(d.items()):
         if isinstance(v, (dict, DotDict)):
-            _normalize_to_upper(v, path=f"{path}.{k}")
+            # At the top level, each key is a filename stem; descend with
+            # the ORIGINAL stem (what the author named the file) as the
+            # source-file context for nested collisions.
+            child_file = upper_to_original.get(k, k) if file is None else file
+            _normalize_to_upper(v, file=child_file, path=f"{path}.{k}")
     return d
 
 
@@ -76,15 +99,21 @@ def load_configs(
     """Load and merge every YAML under ``config_dir`` into one ``DotDict``.
 
     Filename stems become top-level keys; YAML keys become nested
-    attributes. Every key (filename stem and every nested key) is
-    normalised to UPPER_CASE at load time so the in-memory tree is
+    attributes. Every string key (filename stem and every nested key)
+    is normalised to UPPER_CASE at load time so the in-memory tree is
     case-stable regardless of source casing — ``model.yaml`` with
-    ``hidden_dim: 256`` lands at ``CONFIG.MODEL.HIDDEN_DIM``.
+    ``hidden_dim: 256`` lands at ``CONFIG.MODEL.HIDDEN_DIM``. Lookups on
+    the returned ``DotDict`` are case-insensitive for string keys, so
+    ``CONFIG.SEIZURE.STR2COLOR["seizure"]`` resolves the stored
+    ``"SEIZURE"`` entry — no surprise ``KeyError`` for the lowercase key
+    the author wrote (non-string keys are matched exactly).
 
-    If two siblings fold to the same UPPER key (e.g. ``MODEL.yaml``
-    next to ``model.yaml``, or ``HIDDEN_DIM`` next to ``hidden_dim``),
-    a ``UserWarning`` is emitted pointing at the conflict, the
-    UPPER variant's value is kept, and the lowercase one is dropped.
+    If two keys inside one mapping fold to the same UPPER form (e.g.
+    ``MODEL.yaml`` next to ``model.yaml``, or ``HIDDEN_DIM`` next to
+    ``hidden_dim``, or ``"seizure"`` next to ``"SEIZURE"`` in one
+    string-mapping), a loud ``ValueError`` is raised at load time naming
+    the source file, the mapping path, and both offending keys. The
+    collision is never silently merged or dropped.
 
     Debug mode promotes any ``DEBUG_<KEY>`` sibling over its non-debug
     counterpart, so a single ``IS_DEBUG.yaml`` flips the whole project
@@ -109,6 +138,13 @@ def load_configs(
     -------
     DotDict
         Merged configuration tree with UPPER_CASE keys throughout.
+
+    Raises
+    ------
+    ValueError
+        If two keys inside one mapping fold to the same UPPER form
+        (a case collision). Raised at load time, naming the file, the
+        mapping path, and both offending keys.
 
     Examples
     --------
@@ -171,14 +207,18 @@ def load_configs(
                     CONFIGS[filename] = apply_debug_values(config, IS_DEBUG)
 
         # Normalise every filename-level key (from YAML stem) and every
-        # nested key to UPPER_CASE so the loaded config is case-stable
-        # regardless of source casing. Conflicts (e.g. MODEL.yaml +
-        # model.yaml, HIDDEN_DIM + hidden_dim) warn and drop the
-        # lowercase variant in favour of the UPPER one.
+        # nested string key to UPPER_CASE so the loaded config is
+        # case-stable regardless of source casing. A case collision
+        # (e.g. MODEL.yaml + model.yaml, HIDDEN_DIM + hidden_dim,
+        # "seizure" + "SEIZURE") raises a loud ValueError here.
         _normalize_to_upper(CONFIGS)
 
         return DotDict(CONFIGS)
 
+    except ValueError:
+        # Case collisions are user config errors — fail loud, never
+        # swallow into the empty-DotDict fallback below.
+        raise
     except Exception as e:
         print(f"Error loading configs: {e}")
         return DotDict({})

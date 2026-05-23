@@ -2,23 +2,24 @@
 # -*- coding: utf-8 -*-
 """Tests for scitex_io._loading._load_configs.
 
-from __future__ import annotations
-`load_configs` normalises every filename stem + every nested key to
-UPPER_CASE on load (introduced 2026-05). The tests below exercise:
+`load_configs` normalises every filename stem + every nested string key
+to UPPER_CASE on load, and the returned ``DotDict`` is case-insensitive
+on string-key lookup. The tests below exercise:
 
   * Filename → UPPER stem
   * Nested key → UPPER attribute
-  * Case-conflict resolution (UPPER wins, lowercase dropped + warning)
+  * Case-insensitive lookup of UPPER-stored nested string-mapping keys
+  * Case-collision fail-loud (ValueError naming file + path + both keys)
   * DEBUG_*/debug_* promotion when IS_DEBUG is set
   * Each of the three IS_DEBUG triggers (kwarg, ``CI=True``, IS_DEBUG.yaml)
   * Empty / missing / error paths
+
+No mocks: every test writes real YAML files into a tmp dir and points
+``load_configs`` at it via the ``config_dir`` argument, exercising the
+real ``glob`` + ``load`` collaborators.
 """
 
-
 import os
-import tempfile
-import warnings
-from unittest.mock import patch
 
 import pytest
 import yaml
@@ -27,740 +28,528 @@ from scitex_io import load_configs
 from scitex_io._utils import DotDict
 
 
+def _write_configs(config_dir, files):
+    """Write ``{stem: mapping}`` to ``<config_dir>/<stem>.yaml`` files.
+
+    Real on-disk YAML so the test exercises the production ``glob`` +
+    ``load`` path rather than a mocked stand-in.
+    """
+    os.makedirs(config_dir, exist_ok=True)
+    for stem, mapping in files.items():
+        with open(os.path.join(config_dir, f"{stem}.yaml"), "w") as f:
+            yaml.dump(mapping, f, default_flow_style=False, sort_keys=False)
+
+
+@pytest.fixture
+def config_dir(tmp_path):
+    """Return a fresh ``<tmp>/config`` directory path (not yet created)."""
+    return os.path.join(str(tmp_path), "config")
+
+
+@pytest.fixture
+def ci_env_true():
+    """Set ``CI=True`` for the test, restoring the prior value after."""
+    saved = os.environ.get("CI")
+    os.environ["CI"] = "True"
+    try:
+        yield
+    finally:
+        if saved is None:
+            os.environ.pop("CI", None)
+        else:
+            os.environ["CI"] = saved
+
+
+@pytest.fixture
+def ci_env_unset():
+    """Ensure ``CI`` is unset for the test, restoring the prior value."""
+    saved = os.environ.get("CI")
+    os.environ.pop("CI", None)
+    try:
+        yield
+    finally:
+        if saved is not None:
+            os.environ["CI"] = saved
+
+
 class TestLoadConfigsBasic:
     """Top-level shape: filename → UPPER stem; keys → UPPER attribute."""
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_namespace_by_filename_upper_result_is_dotdict(self, mock_load, mock_glob):
+    def test_returns_dotdict_instance(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml", "./config/config2.yaml"]
-        mock_load.side_effect = [
-            {"param1": "value1", "param2": 123},
-            {"param3": "value3"},
-        ]
+        _write_configs(config_dir, {"config1": {"param1": "value1"}})
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
         assert isinstance(result, DotDict)
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_namespace_by_filename_upper_result_config1_param1_value1(self, mock_load, mock_glob):
+    def test_filename_stem_becomes_upper_top_level_key(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml", "./config/config2.yaml"]
-        mock_load.side_effect = [
-            {"param1": "value1", "param2": 123},
-            {"param3": "value3"},
-        ]
+        _write_configs(config_dir, {"config1": {"param1": "value1"}})
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.PARAM1 == "value1"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_namespace_by_filename_upper_result_config1_param2_123(self, mock_load, mock_glob):
+    def test_integer_value_preserved(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml", "./config/config2.yaml"]
-        mock_load.side_effect = [
-            {"param1": "value1", "param2": 123},
-            {"param3": "value3"},
-        ]
+        _write_configs(config_dir, {"config1": {"param2": 123}})
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.PARAM2 == 123
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_namespace_by_filename_upper_result_config2_param3_value3(self, mock_load, mock_glob):
+    def test_already_upper_keys_preserved(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml", "./config/config2.yaml"]
-        mock_load.side_effect = [
-            {"param1": "value1", "param2": 123},
-            {"param3": "value3"},
-        ]
+        _write_configs(config_dir, {"MODEL": {"HIDDEN_DIM": 256, "DROPOUT": 0.3}})
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.CONFIG2.PARAM3 == "value3"
-
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_already_upper_keys_preserved_result_model_hidden_dim_256(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/MODEL.yaml"]
-        mock_load.return_value = {"HIDDEN_DIM": 256, "DROPOUT": 0.3}
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
         assert result.MODEL.HIDDEN_DIM == 256
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_already_upper_keys_preserved_result_model_dropout_0_3(self, mock_load, mock_glob):
+    def test_merges_multiple_files(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/MODEL.yaml"]
-        mock_load.return_value = {"HIDDEN_DIM": 256, "DROPOUT": 0.3}
+        _write_configs(
+            config_dir,
+            {"a": {"param1": "value1"}, "b": {"param2": "value2"}},
+        )
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
-        # Assert
-        assert result.MODEL.DROPOUT == 0.3
-
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_merge_multiple_files_result_a_param1_value1(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = [
-            "./config/a.yaml",
-            "./config/b.yaml",
-            "./config/c.yaml",
-        ]
-        mock_load.side_effect = [
-            {"param1": "value1", "shared": "from_a"},
-            {"param2": "value2", "shared": "from_b"},
-            {"param3": "value3"},
-        ]
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.A.PARAM1 == "value1"
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_merge_multiple_files_result_a_shared_from_a(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = [
-            "./config/a.yaml",
-            "./config/b.yaml",
-            "./config/c.yaml",
-        ]
-        mock_load.side_effect = [
-            {"param1": "value1", "shared": "from_a"},
-            {"param2": "value2", "shared": "from_b"},
-            {"param3": "value3"},
-        ]
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.A.SHARED == "from_a"
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_merge_multiple_files_result_b_param2_value2(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = [
-            "./config/a.yaml",
-            "./config/b.yaml",
-            "./config/c.yaml",
-        ]
-        mock_load.side_effect = [
-            {"param1": "value1", "shared": "from_a"},
-            {"param2": "value2", "shared": "from_b"},
-            {"param3": "value3"},
-        ]
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.B.PARAM2 == "value2"
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_merge_multiple_files_result_b_shared_from_b(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = [
-            "./config/a.yaml",
-            "./config/b.yaml",
-            "./config/c.yaml",
-        ]
-        mock_load.side_effect = [
-            {"param1": "value1", "shared": "from_a"},
-            {"param2": "value2", "shared": "from_b"},
-            {"param3": "value3"},
-        ]
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.B.SHARED == "from_b"
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_merge_multiple_files_result_c_param3_value3(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = [
-            "./config/a.yaml",
-            "./config/b.yaml",
-            "./config/c.yaml",
-        ]
-        mock_load.side_effect = [
-            {"param1": "value1", "shared": "from_a"},
-            {"param2": "value2", "shared": "from_b"},
-            {"param3": "value3"},
-        ]
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.C.PARAM3 == "value3"
-
+        assert result.A.PARAM1 == "value1" and result.B.PARAM2 == "value2"
 
 
 class TestUpperNormalisation:
-    """The new UPPER_CASE walker — adopted 2026-05."""
+    """The UPPER_CASE walker + case-insensitive lookup."""
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_lowercase_keys_become_upper_result_preprocess_sample_rate_1000(self, mock_load, mock_glob):
+    def test_lowercase_top_key_becomes_upper(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/preprocess.yaml"]
-        mock_load.return_value = {
-            "sample_rate": 1000,
-            "bandpass_low": 0.5,
-            "nested": {"field_a": "a", "field_b": 42},
-        }
+        _write_configs(config_dir, {"preprocess": {"sample_rate": 1_000}})
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
-        # Assert
-        assert result.PREPROCESS.SAMPLE_RATE == 1000
+        assert result.PREPROCESS.SAMPLE_RATE == 1_000
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_lowercase_keys_become_upper_result_preprocess_bandpass_low_0_5(self, mock_load, mock_glob):
+    def test_nested_lowercase_key_becomes_upper(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/preprocess.yaml"]
-        mock_load.return_value = {
-            "sample_rate": 1000,
-            "bandpass_low": 0.5,
-            "nested": {"field_a": "a", "field_b": 42},
-        }
+        _write_configs(
+            config_dir, {"preprocess": {"nested": {"field_a": "a", "field_b": 42}}}
+        )
         # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.PREPROCESS.BANDPASS_LOW == 0.5
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_lowercase_keys_become_upper_result_preprocess_nested_field_a_a(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/preprocess.yaml"]
-        mock_load.return_value = {
-            "sample_rate": 1000,
-            "bandpass_low": 0.5,
-            "nested": {"field_a": "a", "field_b": 42},
-        }
-        # Act
-        result = load_configs(IS_DEBUG=False)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
         assert result.PREPROCESS.NESTED.FIELD_A == "a"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_lowercase_keys_become_upper_result_preprocess_nested_field_b_42(self, mock_load, mock_glob):
+
+class TestCaseInsensitiveLookup:
+    """The Issue #32 fix: lowercase lookup of UPPER-stored string keys."""
+
+    def test_keys_returns_upper_canonical_form(self, config_dir, ci_env_unset):
         # Arrange
+        _write_configs(
+            config_dir,
+            {"SEIZURE": {"STR2COLOR": {"seizure": "red", "unknown": "gray"}}},
+        )
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert set(result.SEIZURE.STR2COLOR.keys()) == {"SEIZURE", "UNKNOWN"}
+
+    def test_lowercase_getitem_resolves_upper_stored_key(
+        self, config_dir, ci_env_unset
+    ):
         # Arrange
-        mock_glob.return_value = ["./config/preprocess.yaml"]
-        mock_load.return_value = {
-            "sample_rate": 1000,
-            "bandpass_low": 0.5,
-            "nested": {"field_a": "a", "field_b": 42},
-        }
+        _write_configs(config_dir, {"SEIZURE": {"STR2COLOR": {"seizure": "red"}}})
         # Act
-        result = load_configs(IS_DEBUG=False)
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.SEIZURE.STR2COLOR["seizure"] == "red"
+
+    def test_upper_getitem_resolves_upper_stored_key(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"SEIZURE": {"STR2COLOR": {"seizure": "red"}}})
         # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
+        assert result.SEIZURE.STR2COLOR["SEIZURE"] == "red"
+
+    def test_lowercase_contains_matches_upper_stored_key(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"SEIZURE": {"STR2COLOR": {"seizure": "red"}}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
         # Assert
-        assert result.PREPROCESS.NESTED.FIELD_B == 42
+        assert "seizure" in result.SEIZURE.STR2COLOR
 
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_filename_case_conflict_warns_and_keeps_upper_any_model_model_in_m_or_model_model_in_m_for_m_in_msgs(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/MODEL.yaml", "./config/model.yaml"]
-        mock_load.side_effect = [
-            {"HIDDEN_DIM": 256},
-            {"SHOULD_BE_DROPPED": True},
-        ]
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
-        # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-        # Act
-        # Assert
-        # Assert
-        assert any("['MODEL', 'model']" in m or "['model', 'MODEL']" in m for m in msgs)
+class TestCaseCollisionFailLoud:
+    """A case collision is a user config error — fail loud at load time."""
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_filename_case_conflict_warns_and_keeps_upper_result_model_hidden_dim_256(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/MODEL.yaml", "./config/model.yaml"]
-        mock_load.side_effect = [
-            {"HIDDEN_DIM": 256},
-            {"SHOULD_BE_DROPPED": True},
-        ]
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
+    def test_filename_collision_raises_valueerror(self, config_dir, ci_env_unset):
+        # Arrange — two stems folding to the same UPPER top-level key.
+        _write_configs(
+            config_dir, {"MODEL": {"HIDDEN_DIM": 256}, "model": {"OTHER": 1}}
+        )
         # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-        # Act
+        ctx = pytest.raises(ValueError)
         # Assert
-        # Assert
-        assert result.MODEL.HIDDEN_DIM == 256
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_filename_case_conflict_warns_and_keeps_upper_should_be_dropped_not_in_result_model(self, mock_load, mock_glob):
+    def test_filename_collision_message_names_config_directory(
+        self, config_dir, ci_env_unset
+    ):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/MODEL.yaml", "./config/model.yaml"]
-        mock_load.side_effect = [
-            {"HIDDEN_DIM": 256},
-            {"SHOULD_BE_DROPPED": True},
-        ]
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
+        _write_configs(
+            config_dir, {"MODEL": {"HIDDEN_DIM": 256}, "model": {"OTHER": 1}}
+        )
         # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-        # Act
+        ctx = pytest.raises(ValueError, match=r"config directory")
         # Assert
-        # Assert
-        assert "SHOULD_BE_DROPPED" not in result.MODEL
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_filename_case_conflict_warns_and_keeps_upper_model_not_in_result(self, mock_load, mock_glob):
+    def test_filename_collision_message_names_both_stems(
+        self, config_dir, ci_env_unset
+    ):
         # Arrange
+        _write_configs(
+            config_dir, {"MODEL": {"HIDDEN_DIM": 256}, "model": {"OTHER": 1}}
+        )
+        # Act — both offending stems must appear (order-agnostic).
+        ctx = pytest.raises(ValueError, match=r"'MODEL'.*'model'|'model'.*'MODEL'")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_raises_valueerror(self, config_dir, ci_env_unset):
+        # Arrange — two keys inside one mapping fold to the same UPPER.
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
+        # Act
+        ctx = pytest.raises(ValueError)
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_message_names_source_file(
+        self, config_dir, ci_env_unset
+    ):
         # Arrange
-        mock_glob.return_value = ["./config/MODEL.yaml", "./config/model.yaml"]
-        mock_load.side_effect = [
-            {"HIDDEN_DIM": 256},
-            {"SHOULD_BE_DROPPED": True},
-        ]
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
         # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
+        ctx = pytest.raises(ValueError, match=r"file 'm'")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_message_names_mapping_path(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
         # Act
+        ctx = pytest.raises(ValueError, match=r"CONFIG\.M")
         # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_message_names_both_keys(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
+        # Act — both literal keys must appear (order-agnostic).
+        ctx = pytest.raises(
+            ValueError,
+            match=r"'HIDDEN_DIM'.*'hidden_dim'|'hidden_dim'.*'HIDDEN_DIM'",
+        )
         # Assert
-        assert "model" not in result
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_deep_string_mapping_collision_message_names_full_path(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange — the neurovista reproduction: a deeply nested string
+        # mapping (STR2COLOR) with two keys folding to one UPPER.
+        _write_configs(
+            config_dir,
+            {"SEIZURE": {"STR2COLOR": {"seizure": "red", "SEIZURE": "blue"}}},
+        )
+        # Act
+        ctx = pytest.raises(ValueError, match=r"CONFIG\.SEIZURE\.STR2COLOR")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
 
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_nested_key_case_conflict_warns_msgs(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/m.yaml"]
-        mock_load.return_value = {
-            "HIDDEN_DIM": 256,
-            "hidden_dim": 999,  # collides; should be dropped
-        }
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
-        # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-        # Act
-        # Assert
-        # Assert
-        assert msgs, "expected a case-conflict warning"
+class TestNonStringKeysUntouched:
+    """Non-string keys are matched exactly, never case-folded."""
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_nested_key_case_conflict_warns_hidden_dim_in_msgs_0(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/m.yaml"]
-        mock_load.return_value = {
-            "HIDDEN_DIM": 256,
-            "hidden_dim": 999,  # collides; should be dropped
-        }
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
+    def test_integer_key_resolves_exactly(self):
+        # Arrange — DotDict directly: int keys must stay exact.
+        d = DotDict({1: "one", 2: "two"})
         # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-        # Act
+        value = d[1]
         # Assert
-        # Assert
-        assert "HIDDEN_DIM" in msgs[0]
+        assert value == "one"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_nested_key_case_conflict_warns_result_m_hidden_dim_256(self, mock_load, mock_glob):
+    def test_integer_key_membership_exact(self):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/m.yaml"]
-        mock_load.return_value = {
-            "HIDDEN_DIM": 256,
-            "hidden_dim": 999,  # collides; should be dropped
-        }
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            result = load_configs(IS_DEBUG=False)
+        d = DotDict({42: "answer"})
         # Act
-        msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-        # Act
+        present = 42 in d
         # Assert
-        # Assert
-        assert result.M.HIDDEN_DIM == 256
+        assert present is True
 
+    def test_no_collision_between_int_and_string_keys(self):
+        # Arrange — an int key and a string key never collide.
+        d = DotDict({1: "int-one", "ONE": "str-one"})
+        # Act
+        # Assert
+        assert d[1] == "int-one"
+
+
+class TestDotDictDirectLookup:
+    """DotDict case-insensitive lookup, exercised without load_configs."""
+
+    def test_lowercase_getitem_on_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d["seizure"]
+        # Assert
+        assert value == "red"
+
+    def test_upper_getitem_on_lower_storage(self):
+        # Arrange — DotDict itself does not force UPPER storage.
+        d = DotDict({"seizure": "red"})
+        # Act
+        value = d["SEIZURE"]
+        # Assert
+        assert value == "red"
+
+    def test_lowercase_attribute_access_on_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d.seizure
+        # Assert
+        assert value == "red"
+
+    def test_upper_attribute_access_on_lower_storage(self):
+        # Arrange
+        d = DotDict({"seizure": "red"})
+        # Act
+        value = d.SEIZURE
+        # Assert
+        assert value == "red"
+
+    def test_lowercase_contains_on_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        present = "seizure" in d
+        # Assert
+        assert present is True
+
+    def test_upper_contains_on_lower_storage(self):
+        # Arrange
+        d = DotDict({"seizure": "red"})
+        # Act
+        present = "SEIZURE" in d
+        # Assert
+        assert present is True
+
+    def test_get_lowercase_resolves_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d.get("seizure")
+        # Assert
+        assert value == "red"
+
+    def test_get_missing_returns_default(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d.get("absent", "fallback")
+        # Assert
+        assert value == "fallback"
+
+    def test_keys_return_stored_form_not_folded(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red", "unknown": "gray"})
+        # Act
+        stored = set(d.keys())
+        # Assert
+        assert stored == {"SEIZURE", "unknown"}
+
+    def test_missing_string_key_raises_keyerror_with_original(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        ctx = pytest.raises(KeyError)
+        # Assert
+        with ctx:
+            d["absent"]
+
+    def test_nested_dotdict_lookup_is_case_insensitive(self):
+        # Arrange — recursion: nested dicts wrap into DotDict.
+        d = DotDict({"OUTER": {"inner_key": "v"}})
+        # Act
+        value = d["outer"]["INNER_KEY"]
+        # Assert
+        assert value == "v"
 
 
 class TestDebugPromotion:
     """DEBUG_<KEY> overrides <KEY> when IS_DEBUG is on."""
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_debug_replaces_normal_value_result_config1_param1_debug_value(self, mock_load, mock_glob):
+    def test_debug_replaces_normal_value(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {
-            "param1": "normal_value",
-            "DEBUG_param1": "debug_value",
-            "debug_param2": "another_debug_value",
-        }
+        _write_configs(
+            config_dir,
+            {"config1": {"param1": "normal_value", "DEBUG_param1": "debug_value"}},
+        )
         # Act
-        result = load_configs(IS_DEBUG=True)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.PARAM1 == "debug_value"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_debug_replaces_normal_value_result_config1_param2_another_debug_value(self, mock_load, mock_glob):
+    def test_lowercase_debug_prefix_promotes(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {
-            "param1": "normal_value",
-            "DEBUG_param1": "debug_value",
-            "debug_param2": "another_debug_value",
-        }
+        _write_configs(config_dir, {"config1": {"debug_param2": "another_debug_value"}})
         # Act
-        result = load_configs(IS_DEBUG=True)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.PARAM2 == "another_debug_value"
 
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_debug_in_nested_dict_result_config1_top_level_special_key_debug_special_value(self, mock_load, mock_glob):
+    def test_debug_promotion_in_nested_dict(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {
-            "top_level": {
-                "normal_key": "normal_value",
-                "DEBUG_special_key": "debug_special_value",
-                "nested": {"debug_nested_key": "debug_nested_value"},
-            }
-        }
+        _write_configs(
+            config_dir,
+            {"config1": {"top_level": {"DEBUG_special_key": "debug_special_value"}}},
+        )
         # Act
-        result = load_configs(IS_DEBUG=True)
-        # Act
-        # Assert
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.TOP_LEVEL.SPECIAL_KEY == "debug_special_value"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_debug_in_nested_dict_result_config1_top_level_nested_nested_key_debug_nested_valu(self, mock_load, mock_glob):
+    def test_ci_env_triggers_debug(self, config_dir, ci_env_true):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {
-            "top_level": {
-                "normal_key": "normal_value",
-                "DEBUG_special_key": "debug_special_value",
-                "nested": {"debug_nested_key": "debug_nested_value"},
-            }
-        }
+        _write_configs(
+            config_dir, {"config1": {"param": "normal", "DEBUG_param": "debug"}}
+        )
         # Act
-        result = load_configs(IS_DEBUG=True)
-        # Act
-        # Assert
-        # Assert
-        assert result.CONFIG1.TOP_LEVEL.NESTED.NESTED_KEY == "debug_nested_value"
-
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_debug_in_nested_dict_result_config1_top_level_normal_key_normal_value(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {
-            "top_level": {
-                "normal_key": "normal_value",
-                "DEBUG_special_key": "debug_special_value",
-                "nested": {"debug_nested_key": "debug_nested_value"},
-            }
-        }
-        # Act
-        result = load_configs(IS_DEBUG=True)
-        # Act
-        # Assert
-        # Assert
-        assert result.CONFIG1.TOP_LEVEL.NORMAL_KEY == "normal_value"
-
-
-    @patch("scitex_io._loading._load_configs.os.getenv")
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_ci_env_triggers_debug(self, mock_load, mock_glob, mock_getenv):
-        # Arrange
-        # Arrange
-        mock_getenv.return_value = "True"
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {"param": "normal", "DEBUG_param": "debug"}
-        # Act
-        # Act
-        result = load_configs(IS_DEBUG=None)
-        # Assert
+        result = load_configs(IS_DEBUG=None, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.PARAM == "debug"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    @patch("scitex_io._loading._load_configs.os.path.exists")
-    def test_is_debug_yaml_triggers_debug(self, mock_exists, mock_load, mock_glob):
+    def test_is_debug_yaml_triggers_debug(self, config_dir, ci_env_unset):
         # Arrange
-        # Arrange
-        def exists_side_effect(path):
-            return "IS_DEBUG.yaml" in path
-
-        mock_exists.side_effect = exists_side_effect
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.side_effect = [
-            {"IS_DEBUG": True},
-            {"param": "normal", "DEBUG_param": "debug"},
-        ]
+        _write_configs(
+            config_dir,
+            {
+                "IS_DEBUG": {"IS_DEBUG": True},
+                "config1": {"param": "normal", "DEBUG_param": "debug"},
+            },
+        )
         # Act
-        # Act
-        result = load_configs(IS_DEBUG=None)
-        # Assert
+        result = load_configs(IS_DEBUG=None, config_dir=config_dir)
         # Assert
         assert result.CONFIG1.PARAM == "debug"
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_show_prints_debug_substitution(self, mock_load, mock_glob, capsys):
+    def test_show_prints_debug_substitution(self, config_dir, ci_env_unset, capsys):
         # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/config1.yaml"]
-        mock_load.return_value = {"DEBUG_param": "debug_value"}
-        load_configs(IS_DEBUG=True, show=True)
+        _write_configs(config_dir, {"config1": {"DEBUG_param": "debug_value"}})
         # Act
-        # Act
-        captured = capsys.readouterr()
+        load_configs(IS_DEBUG=True, show=True, config_dir=config_dir)
         # Assert
-        # Assert
-        assert "DEBUG_param -> param" in captured.out
+        assert "DEBUG_param -> param" in capsys.readouterr().out
 
 
 class TestEdgeCases:
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_empty_file_returns_empty_result_is_dotdict(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/empty.yaml"]
-        mock_load.return_value = None
+    def test_empty_file_returns_empty_dotdict(self, config_dir, ci_env_unset):
+        # Arrange — an empty YAML file loads as None and is skipped.
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "empty.yaml"), "w") as f:
+            f.write("")
         # Act
-        result = load_configs()
-        # Act
+        result = load_configs(config_dir=config_dir)
         # Assert
-        # Assert
-        assert isinstance(result, DotDict)
+        assert isinstance(result, DotDict) and len(result) == 0
 
-    @patch("scitex_io._loading._load_configs.glob")
-    @patch("scitex_io._loading._load_configs.load")
-    def test_empty_file_returns_empty_len_result_is_0(self, mock_load, mock_glob):
-        # Arrange
-        # Arrange
-        mock_glob.return_value = ["./config/empty.yaml"]
-        mock_load.return_value = None
+    def test_malformed_yaml_returns_empty_and_prints(
+        self, config_dir, ci_env_unset, capsys
+    ):
+        # Arrange — invalid YAML triggers the generic resilience path.
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "broken.yaml"), "w") as f:
+            f.write("key: [unclosed\n")
         # Act
-        result = load_configs()
-        # Act
+        result = load_configs(config_dir=config_dir)
         # Assert
-        # Assert
-        assert len(result) == 0
+        assert isinstance(result, DotDict) and len(result) == 0
 
 
-    @patch("scitex_io._loading._load_configs.glob")
-    def test_exception_returns_empty_and_prints_result_is_dotdict(self, mock_glob, capsys):
-        # Arrange
-        # Arrange
-        mock_glob.side_effect = Exception("Test error")
-        # Act
-        result = load_configs()
-        # Act
-        # Assert
-        # Assert
-        assert isinstance(result, DotDict)
-
-    @patch("scitex_io._loading._load_configs.glob")
-    def test_exception_returns_empty_and_prints_len_result_is_0(self, mock_glob, capsys):
-        # Arrange
-        # Arrange
-        mock_glob.side_effect = Exception("Test error")
-        # Act
-        result = load_configs()
-        # Act
-        # Assert
-        # Assert
-        assert len(result) == 0
-
-    @patch("scitex_io._loading._load_configs.glob")
-    def test_exception_returns_empty_and_prints_error_loading_configs_in_captured_out(self, mock_glob, capsys):
-        # Arrange
-        # Arrange
-        mock_glob.side_effect = Exception("Test error")
-        # Act
-        result = load_configs()
-        # Assert
-        assert isinstance(result, DotDict)
-        assert len(result) == 0
-        captured = capsys.readouterr()
-        # Act
-        # Assert
-        assert "Error loading configs" in captured.out
-
-
-
-class TestRealFilesystem:
-    """End-to-end with real YAML files on disk."""
+class TestRealFilesystemRoundTrip:
+    """End-to-end with real YAML files written to a tmp config dir."""
 
     @pytest.fixture
-    def temp_config_dir(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            config_dir = os.path.join(tmpdir, "config")
-            os.makedirs(config_dir)
+    def populated_config_dir(self, config_dir):
+        _write_configs(
+            config_dir,
+            {
+                "config1": {
+                    "param1": "value1",
+                    "param2": 123,
+                    "nested": {"key1": "val1", "DEBUG_key2": "debug_val2"},
+                },
+                "config2": {
+                    "param3": "value3",
+                    "DEBUG_param4": "debug_value4",
+                    "debug_param5": "debug_value5",
+                },
+                "IS_DEBUG": {"IS_DEBUG": False},
+            },
+        )
+        return config_dir
 
-            with open(os.path.join(config_dir, "config1.yaml"), "w") as f:
-                yaml.dump(
-                    {
-                        "param1": "value1",
-                        "param2": 123,
-                        "nested": {
-                            "key1": "val1",
-                            "DEBUG_key2": "debug_val2",
-                        },
-                    },
-                    f,
-                )
-            with open(os.path.join(config_dir, "config2.yaml"), "w") as f:
-                yaml.dump(
-                    {
-                        "param3": "value3",
-                        "DEBUG_param4": "debug_value4",
-                        "debug_param5": "debug_value5",
-                    },
-                    f,
-                )
-            with open(os.path.join(config_dir, "IS_DEBUG.yaml"), "w") as f:
-                yaml.dump({"IS_DEBUG": False}, f)
-            yield tmpdir
+    def test_production_mode_loads_normal_value(
+        self, populated_config_dir, ci_env_unset
+    ):
+        # Arrange
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=populated_config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM1 == "value1"
 
-    def test_round_trip_production_mode(self, temp_config_dir):
+    def test_production_mode_skips_debug_promotion(
+        self, populated_config_dir, ci_env_unset
+    ):
         # Arrange
         # Act
+        result = load_configs(IS_DEBUG=False, config_dir=populated_config_dir)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        original_cwd = os.getcwd()
-        os.chdir(temp_config_dir)
-        try:
-            result = load_configs(IS_DEBUG=False)
-            assert result.CONFIG1.PARAM1 == "value1"
-            assert result.CONFIG1.PARAM2 == 123
-            assert result.CONFIG2.PARAM3 == "value3"
-            assert result.CONFIG1.NESTED.KEY1 == "val1"
-            # No debug promotion in production.
-            assert "PARAM4" not in result.CONFIG2
-            assert "PARAM5" not in result.CONFIG2
-        finally:
-            os.chdir(original_cwd)
+        assert "PARAM4" not in result.CONFIG2
 
-    def test_round_trip_debug_mode(self, temp_config_dir):
+    def test_debug_mode_promotes_top_level(self, populated_config_dir, ci_env_unset):
         # Arrange
         # Act
+        result = load_configs(IS_DEBUG=True, config_dir=populated_config_dir)
         # Assert
+        assert result.CONFIG2.PARAM4 == "debug_value4"
+
+    def test_debug_mode_promotes_nested(self, populated_config_dir, ci_env_unset):
         # Arrange
         # Act
+        result = load_configs(IS_DEBUG=True, config_dir=populated_config_dir)
         # Assert
-        original_cwd = os.getcwd()
-        os.chdir(temp_config_dir)
-        try:
-            result = load_configs(IS_DEBUG=True)
-            # DEBUG_param4 → param4 (UPPER → PARAM4)
-            assert result.CONFIG2.PARAM4 == "debug_value4"
-            assert result.CONFIG2.PARAM5 == "debug_value5"
-            # nested DEBUG_key2 → key2 (UPPER → KEY2)
-            assert result.CONFIG1.NESTED.KEY2 == "debug_val2"
-        finally:
-            os.chdir(original_cwd)
+        assert result.CONFIG1.NESTED.KEY2 == "debug_val2"
 
 
 if __name__ == "__main__":
-    import pytest
-
     pytest.main([os.path.abspath(__file__)])
