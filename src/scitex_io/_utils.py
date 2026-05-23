@@ -44,7 +44,26 @@ def readable_bytes(size):
 # Dict utilities
 class DotDict:
     """A dictionary-like object that allows attribute-like access (for valid identifier keys)
-    and standard item access for all keys (including integers, etc.)."""
+    and standard item access for all keys (including integers, etc.).
+
+    Case-insensitive on string-key lookup, storage-stable
+    -----------------------------------------------------
+    Keys are stored exactly as set (``load_configs`` separately
+    normalises every config key to UPPER on load). Lookups, however,
+    are **case-insensitive for string keys**: ``d["seizure"]``,
+    ``d["SEIZURE"]``, ``d.seizure`` and ``d.SEIZURE`` all resolve to the
+    same stored value regardless of the stored case, and
+    ``"seizure" in d`` matches a stored ``"SEIZURE"`` (and vice versa).
+
+    This means a config written ``STR2COLOR: {"seizure": "red"}`` —
+    which ``load_configs`` stores as ``{"SEIZURE": "red"}`` — can still
+    be looked up with the lowercase key the user wrote
+    (``CONFIG.X.STR2COLOR["seizure"]``) without a surprise ``KeyError``.
+
+    ``keys()`` / ``values()`` / ``items()`` / iteration return the
+    stored (canonical) form — they are NOT case-folded. Non-string keys
+    (ints, etc.) are left untouched and matched exactly.
+    """
 
     def __init__(self, dictionary=None):
         super().__setattr__("_data", {})
@@ -58,11 +77,39 @@ class DotDict:
                     value = DotDict(value)
                 self[key] = value
 
+    def _resolve_key(self, key):
+        """Return the stored key matching ``key`` case-insensitively.
+
+        Resolution order, designed so the common (UPPER-stored) path
+        stays O(1) and the case-insensitive scan runs only on a genuine
+        miss:
+
+        1. Exact match — covers non-string keys and same-case lookups.
+        2. For string keys, ``key.upper()`` — covers lowercase lookup of
+           an UPPER-stored key (the ``load_configs`` case).
+        3. For string keys, a case-insensitive scan over stored string
+           keys — covers any other case mix (e.g. lowercase storage).
+
+        Raises ``KeyError`` (carrying the *original* lookup key) when
+        nothing matches, so callers see the key they actually asked for.
+        """
+        data = self._data
+        if key in data:
+            return key
+        if isinstance(key, str):
+            upper = key.upper()
+            if upper in data:
+                return upper
+            for stored in data:
+                if isinstance(stored, str) and stored.upper() == upper:
+                    return stored
+        raise KeyError(key)
+
     def __getattr__(self, key):
         if key.startswith("_"):
             return super().__getattribute__(key)
         try:
-            return self._data[key]
+            return self._data[self._resolve_key(key)]
         except KeyError:
             raise AttributeError(
                 f"'{type(self).__name__}' object has no attribute '{key}'"
@@ -88,7 +135,7 @@ class DotDict:
                 )
 
     def __getitem__(self, key):
-        return self._data[key]
+        return self._data[self._resolve_key(key)]
 
     def __setitem__(self, key, value):
         if isinstance(value, dict) and not isinstance(value, DotDict):
@@ -99,7 +146,12 @@ class DotDict:
         del self._data[key]
 
     def get(self, key, default=None):
-        return self._data.get(key, default)
+        # Case-insensitive for string keys, mirroring __getitem__, so
+        # d.get("seizure") and d["seizure"] never disagree.
+        try:
+            return self._data[self._resolve_key(key)]
+        except KeyError:
+            return default
 
     def to_dict(self, include_private=False):
         """Recursively convert to plain dict."""
@@ -174,7 +226,11 @@ class DotDict:
         return self._data.pop(key)
 
     def __contains__(self, key):
-        return key in self._data
+        try:
+            self._resolve_key(key)
+            return True
+        except KeyError:
+            return False
 
     def __iter__(self):
         return iter(self._data)

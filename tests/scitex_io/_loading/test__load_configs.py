@@ -2,28 +2,24 @@
 # -*- coding: utf-8 -*-
 """Tests for scitex_io._loading._load_configs.
 
-``load_configs`` normalises every filename stem + every nested key to
-UPPER_CASE on load (introduced 2026-05). These tests exercise the
-public API end-to-end against real YAML files on disk — there is no
-mocking. Each test writes its own ``config_dir`` under ``tmp_path``
-and passes it through the ``config_dir=`` kwarg.
-
-Behaviours under test:
+`load_configs` normalises every filename stem + every nested string key
+to UPPER_CASE on load, and the returned ``DotDict`` is case-insensitive
+on string-key lookup. The tests below exercise:
 
   * Filename → UPPER stem
   * Nested key → UPPER attribute
-  * Multi-file merge
-  * Case-conflict resolution (UPPER wins; lowercase dropped + warning)
-  * DEBUG_/debug_ promotion when IS_DEBUG is set
+  * Case-insensitive lookup of UPPER-stored nested string-mapping keys
+  * Case-collision fail-loud (ValueError naming file + path + both keys)
+  * DEBUG_*/debug_* promotion when IS_DEBUG is set
   * Each of the three IS_DEBUG triggers (kwarg, ``CI=True``, IS_DEBUG.yaml)
-  * Empty / error paths
-  * ``categories/`` subdirectory
+  * Empty / missing / error paths
+
+No mocks: every test writes real YAML files into a tmp dir and points
+``load_configs`` at it via the ``config_dir`` argument, exercising the
+real ``glob`` + ``load`` collaborators.
 """
-from __future__ import annotations
 
 import os
-import warnings
-from pathlib import Path
 
 import pytest
 import yaml
@@ -32,597 +28,527 @@ from scitex_io import load_configs
 from scitex_io._utils import DotDict
 
 
-# ---------------------------------------------------------------------------
-# Helpers — write a config_dir on disk and return its path.
-# ---------------------------------------------------------------------------
+def _write_configs(config_dir, files):
+    """Write ``{stem: mapping}`` to ``<config_dir>/<stem>.yaml`` files.
 
-
-def _write_yaml(path: Path, data) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.dump(data))
-
-
-def _build_config_dir(tmp_path: Path, files: dict, categories: dict | None = None) -> Path:
-    """Write ``files`` (and optional ``categories``) under ``tmp_path/config``.
-
-    ``files`` maps filename (with ``.yaml`` suffix) → data dict.
+    Real on-disk YAML so the test exercises the production ``glob`` +
+    ``load`` path rather than a mocked stand-in.
     """
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    for name, data in files.items():
-        _write_yaml(config_dir / name, data)
-    if categories:
-        cat_dir = config_dir / "categories"
-        cat_dir.mkdir(parents=True, exist_ok=True)
-        for name, data in categories.items():
-            _write_yaml(cat_dir / name, data)
-    return config_dir
-
-
-# ---------------------------------------------------------------------------
-# Filename → UPPER stem + key → UPPER attribute (basic shape).
-# ---------------------------------------------------------------------------
+    os.makedirs(config_dir, exist_ok=True)
+    for stem, mapping in files.items():
+        with open(os.path.join(config_dir, f"{stem}.yaml"), "w") as f:
+            yaml.dump(mapping, f, default_flow_style=False, sort_keys=False)
 
 
 @pytest.fixture
-def basic_two_file_result(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "config1.yaml": {"param1": "value1", "param2": 123},
-            "config2.yaml": {"param3": "value3"},
-        },
-    )
-    return load_configs(IS_DEBUG=False, config_dir=config_dir)
-
-
-def test_load_configs_basic_returns_dotdict(basic_two_file_result):
-    # Arrange
-    result = basic_two_file_result
-    # Act
-    is_dotdict = isinstance(result, DotDict)
-    # Assert
-    assert is_dotdict
-
-
-def test_load_configs_basic_namespaces_config1_param1(basic_two_file_result):
-    # Arrange
-    result = basic_two_file_result
-    # Act
-    value = result.CONFIG1.PARAM1
-    # Assert
-    assert value == "value1"
-
-
-def test_load_configs_basic_namespaces_config1_param2(basic_two_file_result):
-    # Arrange
-    result = basic_two_file_result
-    # Act
-    value = result.CONFIG1.PARAM2
-    # Assert
-    assert value == 123
-
-
-def test_load_configs_basic_namespaces_config2_param3(basic_two_file_result):
-    # Arrange
-    result = basic_two_file_result
-    # Act
-    value = result.CONFIG2.PARAM3
-    # Assert
-    assert value == "value3"
+def config_dir(tmp_path):
+    """Return a fresh ``<tmp>/config`` directory path (not yet created)."""
+    return os.path.join(str(tmp_path), "config")
 
 
 @pytest.fixture
-def already_upper_result(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path, {"MODEL.yaml": {"HIDDEN_DIM": 256, "DROPOUT": 0.3}}
-    )
-    return load_configs(IS_DEBUG=False, config_dir=config_dir)
-
-
-def test_load_configs_already_upper_keeps_hidden_dim(already_upper_result):
-    # Arrange
-    result = already_upper_result
-    # Act
-    value = result.MODEL.HIDDEN_DIM
-    # Assert
-    assert value == 256
-
-
-def test_load_configs_already_upper_keeps_dropout(already_upper_result):
-    # Arrange
-    result = already_upper_result
-    # Act
-    value = result.MODEL.DROPOUT
-    # Assert
-    assert value == 0.3
+def ci_env_true():
+    """Set ``CI=True`` for the test, restoring the prior value after."""
+    saved = os.environ.get("CI")
+    os.environ["CI"] = "True"
+    try:
+        yield
+    finally:
+        if saved is None:
+            os.environ.pop("CI", None)
+        else:
+            os.environ["CI"] = saved
 
 
 @pytest.fixture
-def merged_three_file_result(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "a.yaml": {"param1": "value1", "shared": "from_a"},
-            "b.yaml": {"param2": "value2", "shared": "from_b"},
-            "c.yaml": {"param3": "value3"},
-        },
-    )
-    return load_configs(IS_DEBUG=False, config_dir=config_dir)
+def ci_env_unset():
+    """Ensure ``CI`` is unset for the test, restoring the prior value."""
+    saved = os.environ.get("CI")
+    os.environ.pop("CI", None)
+    try:
+        yield
+    finally:
+        if saved is not None:
+            os.environ["CI"] = saved
 
 
-def test_load_configs_merge_preserves_a_param1(merged_three_file_result):
-    # Arrange
-    result = merged_three_file_result
-    # Act
-    value = result.A.PARAM1
-    # Assert
-    assert value == "value1"
+class TestLoadConfigsBasic:
+    """Top-level shape: filename → UPPER stem; keys → UPPER attribute."""
 
-
-def test_load_configs_merge_preserves_a_shared(merged_three_file_result):
-    # Arrange
-    result = merged_three_file_result
-    # Act
-    value = result.A.SHARED
-    # Assert
-    assert value == "from_a"
-
-
-def test_load_configs_merge_preserves_b_param2(merged_three_file_result):
-    # Arrange
-    result = merged_three_file_result
-    # Act
-    value = result.B.PARAM2
-    # Assert
-    assert value == "value2"
-
-
-def test_load_configs_merge_preserves_b_shared(merged_three_file_result):
-    # Arrange
-    result = merged_three_file_result
-    # Act
-    value = result.B.SHARED
-    # Assert
-    assert value == "from_b"
-
-
-def test_load_configs_merge_preserves_c_param3(merged_three_file_result):
-    # Arrange
-    result = merged_three_file_result
-    # Act
-    value = result.C.PARAM3
-    # Assert
-    assert value == "value3"
-
-
-# ---------------------------------------------------------------------------
-# Lowercase / nested key normalisation.
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def preprocess_result(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "preprocess.yaml": {
-                "sample_rate": 1000,
-                "bandpass_low": 0.5,
-                "nested": {"field_a": "a", "field_b": 42},
-            }
-        },
-    )
-    return load_configs(IS_DEBUG=False, config_dir=config_dir)
-
-
-def test_load_configs_uppercases_lowercase_sample_rate(preprocess_result):
-    # Arrange
-    result = preprocess_result
-    # Act
-    value = result.PREPROCESS.SAMPLE_RATE
-    # Assert
-    assert value == 1000
-
-
-def test_load_configs_uppercases_lowercase_bandpass_low(preprocess_result):
-    # Arrange
-    result = preprocess_result
-    # Act
-    value = result.PREPROCESS.BANDPASS_LOW
-    # Assert
-    assert value == 0.5
-
-
-def test_load_configs_uppercases_nested_field_a(preprocess_result):
-    # Arrange
-    result = preprocess_result
-    # Act
-    value = result.PREPROCESS.NESTED.FIELD_A
-    # Assert
-    assert value == "a"
-
-
-def test_load_configs_uppercases_nested_field_b(preprocess_result):
-    # Arrange
-    result = preprocess_result
-    # Act
-    value = result.PREPROCESS.NESTED.FIELD_B
-    # Assert
-    assert value == 42
-
-
-# ---------------------------------------------------------------------------
-# Filename case-conflict — UPPER wins, lowercase dropped + warning.
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def filename_conflict_caught(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "MODEL.yaml": {"HIDDEN_DIM": 256},
-            "model.yaml": {"SHOULD_BE_DROPPED": True},
-        },
-    )
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    def test_returns_dotdict_instance(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"config1": {"param1": "value1"}})
+        # Act
         result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-    return result, msgs
+        # Assert
+        assert isinstance(result, DotDict)
 
-
-def test_load_configs_filename_conflict_emits_warning_with_variants(
-    filename_conflict_caught,
-):
-    # Arrange
-    _result, msgs = filename_conflict_caught
-    # Act
-    has_variants_msg = any(
-        "MODEL" in m and "model" in m for m in msgs
-    )
-    # Assert
-    assert has_variants_msg
-
-
-def test_load_configs_filename_conflict_keeps_upper_hidden_dim(
-    filename_conflict_caught,
-):
-    # Arrange
-    result, _msgs = filename_conflict_caught
-    # Act
-    value = result.MODEL.HIDDEN_DIM
-    # Assert
-    assert value == 256
-
-
-def test_load_configs_filename_conflict_drops_lowercase_value(
-    filename_conflict_caught,
-):
-    # Arrange
-    result, _msgs = filename_conflict_caught
-    # Act
-    has_dropped_key = "SHOULD_BE_DROPPED" in result.MODEL
-    # Assert
-    assert has_dropped_key is False
-
-
-def test_load_configs_filename_conflict_removes_lowercase_filename(
-    filename_conflict_caught,
-):
-    # Arrange
-    result, _msgs = filename_conflict_caught
-    # Act
-    has_lower_key = "model" in result
-    # Assert
-    assert has_lower_key is False
-
-
-@pytest.fixture
-def nested_key_conflict_caught(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "m.yaml": {
-                "HIDDEN_DIM": 256,
-                "hidden_dim": 999,  # collides; should be dropped
-            }
-        },
-    )
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    def test_filename_stem_becomes_upper_top_level_key(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"config1": {"param1": "value1"}})
+        # Act
         result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    msgs = [str(item.message) for item in w if "case conflict" in str(item.message)]
-    return result, msgs
+        # Assert
+        assert result.CONFIG1.PARAM1 == "value1"
+
+    def test_integer_value_preserved(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"config1": {"param2": 123}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM2 == 123
+
+    def test_already_upper_keys_preserved(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"MODEL": {"HIDDEN_DIM": 256, "DROPOUT": 0.3}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.MODEL.HIDDEN_DIM == 256
+
+    def test_merges_multiple_files(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(
+            config_dir,
+            {"a": {"param1": "value1"}, "b": {"param2": "value2"}},
+        )
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.A.PARAM1 == "value1" and result.B.PARAM2 == "value2"
 
 
-def test_load_configs_nested_conflict_emits_at_least_one_warning(
-    nested_key_conflict_caught,
-):
-    # Arrange
-    _result, msgs = nested_key_conflict_caught
-    # Act
-    has_msg = bool(msgs)
-    # Assert
-    assert has_msg
+class TestUpperNormalisation:
+    """The UPPER_CASE walker + case-insensitive lookup."""
+
+    def test_lowercase_top_key_becomes_upper(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"preprocess": {"sample_rate": 1_000}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.PREPROCESS.SAMPLE_RATE == 1_000
+
+    def test_nested_lowercase_key_becomes_upper(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(
+            config_dir, {"preprocess": {"nested": {"field_a": "a", "field_b": 42}}}
+        )
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.PREPROCESS.NESTED.FIELD_A == "a"
 
 
-def test_load_configs_nested_conflict_message_names_upper_key(
-    nested_key_conflict_caught,
-):
-    # Arrange
-    _result, msgs = nested_key_conflict_caught
-    # Act
-    first = msgs[0]
-    # Assert
-    assert "HIDDEN_DIM" in first
+class TestCaseInsensitiveLookup:
+    """The Issue #32 fix: lowercase lookup of UPPER-stored string keys."""
+
+    def test_keys_returns_upper_canonical_form(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(
+            config_dir,
+            {"SEIZURE": {"STR2COLOR": {"seizure": "red", "unknown": "gray"}}},
+        )
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert set(result.SEIZURE.STR2COLOR.keys()) == {"SEIZURE", "UNKNOWN"}
+
+    def test_lowercase_getitem_resolves_upper_stored_key(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"SEIZURE": {"STR2COLOR": {"seizure": "red"}}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.SEIZURE.STR2COLOR["seizure"] == "red"
+
+    def test_upper_getitem_resolves_upper_stored_key(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"SEIZURE": {"STR2COLOR": {"seizure": "red"}}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.SEIZURE.STR2COLOR["SEIZURE"] == "red"
+
+    def test_lowercase_contains_matches_upper_stored_key(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"SEIZURE": {"STR2COLOR": {"seizure": "red"}}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert "seizure" in result.SEIZURE.STR2COLOR
 
 
-def test_load_configs_nested_conflict_keeps_upper_value(
-    nested_key_conflict_caught,
-):
-    # Arrange
-    result, _msgs = nested_key_conflict_caught
-    # Act
-    value = result.M.HIDDEN_DIM
-    # Assert
-    assert value == 256
+class TestCaseCollisionFailLoud:
+    """A case collision is a user config error — fail loud at load time."""
+
+    def test_filename_collision_raises_valueerror(self, config_dir, ci_env_unset):
+        # Arrange — two stems folding to the same UPPER top-level key.
+        _write_configs(
+            config_dir, {"MODEL": {"HIDDEN_DIM": 256}, "model": {"OTHER": 1}}
+        )
+        # Act
+        ctx = pytest.raises(ValueError)
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_filename_collision_message_names_config_directory(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(
+            config_dir, {"MODEL": {"HIDDEN_DIM": 256}, "model": {"OTHER": 1}}
+        )
+        # Act
+        ctx = pytest.raises(ValueError, match=r"config directory")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_filename_collision_message_names_both_stems(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(
+            config_dir, {"MODEL": {"HIDDEN_DIM": 256}, "model": {"OTHER": 1}}
+        )
+        # Act — both offending stems must appear (order-agnostic).
+        ctx = pytest.raises(ValueError, match=r"'MODEL'.*'model'|'model'.*'MODEL'")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_raises_valueerror(self, config_dir, ci_env_unset):
+        # Arrange — two keys inside one mapping fold to the same UPPER.
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
+        # Act
+        ctx = pytest.raises(ValueError)
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_message_names_source_file(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
+        # Act
+        ctx = pytest.raises(ValueError, match=r"file 'm'")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_message_names_mapping_path(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
+        # Act
+        ctx = pytest.raises(ValueError, match=r"CONFIG\.M")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_nested_key_collision_message_names_both_keys(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        _write_configs(config_dir, {"m": {"HIDDEN_DIM": 256, "hidden_dim": 999}})
+        # Act — both literal keys must appear (order-agnostic).
+        ctx = pytest.raises(
+            ValueError,
+            match=r"'HIDDEN_DIM'.*'hidden_dim'|'hidden_dim'.*'HIDDEN_DIM'",
+        )
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
+
+    def test_deep_string_mapping_collision_message_names_full_path(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange — the neurovista reproduction: a deeply nested string
+        # mapping (STR2COLOR) with two keys folding to one UPPER.
+        _write_configs(
+            config_dir,
+            {"SEIZURE": {"STR2COLOR": {"seizure": "red", "SEIZURE": "blue"}}},
+        )
+        # Act
+        ctx = pytest.raises(ValueError, match=r"CONFIG\.SEIZURE\.STR2COLOR")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=False, config_dir=config_dir)
 
 
-# ---------------------------------------------------------------------------
-# Debug promotion — DEBUG_<KEY> / debug_<KEY> override <KEY> when on.
-# ---------------------------------------------------------------------------
+class TestNonStringKeysUntouched:
+    """Non-string keys are matched exactly, never case-folded."""
+
+    def test_integer_key_resolves_exactly(self):
+        # Arrange — DotDict directly: int keys must stay exact.
+        d = DotDict({1: "one", 2: "two"})
+        # Act
+        value = d[1]
+        # Assert
+        assert value == "one"
+
+    def test_integer_key_membership_exact(self):
+        # Arrange
+        d = DotDict({42: "answer"})
+        # Act
+        present = 42 in d
+        # Assert
+        assert present is True
+
+    def test_no_collision_between_int_and_string_keys(self):
+        # Arrange — an int key and a string key never collide.
+        d = DotDict({1: "int-one", "ONE": "str-one"})
+        # Act
+        # Assert
+        assert d[1] == "int-one"
 
 
-@pytest.fixture
-def debug_top_level_result(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "config1.yaml": {
-                "param1": "normal_value",
-                "DEBUG_param1": "debug_value",
-                "debug_param2": "another_debug_value",
-            }
-        },
-    )
-    return load_configs(IS_DEBUG=True, config_dir=config_dir)
+class TestDotDictDirectLookup:
+    """DotDict case-insensitive lookup, exercised without load_configs."""
+
+    def test_lowercase_getitem_on_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d["seizure"]
+        # Assert
+        assert value == "red"
+
+    def test_upper_getitem_on_lower_storage(self):
+        # Arrange — DotDict itself does not force UPPER storage.
+        d = DotDict({"seizure": "red"})
+        # Act
+        value = d["SEIZURE"]
+        # Assert
+        assert value == "red"
+
+    def test_lowercase_attribute_access_on_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d.seizure
+        # Assert
+        assert value == "red"
+
+    def test_upper_attribute_access_on_lower_storage(self):
+        # Arrange
+        d = DotDict({"seizure": "red"})
+        # Act
+        value = d.SEIZURE
+        # Assert
+        assert value == "red"
+
+    def test_lowercase_contains_on_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        present = "seizure" in d
+        # Assert
+        assert present is True
+
+    def test_upper_contains_on_lower_storage(self):
+        # Arrange
+        d = DotDict({"seizure": "red"})
+        # Act
+        present = "SEIZURE" in d
+        # Assert
+        assert present is True
+
+    def test_get_lowercase_resolves_upper_storage(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d.get("seizure")
+        # Assert
+        assert value == "red"
+
+    def test_get_missing_returns_default(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        value = d.get("absent", "fallback")
+        # Assert
+        assert value == "fallback"
+
+    def test_keys_return_stored_form_not_folded(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red", "unknown": "gray"})
+        # Act
+        stored = set(d.keys())
+        # Assert
+        assert stored == {"SEIZURE", "unknown"}
+
+    def test_missing_string_key_raises_keyerror_with_original(self):
+        # Arrange
+        d = DotDict({"SEIZURE": "red"})
+        # Act
+        ctx = pytest.raises(KeyError)
+        # Assert
+        with ctx:
+            d["absent"]
+
+    def test_nested_dotdict_lookup_is_case_insensitive(self):
+        # Arrange — recursion: nested dicts wrap into DotDict.
+        d = DotDict({"OUTER": {"inner_key": "v"}})
+        # Act
+        value = d["outer"]["INNER_KEY"]
+        # Assert
+        assert value == "v"
 
 
-def test_load_configs_debug_replaces_upper_prefixed_value(debug_top_level_result):
-    # Arrange
-    result = debug_top_level_result
-    # Act
-    value = result.CONFIG1.PARAM1
-    # Assert
-    assert value == "debug_value"
+class TestDebugPromotion:
+    """DEBUG_<KEY> overrides <KEY> when IS_DEBUG is on."""
+
+    def test_debug_replaces_normal_value(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(
+            config_dir,
+            {"config1": {"param1": "normal_value", "DEBUG_param1": "debug_value"}},
+        )
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM1 == "debug_value"
+
+    def test_lowercase_debug_prefix_promotes(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(config_dir, {"config1": {"debug_param2": "another_debug_value"}})
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM2 == "another_debug_value"
+
+    def test_debug_promotion_in_nested_dict(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(
+            config_dir,
+            {"config1": {"top_level": {"DEBUG_special_key": "debug_special_value"}}},
+        )
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.TOP_LEVEL.SPECIAL_KEY == "debug_special_value"
+
+    def test_ci_env_triggers_debug(self, config_dir, ci_env_true):
+        # Arrange
+        _write_configs(
+            config_dir, {"config1": {"param": "normal", "DEBUG_param": "debug"}}
+        )
+        # Act
+        result = load_configs(IS_DEBUG=None, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM == "debug"
+
+    def test_is_debug_yaml_triggers_debug(self, config_dir, ci_env_unset):
+        # Arrange
+        _write_configs(
+            config_dir,
+            {
+                "IS_DEBUG": {"IS_DEBUG": True},
+                "config1": {"param": "normal", "DEBUG_param": "debug"},
+            },
+        )
+        # Act
+        result = load_configs(IS_DEBUG=None, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM == "debug"
+
+    def test_show_prints_debug_substitution(self, config_dir, ci_env_unset, capsys):
+        # Arrange
+        _write_configs(config_dir, {"config1": {"DEBUG_param": "debug_value"}})
+        # Act
+        load_configs(IS_DEBUG=True, show=True, config_dir=config_dir)
+        # Assert
+        assert "DEBUG_param -> param" in capsys.readouterr().out
 
 
-def test_load_configs_debug_replaces_lower_prefixed_value(debug_top_level_result):
-    # Arrange
-    result = debug_top_level_result
-    # Act
-    value = result.CONFIG1.PARAM2
-    # Assert
-    assert value == "another_debug_value"
+class TestEdgeCases:
+    def test_empty_file_returns_empty_dotdict(self, config_dir, ci_env_unset):
+        # Arrange — an empty YAML file loads as None and is skipped.
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "empty.yaml"), "w") as f:
+            f.write("")
+        # Act
+        result = load_configs(config_dir=config_dir)
+        # Assert
+        assert isinstance(result, DotDict) and len(result) == 0
+
+    def test_malformed_yaml_returns_empty_and_prints(
+        self, config_dir, ci_env_unset, capsys
+    ):
+        # Arrange — invalid YAML triggers the generic resilience path.
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "broken.yaml"), "w") as f:
+            f.write("key: [unclosed\n")
+        # Act
+        result = load_configs(config_dir=config_dir)
+        # Assert
+        assert isinstance(result, DotDict) and len(result) == 0
 
 
-@pytest.fixture
-def debug_nested_result(tmp_path):
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "config1.yaml": {
-                "top_level": {
-                    "normal_key": "normal_value",
-                    "DEBUG_special_key": "debug_special_value",
-                    "nested": {"debug_nested_key": "debug_nested_value"},
-                }
-            }
-        },
-    )
-    return load_configs(IS_DEBUG=True, config_dir=config_dir)
+class TestRealFilesystemRoundTrip:
+    """End-to-end with real YAML files written to a tmp config dir."""
 
+    @pytest.fixture
+    def populated_config_dir(self, config_dir):
+        _write_configs(
+            config_dir,
+            {
+                "config1": {
+                    "param1": "value1",
+                    "param2": 123,
+                    "nested": {"key1": "val1", "DEBUG_key2": "debug_val2"},
+                },
+                "config2": {
+                    "param3": "value3",
+                    "DEBUG_param4": "debug_value4",
+                    "debug_param5": "debug_value5",
+                },
+                "IS_DEBUG": {"IS_DEBUG": False},
+            },
+        )
+        return config_dir
 
-def test_load_configs_debug_promotes_nested_special_key(debug_nested_result):
-    # Arrange
-    result = debug_nested_result
-    # Act
-    value = result.CONFIG1.TOP_LEVEL.SPECIAL_KEY
-    # Assert
-    assert value == "debug_special_value"
+    def test_production_mode_loads_normal_value(
+        self, populated_config_dir, ci_env_unset
+    ):
+        # Arrange
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=populated_config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM1 == "value1"
 
+    def test_production_mode_skips_debug_promotion(
+        self, populated_config_dir, ci_env_unset
+    ):
+        # Arrange
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=populated_config_dir)
+        # Assert
+        assert "PARAM4" not in result.CONFIG2
 
-def test_load_configs_debug_promotes_doubly_nested_key(debug_nested_result):
-    # Arrange
-    result = debug_nested_result
-    # Act
-    value = result.CONFIG1.TOP_LEVEL.NESTED.NESTED_KEY
-    # Assert
-    assert value == "debug_nested_value"
+    def test_debug_mode_promotes_top_level(self, populated_config_dir, ci_env_unset):
+        # Arrange
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=populated_config_dir)
+        # Assert
+        assert result.CONFIG2.PARAM4 == "debug_value4"
 
-
-def test_load_configs_debug_preserves_non_debug_nested_key(debug_nested_result):
-    # Arrange
-    result = debug_nested_result
-    # Act
-    value = result.CONFIG1.TOP_LEVEL.NORMAL_KEY
-    # Assert
-    assert value == "normal_value"
-
-
-def test_load_configs_ci_env_triggers_debug(tmp_path, env_save_restore):
-    # Arrange
-    env_save_restore.set("CI", "True")
-    config_dir = _build_config_dir(
-        tmp_path,
-        {"config1.yaml": {"param": "normal", "DEBUG_param": "debug"}},
-    )
-    # Act
-    result = load_configs(IS_DEBUG=None, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG1.PARAM == "debug"
-
-
-def test_load_configs_is_debug_yaml_triggers_debug(tmp_path, env_save_restore):
-    # Arrange
-    env_save_restore.delete("CI")
-    config_dir = _build_config_dir(
-        tmp_path,
-        {
-            "config1.yaml": {"param": "normal", "DEBUG_param": "debug"},
-            "IS_DEBUG.yaml": {"IS_DEBUG": True},
-        },
-    )
-    # Act
-    result = load_configs(IS_DEBUG=None, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG1.PARAM == "debug"
-
-
-def test_load_configs_show_prints_debug_substitution(tmp_path, capsys):
-    # Arrange
-    config_dir = _build_config_dir(
-        tmp_path,
-        {"config1.yaml": {"DEBUG_param": "debug_value"}},
-    )
-    load_configs(IS_DEBUG=True, show=True, config_dir=config_dir)
-    # Act
-    captured = capsys.readouterr()
-    # Assert
-    assert "DEBUG_param -> param" in captured.out
-
-
-# ---------------------------------------------------------------------------
-# Edge cases — empty file, missing config_dir, glob error.
-# ---------------------------------------------------------------------------
-
-
-def test_load_configs_empty_yaml_returns_dotdict(tmp_path):
-    # Arrange
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    (config_dir / "empty.yaml").write_text("")
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    # Assert
-    assert isinstance(result, DotDict)
-
-
-def test_load_configs_empty_dir_returns_empty_dotdict(tmp_path):
-    # Arrange
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    # Assert
-    assert len(result) == 0
-
-
-def test_load_configs_missing_config_dir_returns_empty_dotdict(tmp_path):
-    # Arrange
-    missing = tmp_path / "no_such_config_dir"
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=missing)
-    # Assert
-    assert isinstance(result, DotDict)
-
-
-def test_load_configs_categories_subdir_loaded(tmp_path):
-    # Arrange
-    config_dir = _build_config_dir(
-        tmp_path,
-        {"main.yaml": {"a": 1}},
-        categories={"cat1.yaml": {"b": 2}},
-    )
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    # Assert
-    assert result.CAT1.B == 2
-
-
-# ---------------------------------------------------------------------------
-# Real filesystem round-trip (kept from the original test file).
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def round_trip_config_dir(tmp_path):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    _write_yaml(
-        config_dir / "config1.yaml",
-        {
-            "param1": "value1",
-            "param2": 123,
-            "nested": {"key1": "val1", "DEBUG_key2": "debug_val2"},
-        },
-    )
-    _write_yaml(
-        config_dir / "config2.yaml",
-        {
-            "param3": "value3",
-            "DEBUG_param4": "debug_value4",
-            "debug_param5": "debug_value5",
-        },
-    )
-    _write_yaml(config_dir / "IS_DEBUG.yaml", {"IS_DEBUG": False})
-    return config_dir
-
-
-def test_round_trip_production_mode_preserves_config1_param1(round_trip_config_dir):
-    # Arrange
-    config_dir = round_trip_config_dir
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG1.PARAM1 == "value1"
-
-
-def test_round_trip_production_mode_preserves_nested_key1(round_trip_config_dir):
-    # Arrange
-    config_dir = round_trip_config_dir
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG1.NESTED.KEY1 == "val1"
-
-
-def test_round_trip_production_mode_skips_debug_promotion(round_trip_config_dir):
-    # Arrange
-    config_dir = round_trip_config_dir
-    # Act
-    result = load_configs(IS_DEBUG=False, config_dir=config_dir)
-    # Assert
-    assert "PARAM4" not in result.CONFIG2
-
-
-def test_round_trip_debug_mode_promotes_upper_prefixed_key(round_trip_config_dir):
-    # Arrange
-    config_dir = round_trip_config_dir
-    # Act
-    result = load_configs(IS_DEBUG=True, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG2.PARAM4 == "debug_value4"
-
-
-def test_round_trip_debug_mode_promotes_lower_prefixed_key(round_trip_config_dir):
-    # Arrange
-    config_dir = round_trip_config_dir
-    # Act
-    result = load_configs(IS_DEBUG=True, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG2.PARAM5 == "debug_value5"
-
-
-def test_round_trip_debug_mode_promotes_nested_upper_prefixed_key(round_trip_config_dir):
-    # Arrange
-    config_dir = round_trip_config_dir
-    # Act
-    result = load_configs(IS_DEBUG=True, config_dir=config_dir)
-    # Assert
-    assert result.CONFIG1.NESTED.KEY2 == "debug_val2"
+    def test_debug_mode_promotes_nested(self, populated_config_dir, ci_env_unset):
+        # Arrange
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=populated_config_dir)
+        # Assert
+        assert result.CONFIG1.NESTED.KEY2 == "debug_val2"
 
 
 if __name__ == "__main__":

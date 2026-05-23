@@ -7,6 +7,23 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.15] — 2026-05-23
+
+### Added
+- **Case-insensitive `DotDict` lookup** (#32, #33). `load_configs()`
+  results and any `DotDict` now resolve string keys case-insensitively
+  via `key.upper()` (e.g. `CONFIG.path` matches a `PATH` key), and
+  raise loudly on case collisions so ambiguous configs fail fast
+  instead of silently picking one.
+
+### Fixed
+- **Test suite green on Python 3.11–3.13.** Restored two `DotDict`
+  tests whose mutating operation (`setdefault` / `pop`) had been
+  dropped during an earlier test-quality refactor, and added a
+  registry-isolation fixture so a leaked custom `.json` saver no
+  longer fails a sibling test. `catboost_info/` (a regenerated ML
+  test artifact) is now gitignored.
+
 ## [0.2.14] — 2026-05-07
 
 ### Fixed
