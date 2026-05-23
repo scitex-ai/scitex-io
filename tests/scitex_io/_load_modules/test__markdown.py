@@ -25,71 +25,114 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
-from unittest.mock import Mock, patch
 
 
 class TestLoadMarkdown:
     """Test the _load_markdown function."""
 
-    def test_load_markdown_basic_plain_text(self):
-        """Test loading basic Markdown file as plain text."""
-        # Arrange
-        # Act
-        # Assert
+    @pytest.fixture
+    def basic_md_plain(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown
 
-        md_content = """# Test Header
+        md = (
+            "# Test Header\n\nThis is a paragraph.\n\n"
+            "- Item 1\n- Item 2\n\n## Subheader\n\nMore content here."
+        )
+        p = tmp_path / "basic.md"
+        p.write_text(md)
+        return _load_markdown(str(p))
 
-This is a paragraph.
-
-- Item 1
-- Item 2
-
-## Subheader
-
-More content here."""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            loaded_content = _load_markdown(temp_path)
-            assert isinstance(loaded_content, str)
-            assert "Test Header" in loaded_content
-            assert "Item 1" in loaded_content
-            assert "More content" in loaded_content
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_markdown_html_output(self):
-        """Test loading Markdown file as HTML."""
+    def test_load_markdown_basic_returns_string(self, basic_md_plain):
         # Arrange
+        loaded = basic_md_plain
         # Act
+        result_type = type(loaded)
         # Assert
+        assert result_type is str
+
+    def test_load_markdown_basic_includes_header_text(self, basic_md_plain):
+        # Arrange
+        loaded = basic_md_plain
+        # Act
+        has_header = "Test Header" in loaded
+        # Assert
+        assert has_header
+
+    def test_load_markdown_basic_includes_list_item(self, basic_md_plain):
+        # Arrange
+        loaded = basic_md_plain
+        # Act
+        has_item = "Item 1" in loaded
+        # Assert
+        assert has_item
+
+    def test_load_markdown_basic_includes_subheader_content(self, basic_md_plain):
+        # Arrange
+        loaded = basic_md_plain
+        # Act
+        has_more = "More content" in loaded
+        # Assert
+        assert has_more
+
+    @pytest.fixture
+    def basic_md_html(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown
 
-        md_content = """# Test Header
+        md = (
+            "# Test Header\n\nThis is a **bold** paragraph with *italic* text.\n\n"
+            "- Item 1\n- Item 2"
+        )
+        p = tmp_path / "html.md"
+        p.write_text(md)
+        return _load_markdown(str(p), style="html")
 
-This is a **bold** paragraph with *italic* text.
+    def test_load_markdown_html_returns_string(self, basic_md_html):
+        # Arrange
+        loaded = basic_md_html
+        # Act
+        result_type = type(loaded)
+        # Assert
+        assert result_type is str
 
-- Item 1
-- Item 2"""
+    def test_load_markdown_html_emits_h1_tag(self, basic_md_html):
+        # Arrange
+        loaded = basic_md_html
+        # Act
+        has_h1 = "<h1>" in loaded
+        # Assert
+        assert has_h1
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
+    def test_load_markdown_html_emits_strong_tag(self, basic_md_html):
+        # Arrange
+        loaded = basic_md_html
+        # Act
+        has_strong = "<strong>" in loaded
+        # Assert
+        assert has_strong
 
-        try:
-            loaded_content = _load_markdown(temp_path, style="html")
-            assert isinstance(loaded_content, str)
-            assert "<h1>" in loaded_content
-            assert "<strong>" in loaded_content
-            assert "<em>" in loaded_content
-            assert "<ul>" in loaded_content
-            assert "<li>" in loaded_content
-        finally:
-            os.unlink(temp_path)
+    def test_load_markdown_html_emits_em_tag(self, basic_md_html):
+        # Arrange
+        loaded = basic_md_html
+        # Act
+        has_em = "<em>" in loaded
+        # Assert
+        assert has_em
+
+    def test_load_markdown_html_emits_ul_tag(self, basic_md_html):
+        # Arrange
+        loaded = basic_md_html
+        # Act
+        has_ul = "<ul>" in loaded
+        # Assert
+        assert has_ul
+
+    def test_load_markdown_html_emits_li_tag(self, basic_md_html):
+        # Arrange
+        loaded = basic_md_html
+        # Act
+        has_li = "<li>" in loaded
+        # Assert
+        assert has_li
 
     def test_load_markdown_empty_file(self):
         """Test loading empty Markdown file."""
@@ -137,14 +180,7 @@ This is a **bold** paragraph with *italic* text.
         with pytest.raises(FileNotFoundError):
             _load_markdown("nonexistent_file.md")
 
-    def test_load_markdown_complex_content(self):
-        """Test loading complex Markdown content."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._markdown import _load_markdown
-
-        md_content = """# Main Title
+    _COMPLEX_MD = """# Main Title
 
 ## Section 1
 
@@ -178,28 +214,85 @@ def hello():
 
 Final paragraph."""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
+    @pytest.fixture
+    def complex_md_html(self, tmp_path):
+        from scitex_io._load_modules._markdown import _load_markdown
 
-        try:
-            # Test HTML output
-            html_content = _load_markdown(temp_path, style="html")
-            assert "<h1>" in html_content
-            assert "<h2>" in html_content
-            assert "<code>" in html_content
-            assert "<blockquote>" in html_content
-            # Note: Without table extension, markdown renders tables as paragraphs
-            assert "Column 1" in html_content
-            assert "Cell 1" in html_content
+        p = tmp_path / "complex.md"
+        p.write_text(self._COMPLEX_MD)
+        return _load_markdown(str(p), style="html")
 
-            # Test plain text output
-            text_content = _load_markdown(temp_path, style="plain_text")
-            assert "Main Title" in text_content
-            assert "Section 1" in text_content
-            assert "hello" in text_content
-        finally:
-            os.unlink(temp_path)
+    @pytest.fixture
+    def complex_md_text(self, tmp_path):
+        from scitex_io._load_modules._markdown import _load_markdown
+
+        p = tmp_path / "complex.md"
+        p.write_text(self._COMPLEX_MD)
+        return _load_markdown(str(p), style="plain_text")
+
+    def test_load_markdown_complex_html_includes_h1(self, complex_md_html):
+        # Arrange
+        loaded = complex_md_html
+        # Act
+        result = "<h1>" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_html_includes_h2(self, complex_md_html):
+        # Arrange
+        loaded = complex_md_html
+        # Act
+        result = "<h2>" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_html_includes_code_tag(self, complex_md_html):
+        # Arrange
+        loaded = complex_md_html
+        # Act
+        result = "<code>" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_html_includes_blockquote(self, complex_md_html):
+        # Arrange
+        loaded = complex_md_html
+        # Act
+        result = "<blockquote>" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_html_preserves_table_content(self, complex_md_html):
+        # Arrange
+        loaded = complex_md_html
+        # Act
+        result = "Column 1" in loaded and "Cell 1" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_text_includes_main_title(self, complex_md_text):
+        # Arrange
+        loaded = complex_md_text
+        # Act
+        result = "Main Title" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_text_includes_section_1(self, complex_md_text):
+        # Arrange
+        loaded = complex_md_text
+        # Act
+        result = "Section 1" in loaded
+        # Assert
+        assert result
+
+    def test_load_markdown_complex_text_includes_code_identifier(self, complex_md_text):
+        # Arrange
+        loaded = complex_md_text
+        # Act
+        result = "hello" in loaded
+        # Assert
+        assert result
 
     def test_load_markdown_with_kwargs(self):
         """Test that _load_markdown accepts kwargs parameter."""
@@ -221,35 +314,42 @@ Final paragraph."""
         finally:
             os.unlink(temp_path)
 
-    def test_load_markdown_special_characters(self):
-        """Test loading Markdown with special characters."""
-        # Arrange
-        # Act
-        # Assert
+    @pytest.fixture
+    def special_chars_md_loaded(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown
 
-        md_content = """# Título con acentos
+        md_content = (
+            "# Título con acentos\n\nContenido con caracteres especiales: ñáéíóú\n\n"
+            "- Elementos con símbolos: €, ©, ®\n- Emojis: 🚀 🎉 ⭐\n\n"
+            "`código con tildes: función()`"
+        )
+        p = tmp_path / "special.md"
+        p.write_text(md_content, encoding="utf-8")
+        return _load_markdown(str(p))
 
-Contenido con caracteres especiales: ñáéíóú
+    def test_load_markdown_preserves_titulo(self, special_chars_md_loaded):
+        # Arrange
+        loaded = special_chars_md_loaded
+        # Act
+        result = "Título" in loaded
+        # Assert
+        assert result
 
-- Elementos con símbolos: €, ©, ®
-- Emojis: 🚀 🎉 ⭐
+    def test_load_markdown_preserves_accent_letters(self, special_chars_md_loaded):
+        # Arrange
+        loaded = special_chars_md_loaded
+        # Act
+        result = "ñáéíóú" in loaded
+        # Assert
+        assert result
 
-`código con tildes: función()`"""
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".md", delete=False, encoding="utf-8"
-        ) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            loaded_content = _load_markdown(temp_path)
-            assert "Título" in loaded_content
-            assert "ñáéíóú" in loaded_content
-            assert "función" in loaded_content
-        finally:
-            os.unlink(temp_path)
+    def test_load_markdown_preserves_funcion_token(self, special_chars_md_loaded):
+        # Arrange
+        loaded = special_chars_md_loaded
+        # Act
+        result = "función" in loaded
+        # Assert
+        assert result
 
     def test_load_markdown_function_signature_lpath_md_in_params(self):
         # Arrange
@@ -345,75 +445,76 @@ Contenido con caracteres especiales: ñáéíóú
         assert "Returns" in _load_markdown.__doc__
 
 
-    def test_load_markdown_default_style(self):
-        """Test that default style is plain_text."""
+    def test_load_markdown_default_style_matches_explicit_plain_text(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
-        md_content = "# Test **bold**"
+        p = tmp_path / "x.md"
+        p.write_text("# Test **bold**")
+        # Act
+        result_default = _load_markdown(str(p))
+        result_explicit = _load_markdown(str(p), style="plain_text")
+        # Assert
+        assert result_default == result_explicit
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
+    def test_load_markdown_default_style_strips_html_tags(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._markdown import _load_markdown
 
-        try:
-            # Call without style parameter
-            result_default = _load_markdown(temp_path)
-            # Call with explicit plain_text style
-            result_explicit = _load_markdown(temp_path, style="plain_text")
-
-            # Both should be equivalent
-            assert result_default == result_explicit
-            # Should not contain HTML tags
-            assert "<" not in result_default
-        finally:
-            os.unlink(temp_path)
+        p = tmp_path / "x.md"
+        p.write_text("# Test **bold**")
+        # Act
+        result_default = _load_markdown(str(p))
+        # Assert
+        assert "<" not in result_default
 
 
 class TestLoadMarkdownAlternative:
     """Test the load_markdown function (alternative implementation)."""
 
-    def test_load_markdown_alt_basic(self):
-        """Test the alternative load_markdown function."""
+    def test_load_markdown_alt_basic_returns_string(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules import load_markdown
 
-        md_content = "# Test Header\n\nParagraph content."
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            loaded_content = load_markdown(temp_path)
-            assert isinstance(loaded_content, str)
-            assert "Test Header" in loaded_content
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_markdown_alt_html(self):
-        """Test alternative load_markdown function with HTML output."""
-        # Arrange
+        p = tmp_path / "alt.md"
+        p.write_text("# Test Header\n\nParagraph content.")
         # Act
+        loaded = load_markdown(str(p))
         # Assert
+        assert isinstance(loaded, str)
+
+    def test_load_markdown_alt_basic_includes_header_text(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules import load_markdown
 
-        md_content = "# Test **bold**"
+        p = tmp_path / "alt.md"
+        p.write_text("# Test Header\n\nParagraph content.")
+        # Act
+        loaded = load_markdown(str(p))
+        # Assert
+        assert "Test Header" in loaded
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
+    def test_load_markdown_alt_html_emits_h1_tag(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules import load_markdown
 
-        try:
-            html_content = load_markdown(temp_path, style="html")
-            assert "<h1>" in html_content
-            assert "<strong>" in html_content
-        finally:
-            os.unlink(temp_path)
+        p = tmp_path / "alt.md"
+        p.write_text("# Test **bold**")
+        # Act
+        loaded = load_markdown(str(p), style="html")
+        # Assert
+        assert "<h1>" in loaded
+
+    def test_load_markdown_alt_html_emits_strong_tag(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules import load_markdown
+
+        p = tmp_path / "alt.md"
+        p.write_text("# Test **bold**")
+        # Act
+        loaded = load_markdown(str(p), style="html")
+        # Assert
+        assert "<strong>" in loaded
 
     def test_load_markdown_alt_signature_lpath_md_in_params(self):
         # Arrange
@@ -467,93 +568,56 @@ class TestLoadMarkdownAlternative:
 class TestMarkdownDependencies:
     """Test Markdown processing dependencies and edge cases."""
 
-    @patch("markdown.markdown")
-    def test_markdown_conversion_mocked(self, mock_markdown_func):
-        """Test Markdown conversion with mocked markdown library."""
+    def test_markdown_html_style_returns_h1_tag_for_top_header(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
-        # Mock the markdown conversion function
-        mock_markdown_func.return_value = "<h1>Test</h1>"
-
-        md_content = "# Test"
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            result = _load_markdown(temp_path, style="html")
-            assert result == "<h1>Test</h1>"
-            mock_markdown_func.assert_called_once_with(md_content)
-        finally:
-            os.unlink(temp_path)
-
-    @patch("html2text.HTML2Text")
-    @patch("markdown.markdown")
-    def test_html2text_conversion_mocked(
-        self, mock_markdown_func, mock_html2text_class
-    ):
-        """Test HTML to text conversion with mocked html2text library."""
-        # Arrange
+        md_path = tmp_path / "x.md"
+        md_path.write_text("# Test")
         # Act
+        result = _load_markdown(str(md_path), style="html")
         # Assert
+        assert "<h1>" in result and "Test" in result
+
+    def test_markdown_plain_text_style_strips_html_tags(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._markdown import _load_markdown
 
-        # Setup mocks
-        mock_markdown_func.return_value = "<h1>Test</h1>"
-        mock_converter = Mock()
-        mock_converter.handle.return_value = "Test Header\n"
-        mock_html2text_class.return_value = mock_converter
-
-        md_content = "# Test"
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            result = _load_markdown(temp_path, style="plain_text")
-            assert result == "Test Header\n"
-            mock_markdown_func.assert_called_once_with(md_content)
-            mock_html2text_class.assert_called_once()
-            mock_converter.handle.assert_called_once()
-        finally:
-            os.unlink(temp_path)
-
-    def test_file_encoding_handling(self):
-        """Test handling of different file encodings."""
-        # Arrange
+        md_path = tmp_path / "x.md"
+        md_path.write_text("# Test\n")
         # Act
+        result = _load_markdown(str(md_path), style="plain_text")
         # Assert
+        assert "<" not in result
+
+    @pytest.fixture
+    def utf8_md_loaded(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown
 
-        # Test with UTF-8 content
-        md_content = "# Tëst wîth spëcîal chàractërs"
+        p = tmp_path / "utf8.md"
+        p.write_text("# Tëst wîth spëcîal chàractërs", encoding="utf-8")
+        return _load_markdown(str(p))
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".md", delete=False, encoding="utf-8"
-        ) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            result = _load_markdown(temp_path)
-            assert "Tëst" in result
-            assert "spëcîal" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_large_file_handling(self):
-        """Test handling of large Markdown files."""
+    def test_file_encoding_preserves_test_token(self, utf8_md_loaded):
         # Arrange
+        loaded = utf8_md_loaded
         # Act
+        result = "Tëst" in loaded
         # Assert
+        assert result
+
+    def test_file_encoding_preserves_special_token(self, utf8_md_loaded):
+        # Arrange
+        loaded = utf8_md_loaded
+        # Act
+        result = "spëcîal" in loaded
+        # Assert
+        assert result
+
+    @pytest.fixture
+    def large_md_loaded(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown
 
-        # Create a large Markdown content
         sections = []
         for i in range(50):
             sections.append(f"## Section {i}")
@@ -561,20 +625,33 @@ class TestMarkdownDependencies:
                 f"This is content for section {i} with **bold** and *italic* text."
             )
             sections.append("")
+        p = tmp_path / "large.md"
+        p.write_text("\n".join(sections))
+        return _load_markdown(str(p))
 
-        md_content = "\n".join(sections)
+    def test_large_file_includes_first_section_label(self, large_md_loaded):
+        # Arrange
+        loaded = large_md_loaded
+        # Act
+        result = "Section 0" in loaded
+        # Assert
+        assert result
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
+    def test_large_file_includes_last_section_label(self, large_md_loaded):
+        # Arrange
+        loaded = large_md_loaded
+        # Act
+        result = "Section 49" in loaded
+        # Assert
+        assert result
 
-        try:
-            result = _load_markdown(temp_path)
-            assert "Section 0" in result
-            assert "Section 49" in result
-            assert len(result) > 1000  # Should be substantial content
-        finally:
-            os.unlink(temp_path)
+    def test_large_file_produces_long_output(self, large_md_loaded):
+        # Arrange
+        loaded = large_md_loaded
+        # Act
+        result_len = len(loaded)
+        # Assert
+        assert result_len > 1000
 
 
 class TestMarkdownErrorHandling:
@@ -611,126 +688,201 @@ class TestMarkdownErrorHandling:
             except (OSError, FileNotFoundError):
                 pass
 
-    @patch("builtins.open")
-    def test_io_error_handling(self, mock_open_func):
-        """Test handling of IO errors during file reading."""
+    def test_io_error_for_nonexistent_path_raises_filenotfounderror(self, tmp_path):
         # Arrange
         from scitex_io._load_modules._markdown import _load_markdown
 
-        # Mock open to raise an IOError
+        missing = tmp_path / "does_not_exist.md"
         # Act
-        mock_open_func.side_effect = IOError("Mocked IO error")
-
+        ctx = pytest.raises(FileNotFoundError)
         # Assert
-        with pytest.raises(IOError):
-            _load_markdown("test.md")
+        with ctx:
+            _load_markdown(str(missing))
 
-    def test_markdown_conversion_edge_cases(self):
-        """Test edge cases in Markdown conversion."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._markdown import _load_markdown
-
-        edge_cases = [
+    @pytest.mark.parametrize(
+        "md_content",
+        [
             "",  # Empty content
             "\n\n\n",  # Only whitespace
             "Plain text without markdown",  # No markdown syntax
             "# \n",  # Empty header
             "[broken link]()",  # Malformed link
             "```\ncode block without language\n```",  # Code block without language
-        ]
+        ],
+    )
+    def test_markdown_conversion_html_edge_case_returns_string(self, tmp_path, md_content):
+        # Arrange
+        from scitex_io._load_modules._markdown import _load_markdown
 
-        for md_content in edge_cases:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-                f.write(md_content)
-                temp_path = f.name
+        p = tmp_path / "edge.md"
+        p.write_text(md_content)
+        # Act
+        result_html = _load_markdown(str(p), style="html")
+        # Assert
+        assert isinstance(result_html, str)
 
-            try:
-                # Should not raise exceptions for any edge case
-                result_html = _load_markdown(temp_path, style="html")
-                result_text = _load_markdown(temp_path, style="plain_text")
+    @pytest.mark.parametrize(
+        "md_content",
+        [
+            "",
+            "\n\n\n",
+            "Plain text without markdown",
+            "# \n",
+            "[broken link]()",
+            "```\ncode block without language\n```",
+        ],
+    )
+    def test_markdown_conversion_text_edge_case_returns_string(self, tmp_path, md_content):
+        # Arrange
+        from scitex_io._load_modules._markdown import _load_markdown
 
-                assert isinstance(result_html, str)
-                assert isinstance(result_text, str)
-            finally:
-                os.unlink(temp_path)
+        p = tmp_path / "edge.md"
+        p.write_text(md_content)
+        # Act
+        result_text = _load_markdown(str(p), style="plain_text")
+        # Assert
+        assert isinstance(result_text, str)
 
 
 class TestMarkdownIntegration:
     """Integration tests for complete Markdown processing workflows."""
 
-    def test_markdown_to_html_to_text_conversion(self):
-        """Test complete workflow from Markdown to HTML to text."""
-        # Arrange
-        # Act
-        # Assert
+    _WORKFLOW_MD = (
+        "# Main Title\n\n"
+        "This is a paragraph with **bold** and *italic* text.\n\n"
+        "## Section\n\n- List item 1\n- List item 2\n\n"
+        "[Link](https://example.com)"
+    )
+
+    @pytest.fixture
+    def workflow_html(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown
 
-        md_content = """# Main Title
+        p = tmp_path / "wf.md"
+        p.write_text(self._WORKFLOW_MD)
+        return _load_markdown(str(p), style="html")
 
-This is a paragraph with **bold** and *italic* text.
+    @pytest.fixture
+    def workflow_text(self, tmp_path):
+        from scitex_io._load_modules._markdown import _load_markdown
 
-## Section
+        p = tmp_path / "wf.md"
+        p.write_text(self._WORKFLOW_MD)
+        return _load_markdown(str(p), style="plain_text")
 
-- List item 1
-- List item 2
-
-[Link](https://example.com)"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
-
-        try:
-            # Convert to HTML
-            html_result = _load_markdown(temp_path, style="html")
-
-            # Convert to plain text
-            text_result = _load_markdown(temp_path, style="plain_text")
-
-            # Verify HTML contains expected tags
-            assert "<h1>" in html_result
-            assert "<strong>" in html_result
-            assert "<em>" in html_result
-            assert "<ul>" in html_result
-            assert "<a href=" in html_result
-
-            # Verify text contains content but no HTML tags
-            assert "Main Title" in text_result
-            assert "bold" in text_result
-            assert "italic" in text_result
-            assert "<" not in text_result
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_both_function_consistency(self):
-        """Test that both load_markdown functions produce consistent results."""
+    def test_workflow_html_emits_h1_tag(self, workflow_html):
         # Arrange
+        loaded = workflow_html
         # Act
+        result = "<h1>" in loaded
         # Assert
+        assert result
+
+    def test_workflow_html_emits_strong_tag(self, workflow_html):
+        # Arrange
+        loaded = workflow_html
+        # Act
+        result = "<strong>" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_html_emits_em_tag(self, workflow_html):
+        # Arrange
+        loaded = workflow_html
+        # Act
+        result = "<em>" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_html_emits_ul_tag(self, workflow_html):
+        # Arrange
+        loaded = workflow_html
+        # Act
+        result = "<ul>" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_html_emits_anchor_href(self, workflow_html):
+        # Arrange
+        loaded = workflow_html
+        # Act
+        result = "<a href=" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_text_includes_main_title(self, workflow_text):
+        # Arrange
+        loaded = workflow_text
+        # Act
+        result = "Main Title" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_text_includes_bold_token(self, workflow_text):
+        # Arrange
+        loaded = workflow_text
+        # Act
+        result = "bold" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_text_includes_italic_token(self, workflow_text):
+        # Arrange
+        loaded = workflow_text
+        # Act
+        result = "italic" in loaded
+        # Assert
+        assert result
+
+    def test_workflow_text_strips_html_tags(self, workflow_text):
+        # Arrange
+        loaded = workflow_text
+        # Act
+        result = "<" not in loaded
+        # Assert
+        assert result
+
+    @pytest.fixture
+    def consistency_results(self, tmp_path):
         from scitex_io._load_modules._markdown import _load_markdown, load_markdown
 
-        md_content = "# Test\n\nContent **bold**"
+        p = tmp_path / "cons.md"
+        p.write_text("# Test\n\nContent **bold**")
+        r1 = _load_markdown(str(p), style="plain_text")
+        r2 = load_markdown(str(p), style="plain_text")
+        return r1, r2
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write(md_content)
-            temp_path = f.name
+    def test_both_functions_include_test_token_in_primary(self, consistency_results):
+        # Arrange
+        r1, _r2 = consistency_results
+        # Act
+        result = "Test" in r1
+        # Assert
+        assert result
 
-        try:
-            # Both functions should produce similar results for basic cases
-            result1 = _load_markdown(temp_path, style="plain_text")
-            result2 = load_markdown(temp_path, style="plain_text")
+    def test_both_functions_include_test_token_in_alternative(self, consistency_results):
+        # Arrange
+        _r1, r2 = consistency_results
+        # Act
+        result = "Test" in r2
+        # Assert
+        assert result
 
-            # Both should contain the same basic content
-            assert "Test" in result1
-            assert "Test" in result2
-            assert "bold" in result1
-            assert "bold" in result2
+    def test_both_functions_include_bold_token_in_primary(self, consistency_results):
+        # Arrange
+        r1, _r2 = consistency_results
+        # Act
+        result = "bold" in r1
+        # Assert
+        assert result
 
-        finally:
-            os.unlink(temp_path)
+    def test_both_functions_include_bold_token_in_alternative(self, consistency_results):
+        # Arrange
+        _r1, r2 = consistency_results
+        # Act
+        result = "bold" in r2
+        # Assert
+        assert result
 
 
 if __name__ == "__main__":
