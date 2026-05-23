@@ -66,6 +66,15 @@ def _load_parquet(lpath, **kwargs):
     return pd.read_parquet(lpath, **kwargs)
 
 
+def _load_feather(lpath, **kwargs):
+    """Load Feather (Arrow IPC) files."""
+    import pandas as pd
+
+    if not lpath.endswith(".feather"):
+        raise ValueError("File must have .feather extension")
+    return pd.read_feather(lpath, **kwargs)
+
+
 # def _load_excel(lpath):
 #     workbook = openpyxl.load_workbook(lpath)
 #     all_text = []

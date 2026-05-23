@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._utils &mdash; SciTeX IO v0.2.13</title>
+  <title>scitex_io._utils &mdash; SciTeX IO v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=ba481074"></script>
+      <script src="../../_static/documentation_options.js?v=d5b904a0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -121,6 +121,9 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../api/scitex_io.html">scitex_io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#functionalities">Functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#io">IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#dependencies">Dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.register_saver"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.register_loader"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.get_saver"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
@@ -128,6 +131,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.list_formats"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.unregister_saver"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.unregister_loader"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.load_configs"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.glob"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
@@ -162,50 +166,51 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#core-i-o">Core I/O</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id0"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id16"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id17"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id23"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id29"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id30"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id0"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id16"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id17"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id18"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id24"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id30"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id31"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#registry">Registry</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id37"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id38"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id39"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id40"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id41"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id44"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id45"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id38"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id39"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id40"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id41"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id42"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id45"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id46"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#cache-control">Cache Control</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id46"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id47"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id48"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id47"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id48"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id49"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#dict-utilities">Dict Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id49"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id50"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id50"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id60"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#metadata">Metadata</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id60"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id61"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id62"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id61"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id62"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id63"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#explorers">Explorers</a><ul>
@@ -505,12 +510,31 @@
 
 <span class="c1"># String parsing</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple string parser.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract `{name}` placeholders from a path template into a dict.</span>
+
+<span class="sd">    The pattern uses `{name}` for named captures (each capturing a maximal</span>
+<span class="sd">    non-`/` segment) and `*` as a non-greedy wildcard. Returns `{}` on no</span>
+<span class="sd">    match. Returns the input string unchanged when no pattern is supplied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pattern</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">string</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 
-    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">{(\w+)</span><span class="se">\\</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;(?P&lt;\1&gt;[^/]+?)&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="p">)</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">regex</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\*&quot;</span><span class="p">,</span> <span class="s2">&quot;.*?&quot;</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_coerce</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># Numeric strings (incl. zero-padded &quot;001&quot;) become ints; non-numeric</span>
+        <span class="c1"># stays as a string. Tests rely on this coercion for IDs / indices.</span>
+        <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_coerce</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
 
 <span class="c1"># Environment detection</span>

@@ -27,6 +27,9 @@ Point = namedtuple("Point", ["x", "y"])
 
 def test_load_pickle_basic():
     """Test loading a basic pickle file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pickle import _load_pickle
 
     # Test various data types
@@ -58,6 +61,9 @@ def test_load_pickle_basic():
 
 def test_load_pickle_with_pickle_extension():
     """Test loading a file with .pickle extension."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pickle import _load_pickle
 
     test_data = ["item1", "item2", "item3"]
@@ -75,6 +81,9 @@ def test_load_pickle_with_pickle_extension():
 
 def test_load_pickle_compressed():
     """Test loading gzip-compressed pickle files."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pickle import _load_pickle
 
     # Create a large data structure to benefit from compression
@@ -96,6 +105,9 @@ def test_load_pickle_compressed():
 
 def test_load_pickle_complex_objects():
     """Test loading pickle with complex Python objects."""
+    # Arrange
+    # Act
+    # Assert
     import numpy as np
 
     from scitex_io._load_modules._pickle import _load_pickle
@@ -136,24 +148,41 @@ def test_load_pickle_complex_objects():
         os.unlink(temp_path)
 
 
-def test_load_pickle_invalid_extension():
-    """Test that loading non-pickle file raises ValueError."""
+def test_load_pickle_invalid_extension_raises_valueerror():
+    # Arrange
+    # Arrange
+    # Act
     from scitex_io._load_modules._pickle import _load_pickle
-
-    # _load_pickle validates extensions and raises ValueError
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(
         ValueError, match="File must have .pkl, .pickle, or .pkl.gz extension"
     ):
         _load_pickle("test.txt")
 
+
+def test_load_pickle_invalid_extension_raises_valueerror():
+    # Arrange
+    # Arrange
+    # Act
+    from scitex_io._load_modules._pickle import _load_pickle
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(
         ValueError, match="File must have .pkl, .pickle, or .pkl.gz extension"
     ):
         _load_pickle("/path/to/file.json")
 
 
+
+
 def test_load_pickle_corrupted_file():
     """Test handling of corrupted pickle files."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pickle import _load_pickle
 
     # Create a file with invalid pickle data
@@ -170,14 +199,20 @@ def test_load_pickle_corrupted_file():
 
 def test_load_pickle_nonexistent_file():
     """Test loading a nonexistent file."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._pickle import _load_pickle
 
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_pickle("/nonexistent/path/file.pkl")
 
 
 def test_load_pickle_numpy_arrays():
     """Test loading pickle containing numpy arrays."""
+    # Arrange
+    # Act
+    # Assert
     import numpy as np
 
     from scitex_io._load_modules._pickle import _load_pickle
@@ -209,6 +244,9 @@ def test_load_pickle_numpy_arrays():
 
 def test_load_pickle_protocol_versions():
     """Test loading pickles saved with different protocol versions."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pickle import _load_pickle
 
     test_data = {"protocol_test": True, "data": [1, 2, 3]}

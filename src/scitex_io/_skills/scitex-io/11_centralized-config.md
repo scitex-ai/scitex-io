@@ -57,3 +57,19 @@ cfg.to_dict()              # convert back to plain dict
 ```
 
 Nested dicts auto-wrapped. Supports `keys()`, `values()`, `items()`, `get()`, `copy()`, `update()`, `in`.
+
+## How filenames and keys are normalised
+
+`load_configs()` normalises every filename stem and every YAML key to
+`UPPER_CASE` at load time, so the in-memory tree is always
+case-stable regardless of how the source YAML was written:
+
+- `model.yaml` → top-level key `MODEL`
+- `hidden_dim: 256` inside the file → `CONFIG.MODEL.HIDDEN_DIM`
+
+If two siblings fold to the same UPPER key (e.g. `MODEL.yaml` next to
+`model.yaml`, or `HIDDEN_DIM` next to `hidden_dim`), `load_configs()`
+emits a `UserWarning` pointing at the conflict, keeps the value from
+the UPPER variant, and drops the lowercase one. In source code,
+reference the UPPER form (`CONFIG.MODEL.HIDDEN_DIM`) — it is the only
+shape the loader ever produces.

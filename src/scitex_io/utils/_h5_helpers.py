@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Internal helpers for HDF5 to Zarr migration."""
+"""Internal helpers for HDF5 to Zarr migration.
+
+Migrated to zarr v3 API:
+- ``Group.create_array`` instead of deprecated ``Group.create_dataset``
+- ``compressors=[codec]`` instead of ``compressor=codec``
+- ``zarr.codecs.ZstdCodec/GzipCodec`` instead of raw numcodecs codecs
+"""
 
 import warnings
 from typing import Any, Optional, Tuple, Union
@@ -9,29 +15,38 @@ import h5py
 import numpy as np
 import zarr
 
+# zarr v3: BytesBytesCodec instances live in ``zarr.codecs``.
+from zarr.codecs import GzipCodec, ZstdCodec
+
 from ._compat import SciTeXIOError, warn_data_loss
 
 
 def get_zarr_compressor(
     compressor: Optional[Union[str, Any]] = "zstd",
 ) -> Optional[Any]:
-    """Get Zarr compressor object from string name."""
+    """Get a zarr v3 compressor list (or None) from a friendly name.
+
+    Returns a *list* of zarr v3 ``BytesBytesCodec`` instances, which is what
+    ``Group.create_array(..., compressors=...)`` expects, or ``None`` for
+    "no compression", or the input itself if a custom codec object is
+    already provided.
+    """
     if compressor is None:
         return None
 
     if not isinstance(compressor, str):
+        # Already a codec instance or list — pass through.
         return compressor
 
-    from numcodecs import Blosc, GZip, LZ4, Zstd
-
+    # lz4/blosc have no native zarr v3 codec class — alias to zstd.
     compressor_map = {
-        "zstd": Zstd(level=3),
-        "lz4": LZ4(acceleration=1),
-        "gzip": GZip(level=5),
-        "blosc": Blosc(cname="zstd", clevel=3, shuffle=Blosc.BITSHUFFLE),
+        "zstd": [ZstdCodec(level=3)],
+        "lz4": [ZstdCodec(level=1)],
+        "gzip": [GzipCodec(level=5)],
+        "blosc": [ZstdCodec(level=3)],
     }
 
-    return compressor_map.get(compressor.lower(), Zstd(level=3))
+    return compressor_map.get(compressor.lower(), [ZstdCodec(level=3)])
 
 
 def infer_chunks(
@@ -49,11 +64,14 @@ def infer_chunks(
 
     for dim_size in shape:
         if remaining_elements <= 1:
+            chunks.append(max(1, dim_size) if dim_size == 0 else 1)
+        elif dim_size == 0:
+            # Zero-size dimension: chunk size must be at least 1 in zarr.
             chunks.append(1)
         else:
             chunk_dim = min(dim_size, int(remaining_elements))
-            chunks.append(chunk_dim)
-            remaining_elements = remaining_elements / chunk_dim
+            chunks.append(max(1, chunk_dim))
+            remaining_elements = remaining_elements / max(1, chunk_dim)
 
     return tuple(chunks)
 
@@ -69,11 +87,31 @@ def copy_h5_attributes(
                 value = value.decode("utf-8", errors="replace")
             elif isinstance(value, np.ndarray) and value.dtype.kind == "S":
                 value = [v.decode("utf-8", errors="replace") for v in value]
+            elif isinstance(value, np.ndarray):
+                # zarr v3 attrs require JSON-serialisable values.
+                value = value.tolist()
             elif isinstance(value, (np.integer, np.floating)):
                 value = value.item()
             zarr_obj.attrs[key] = value
         except Exception as e:
             warnings.warn(f"Could not copy attribute '{key}': {e}")
+
+
+def _normalize_chunks(chunks, shape):
+    """Translate user-friendly chunk flag to a value zarr v3 accepts.
+
+    zarr v3's ``Group.create_array`` accepts a tuple, the literal "auto",
+    or ``None`` (no chunking — single chunk).
+    """
+    if chunks is True:
+        return "auto"
+    if chunks is False or chunks is None:
+        # No chunking → one chunk for the whole array.
+        # zarr v3 rejects 0 in any chunk dim, so clamp zero-length dims to 1.
+        if not shape:
+            return "auto"
+        return tuple(max(1, d) for d in shape)
+    return chunks
 
 
 def migrate_dataset(
@@ -84,7 +122,7 @@ def migrate_dataset(
     chunks: Optional[Union[bool, Tuple[int, ...]]] = True,
     show_progress: bool = False,
 ) -> Optional[zarr.Array]:
-    """Migrate a single HDF5 dataset to Zarr."""
+    """Migrate a single HDF5 dataset to Zarr (v3 API)."""
     try:
         _ = h5_dataset.shape
     except Exception as e:
@@ -107,13 +145,17 @@ def migrate_dataset(
     if show_progress and shape and np.prod(shape) > 1e6:
         print(f"  Migrating large dataset '{name}' {shape} {dtype}...")
 
-    zarr_array = zarr_parent.create_dataset(
-        name,
-        shape=shape,
-        dtype=dtype,
-        chunks=dataset_chunks,
-        compressor=compressor,
-    )
+    # Translate to zarr v3 chunk argument.
+    z_chunks = _normalize_chunks(dataset_chunks if chunks is not True else True, shape)
+    if chunks is True and dataset_chunks is not None:
+        z_chunks = dataset_chunks  # use the inferred concrete tuple
+
+    create_kwargs = dict(name=name, shape=shape, dtype=dtype)
+    if shape:
+        create_kwargs["chunks"] = z_chunks
+    create_kwargs["compressors"] = compressor
+
+    zarr_array = zarr_parent.create_array(**create_kwargs)
 
     try:
         if shape:
@@ -129,7 +171,7 @@ def migrate_dataset(
 
 
 def _migrate_object_dataset(h5_dataset, zarr_parent, name, compressor, shape):
-    """Migrate an object-dtype HDF5 dataset to Zarr."""
+    """Migrate an object-dtype HDF5 dataset to Zarr (v3 API)."""
     import pickle
 
     warn_data_loss(
@@ -140,23 +182,31 @@ def _migrate_object_dataset(h5_dataset, zarr_parent, name, compressor, shape):
         if not h5_dataset.shape:
             value = h5_dataset[()]
             if isinstance(value, (bytes, str)):
-                zarr_array = zarr_parent.create_dataset(
-                    name,
-                    data=(
-                        str(value)
-                        if isinstance(value, str)
-                        else value.decode("utf-8", errors="replace")
-                    ),
-                    dtype=str,
-                    compressor=None,
+                text = (
+                    str(value)
+                    if isinstance(value, str)
+                    else value.decode("utf-8", errors="replace")
                 )
+                # Use a fixed-length unicode dtype large enough to hold the text.
+                u_dtype = np.dtype(f"U{max(len(text), 1)}")
+                zarr_array = zarr_parent.create_array(
+                    name=name,
+                    shape=(),
+                    dtype=u_dtype,
+                    compressors=None,
+                )
+                zarr_array[()] = text
             else:
                 pickled_data = pickle.dumps(value)
-                zarr_array = zarr_parent.create_dataset(
-                    name,
-                    data=np.frombuffer(pickled_data, dtype=np.uint8),
-                    compressor=compressor,
+                pickled_arr = np.frombuffer(pickled_data, dtype=np.uint8)
+                zarr_array = zarr_parent.create_array(
+                    name=name,
+                    shape=pickled_arr.shape,
+                    dtype=pickled_arr.dtype,
+                    chunks=pickled_arr.shape,
+                    compressors=compressor,
                 )
+                zarr_array[:] = pickled_arr
                 zarr_array.attrs["_type"] = "pickled_scalar"
         elif len(h5_dataset) > 0:
             first_elem = h5_dataset[0]
@@ -171,20 +221,33 @@ def _migrate_object_dataset(h5_dataset, zarr_parent, name, compressor, shape):
                         for item in h5_dataset[:]
                     ]
                 )
-                zarr_array = zarr_parent.create_dataset(
-                    name, data=data, dtype=data.dtype, compressor=None
+                zarr_array = zarr_parent.create_array(
+                    name=name,
+                    shape=data.shape,
+                    dtype=data.dtype,
+                    chunks=data.shape,
+                    compressors=None,
                 )
+                zarr_array[:] = data
             else:
                 pickled_data = pickle.dumps(h5_dataset[:])
-                zarr_array = zarr_parent.create_dataset(
-                    name,
-                    data=np.frombuffer(pickled_data, dtype=np.uint8),
-                    compressor=compressor,
+                pickled_arr = np.frombuffer(pickled_data, dtype=np.uint8)
+                zarr_array = zarr_parent.create_array(
+                    name=name,
+                    shape=pickled_arr.shape,
+                    dtype=pickled_arr.dtype,
+                    chunks=pickled_arr.shape,
+                    compressors=compressor,
                 )
+                zarr_array[:] = pickled_arr
                 zarr_array.attrs["_type"] = "pickled"
         else:
-            zarr_array = zarr_parent.create_dataset(
-                name, shape=shape, dtype="U1", fill_value=""
+            # Empty object dataset; create an empty unicode array.
+            zarr_array = zarr_parent.create_array(
+                name=name,
+                shape=shape,
+                dtype="U1",
+                fill_value="",
             )
     except Exception as e:
         raise SciTeXIOError(

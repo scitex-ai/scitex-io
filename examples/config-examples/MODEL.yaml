@@ -1,0 +1,16 @@
+# Nested groups — access via dot-notation:
+#   CONFIG.MODEL.ENCODER.HIDDEN_DIM   → 256
+#   CONFIG.MODEL.HEAD.N_CLASSES       → 10
+ENCODER:
+  HIDDEN_DIM: 256
+  N_LAYERS: 4
+  DROPOUT: 0.3
+
+HEAD:
+  HIDDEN_DIM: 64
+  N_CLASSES: 10
+
+# Training hyper-parameters at the same level as the groups above.
+LEARNING_RATE: 0.001
+BATCH_SIZE: 64
+DEBUG_BATCH_SIZE: 4

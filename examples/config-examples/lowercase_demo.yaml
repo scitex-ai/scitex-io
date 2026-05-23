@@ -1,0 +1,19 @@
+# Lowercase filename + lowercase keys — load_configs() normalises the
+# whole tree to UPPER at load time. The in-memory shape is:
+#   CONFIG.LOWERCASE_DEMO.SAMPLE_RATE      → 1000
+#   CONFIG.LOWERCASE_DEMO.NESTED.FIELD_A   → "a"
+#
+# Source-on-disk casing is preserved; in-memory casing is not. Your
+# own code should always read the UPPER form.
+sample_rate: 1000
+notch_freq: 50
+
+nested:
+  field_a: "a"
+  field_b: 42
+
+# Case conflict demo: if you uncomment BOTH lines below, load_configs()
+# emits a UserWarning ("case conflict at CONFIG.LOWERCASE_DEMO.*"),
+# keeps the value from the UPPER variant, and drops the lowercase.
+# threshold: 0.1
+# THRESHOLD: 0.9

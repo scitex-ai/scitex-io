@@ -22,6 +22,9 @@ import pandas as pd
 
 def test_load_csv_basic():
     """Test loading a basic CSV file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
     # Create sample DataFrame
@@ -52,6 +55,9 @@ def test_load_csv_basic():
 
 def test_load_csv_unnamed_columns():
     """Test that unnamed columns are removed."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
     # Create DataFrame with unnamed columns
@@ -83,6 +89,9 @@ def test_load_csv_unnamed_columns():
 
 def test_load_csv_with_options():
     """Test loading CSV with various pandas options."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
     # Create CSV with various features
@@ -108,14 +117,20 @@ def test_load_csv_with_options():
 
 def test_load_csv_invalid_extension():
     """Test that loading non-CSV file raises ValueError."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._pandas import _load_csv
 
+    # Assert
     with pytest.raises(ValueError, match="File must have .csv extension"):
         _load_csv("test.txt")
 
 
 def test_load_tsv_basic():
     """Test loading a TSV file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_tsv
 
     # Create sample data
@@ -136,14 +151,20 @@ def test_load_tsv_basic():
 
 def test_load_tsv_invalid_extension():
     """Test that loading non-TSV file raises ValueError."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._pandas import _load_tsv
 
+    # Assert
     with pytest.raises(ValueError, match="File must have .tsv extension"):
         _load_tsv("test.csv")
 
 
 def test_load_excel_basic():
     """Test loading an Excel file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_excel
 
     # Skip if openpyxl not available
@@ -174,6 +195,9 @@ def test_load_excel_basic():
 
 def test_load_excel_multiple_sheets():
     """Test loading Excel file with multiple sheets."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_excel
 
     # Skip if openpyxl not available
@@ -204,14 +228,20 @@ def test_load_excel_multiple_sheets():
 
 def test_load_excel_invalid_extension():
     """Test that loading non-Excel file raises ValueError."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._pandas import _load_excel
 
+    # Assert
     with pytest.raises(ValueError, match="File must have Excel extension"):
         _load_excel("test.csv")
 
 
 def test_load_parquet_basic():
     """Test loading a Parquet file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_parquet
 
     # Skip if pyarrow not available
@@ -249,22 +279,31 @@ def test_load_parquet_basic():
 
 def test_load_parquet_invalid_extension():
     """Test that loading non-Parquet file raises ValueError."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._pandas import _load_parquet
 
+    # Assert
     with pytest.raises(ValueError, match="File must have .parquet extension"):
         _load_parquet("test.csv")
 
 
 def test_load_csv_nonexistent_file():
     """Test loading a nonexistent CSV file."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._pandas import _load_csv
 
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_csv("/nonexistent/path/file.csv")
 
 
 def test_load_csv_large_file():
     """Test loading a large CSV file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
     # Create a large DataFrame

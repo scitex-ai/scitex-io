@@ -1,68 +1,60 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Real tests for scitex_io._save_modules._html.save_html."""
 
-# Add your tests here
+import pandas as pd
+import pytest
 
-if __name__ == "__main__":
-    import os
+from scitex_io._save_modules._html import save_html
 
-    import pytest
 
-    pytest.main([os.path.abspath(__file__)])
+def test_save_dataframe_via_to_html(tmp_path):
+    """Save DataFrame using its write_html-equivalent via raw HTML string."""
+    # Arrange
+    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    html_str = df.to_html()
+    p = str(tmp_path / "df.html")
+    save_html(html_str, p)
+    back = pd.read_html(p)[0]
+    # to_html includes an unnamed index column; drop it
+    # Act
+    if back.columns[0] == "Unnamed: 0":
+        back = back.drop(columns=[back.columns[0]])
+    # Assert
+    assert list(back["a"]) == [1, 2]
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_html.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Timestamp: "2025-06-12 13:45:00 (ywatanabe)"
-# # File: /ssh:sp:/home/ywatanabe/proj/.claude-worktree/scitex_repo/src/scitex/io/_save_modules/_html.py
-# # ----------------------------------------
-# import os
-#
-# __FILE__ = "./src/scitex/io/_save_modules/_html.py"
-# __DIR__ = os.path.dirname(__FILE__)
-# # ----------------------------------------
-#
-# """
-# HTML saving functionality for scitex.io.save
-# """
-#
-# import plotly
-#
-#
-# def save_html(obj, spath, **kwargs):
-#     """Handle HTML file saving (primarily for Plotly figures).
-#
-#     Parameters
-#     ----------
-#     obj : plotly.graph_objs.Figure or str
-#         Plotly figure object or HTML string to save
-#     spath : str
-#         Path where HTML file will be saved
-#     **kwargs
-#         Additional keyword arguments passed to plotly.io.write_html()
-#
-#     Notes
-#     -----
-#     - Primarily designed for saving Plotly interactive figures
-#     - Can also save raw HTML strings
-#     """
-#     if hasattr(obj, "write_html"):
-#         # Plotly figure object
-#         obj.write_html(spath, **kwargs)
-#     elif isinstance(obj, str):
-#         # Raw HTML string
-#         with open(spath, "w") as f:
-#             f.write(obj)
-#     else:
-#         # Try to convert to HTML using plotly
-#         plotly.io.write_html(obj, spath, **kwargs)
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_html.py
-# --------------------------------------------------------------------------------
+def test_save_plotly_figure(tmp_path):
+    """Plotly Figure exposes .write_html() — use the first branch."""
+    # Arrange
+    import plotly.graph_objects as go
+
+    fig = go.Figure(go.Scatter(x=[1, 2], y=[3, 4]))
+    p = str(tmp_path / "plot.html")
+    save_html(fig, p)
+    # Act
+    text = open(p).read()
+    # Assert
+    assert "<html" in text.lower() or "plotly" in text.lower()
+
+
+def test_save_html_string(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "raw.html")
+    # Act
+    # Act
+    save_html("<html><body>hi</body></html>", p)
+    # Assert
+    # Assert
+    assert "hi" in open(p).read()
+
+
+def test_save_other_via_plotly_io(tmp_path):
+    """Non-plotly, non-str → falls through to plotly.io.write_html which raises."""
+    # Arrange
+    # Act
+    p = str(tmp_path / "fail.html")
+    # Plotly will reject a list — that exercises the else branch
+    # Assert
+    with pytest.raises(Exception):
+        save_html([1, 2, 3], p)

@@ -36,6 +36,9 @@ class TestLoadHDF5:
 
     def test_basic_hdf5_loading(self):
         """Test loading basic HDF5 file with simple datasets."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Create test data
@@ -63,6 +66,9 @@ class TestLoadHDF5:
         It will try to open any file with h5py and fail if it's not valid HDF5.
         This test verifies that non-HDF5 files raise appropriate errors.
         """
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Create a non-HDF5 file
@@ -78,8 +84,11 @@ class TestLoadHDF5:
         finally:
             os.unlink(temp_path)
 
-    def test_group_structures(self):
+    def test_group_structures_smoke_case(self):
         """Test loading HDF5 files with nested group structures."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         with tempfile.NamedTemporaryFile(suffix=".h5", delete=False) as f:
@@ -125,6 +134,9 @@ class TestLoadHDF5:
 
     def test_numpy_data_types(self):
         """Test loading various numpy data types and conversions."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Create data with different numpy types
@@ -184,6 +196,9 @@ class TestLoadHDF5:
 
     def test_string_and_bytes_handling(self):
         """Test loading and conversion of string and bytes data."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Test data with strings and bytes
@@ -230,8 +245,11 @@ class TestLoadHDF5:
         finally:
             os.unlink(temp_path)
 
-    def test_pickled_objects(self):
+    def test_pickled_objects_smoke_case(self):
         """Test loading pickled objects stored in HDF5."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Create complex Python objects to pickle
@@ -268,8 +286,11 @@ class TestLoadHDF5:
         finally:
             os.unlink(temp_path)
 
-    def test_large_datasets(self):
+    def test_large_datasets_calls_rand(self):
         """Test loading large datasets for performance validation."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Create large arrays for performance testing
@@ -311,6 +332,9 @@ class TestLoadHDF5:
 
     def test_attributes_and_metadata(self):
         """Test handling of HDF5 attributes and metadata."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         with tempfile.NamedTemporaryFile(suffix=".hdf5", delete=False) as f:
@@ -350,6 +374,9 @@ class TestLoadHDF5:
 
     def test_empty_groups_and_datasets(self):
         """Test handling of empty groups and datasets."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         with tempfile.NamedTemporaryFile(suffix=".hdf5", delete=False) as f:
@@ -389,12 +416,15 @@ class TestLoadHDF5:
         finally:
             os.unlink(temp_path)
 
-    def test_error_handling(self):
+    def test_error_handling_raises_filenotfounderror_oserror(self):
         """Test error handling for various failure conditions."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Test with non-existent file
         # Use max_retries=1 to avoid slow retry loop with exponential backoff
+        # Assert
         with pytest.raises((FileNotFoundError, OSError, IOError)):
             _load_hdf5("nonexistent_file.hdf5", max_retries=1)
 
@@ -411,6 +441,9 @@ class TestLoadHDF5:
 
     def test_scientific_computing_scenarios(self):
         """Test real-world scientific computing scenarios."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         with tempfile.NamedTemporaryFile(suffix=".hdf5", delete=False) as f:
@@ -474,6 +507,9 @@ class TestLoadHDF5:
 
     def test_edge_cases_and_corner_cases(self):
         """Test edge cases and corner case scenarios."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         with tempfile.NamedTemporaryFile(suffix=".hdf5", delete=False) as f:
@@ -538,6 +574,9 @@ class TestLoadHDF5:
 
     def test_integration_with_main_load_function(self):
         """Test integration with scitex_io.load dispatch."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import scitex_io
 
@@ -567,8 +606,11 @@ class TestLoadHDF5:
         except ImportError:
             pytest.skip("SciTeX not available for integration testing")
 
-    def test_kwargs_forwarding(self):
+    def test_kwargs_forwarding_smoke_case(self):
         """Test that kwargs are properly handled."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._hdf5 import _load_hdf5
 
         # Create test file

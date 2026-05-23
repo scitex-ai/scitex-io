@@ -4,7 +4,9 @@
 # File: /home/ywatanabe/proj/scitex-io/src/scitex_io/_load_modules/_pdf_content_extractors.py
 # ----------------------------------------
 from __future__ import annotations
+
 import os
+
 __FILE__ = __file__
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
@@ -18,6 +20,10 @@ import logging
 import re
 from typing import Any, Dict, List
 
+# Module-level handle so tests can `mock.patch(<module>.fitz)`.
+from scitex_dev import try_import_optional
+
+from ._pdf_text_extractors import _extract_text
 from ._pdf_utils import (
     FITZ_AVAILABLE,
     PANDAS_AVAILABLE,
@@ -26,7 +32,8 @@ from ._pdf_utils import (
     _calculate_file_hash,
     _clean_pdf_text,
 )
-from ._pdf_text_extractors import _extract_text
+
+fitz = try_import_optional("fitz")
 
 logger = logging.getLogger(__name__)
 
@@ -61,16 +68,22 @@ def _extract_tables(
     try:
         with pdfplumber.open(lpath) as pdf:
             for page_num, page in enumerate(pdf.pages):
-                tables = page.extract_tables(**table_settings)
+                # pdfplumber's Page.extract_tables() takes a single
+                # `table_settings` dict — NOT **kwargs. The previous
+                # `**table_settings` unpack raised TypeError for any
+                # non-empty settings dict.
+                tables = (
+                    page.extract_tables(table_settings=table_settings)
+                    if table_settings
+                    else page.extract_tables()
+                )
 
                 if tables:
                     dfs = []
                     for table in tables:
                         if table and len(table) > 0:
                             if len(table) > 1 and all(
-                                isinstance(cell, str)
-                                for cell in table[0]
-                                if cell
+                                isinstance(cell, str) for cell in table[0] if cell
                             ):
                                 df = pd.DataFrame(table[1:], columns=table[0])
                             else:
@@ -119,8 +132,6 @@ def _extract_images(
             "  pip install PyMuPDF"
         )
 
-    import fitz
-
     images_info = []
 
     try:
@@ -148,8 +159,13 @@ def _extract_images(
 
                 if output_dir:
                     _save_image(
-                        image_bytes, original_ext, page_num, img_index,
-                        output_dir, save_as_jpg, image_info
+                        image_bytes,
+                        original_ext,
+                        page_num,
+                        img_index,
+                        output_dir,
+                        save_as_jpg,
+                        image_info,
                     )
 
                 images_info.append(image_info)
@@ -179,6 +195,7 @@ def _save_image(
     if save_as_jpg and original_ext not in ["jpg", "jpeg"]:
         try:
             import io
+
             from PIL import Image
 
             img_pil = Image.open(io.BytesIO(image_bytes))
@@ -258,9 +275,7 @@ def _parse_sections(text: str) -> Dict[str, str]:
             if re.match(pattern, line_lower):
                 if len(line_stripped) < 50:
                     if current_text:
-                        sections[current_section] = "\n".join(
-                            current_text
-                        ).strip()
+                        sections[current_section] = "\n".join(current_text).strip()
 
                     current_section = line_lower.strip()
                     current_text = []
@@ -313,7 +328,6 @@ def _extract_metadata(lpath: str, backend: str) -> Dict[str, Any]:
 
 def _extract_metadata_fitz(lpath: str, metadata: Dict) -> None:
     """Populate metadata dict using fitz backend (in-place)."""
-    import fitz
 
     try:
         doc = fitz.open(lpath)
@@ -354,8 +368,8 @@ def _extract_metadata_pdfplumber(lpath: str, metadata: Dict) -> None:
 
 
 def _extract_metadata_pypdf2(lpath: str, metadata: Dict) -> None:
-    """Populate metadata dict using PyPDF2 backend (in-place)."""
-    import PyPDF2
+    """Populate metadata dict using pypdf backend (in-place)."""
+    import pypdf as PyPDF2  # type: ignore[import-not-found]
 
     try:
         reader = PyPDF2.PdfReader(lpath)
@@ -368,12 +382,8 @@ def _extract_metadata_pypdf2(lpath: str, metadata: Dict) -> None:
                     "subject": reader.metadata.get("/Subject", ""),
                     "creator": reader.metadata.get("/Creator", ""),
                     "producer": reader.metadata.get("/Producer", ""),
-                    "creation_date": str(
-                        reader.metadata.get("/CreationDate", "")
-                    ),
-                    "modification_date": str(
-                        reader.metadata.get("/ModDate", "")
-                    ),
+                    "creation_date": str(reader.metadata.get("/CreationDate", "")),
+                    "modification_date": str(reader.metadata.get("/ModDate", "")),
                 }
             )
 
@@ -382,5 +392,6 @@ def _extract_metadata_pypdf2(lpath: str, metadata: Dict) -> None:
 
     except Exception as e:
         logger.error(f"Error extracting metadata with PyPDF2: {e}")
+
 
 # EOF

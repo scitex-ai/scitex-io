@@ -28,6 +28,9 @@ class TestEmbedMetadataSvg:
 
     def test_embed_simple_metadata(self):
         """Test embedding simple metadata into SVG."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as f:
             svg_path = f.name
 
@@ -48,6 +51,9 @@ class TestEmbedMetadataSvg:
 
     def test_embed_overwrites_existing_metadata(self):
         """Test that new metadata replaces existing metadata."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as f:
             svg_path = f.name
 
@@ -72,6 +78,9 @@ class TestEmbedMetadataSvg:
 
     def test_embed_preserves_namespace_if_exists(self):
         """Test that existing scitex namespace is preserved."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as f:
             svg_path = f.name
 
@@ -93,6 +102,9 @@ class TestEmbedMetadataSvg:
 
     def test_invalid_svg_raises_error(self):
         """Test that invalid SVG raises ValueError."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as f:
             svg_path = f.name
             f.write(b"not an svg file")

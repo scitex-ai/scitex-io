@@ -4,7 +4,9 @@
 # File: /home/ywatanabe/proj/scitex-io/src/scitex_io/_load_modules/_pdf_utils.py
 # ----------------------------------------
 from __future__ import annotations
+
 import os
+
 __FILE__ = __file__
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
@@ -22,29 +24,21 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Optional library availability flags
 # ---------------------------------------------------------------------------
-try:
-    import fitz  # PyMuPDF - preferred for text and images
-    FITZ_AVAILABLE = True
-except ImportError:
-    FITZ_AVAILABLE = False
+from scitex_dev import try_import_optional
 
-try:
-    import pdfplumber  # Best for table extraction
-    PDFPLUMBER_AVAILABLE = True
-except ImportError:
-    PDFPLUMBER_AVAILABLE = False
+fitz = try_import_optional("fitz")  # PyMuPDF - preferred for text and images
+FITZ_AVAILABLE = fitz is not None
 
-try:
-    import PyPDF2  # Fallback option
-    PYPDF2_AVAILABLE = True
-except ImportError:
-    PYPDF2_AVAILABLE = False
+pdfplumber = try_import_optional("pdfplumber")  # Best for table extraction
+PDFPLUMBER_AVAILABLE = pdfplumber is not None
 
-try:
-    import pandas as pd
-    PANDAS_AVAILABLE = True
-except ImportError:
-    PANDAS_AVAILABLE = False
+# pypdf is the maintained successor to PyPDF2; their PdfReader API
+# is source-compatible for the read paths we use here.
+PyPDF2 = try_import_optional("pypdf")  # type: ignore[import-not-found]
+PYPDF2_AVAILABLE = PyPDF2 is not None
+
+pd = try_import_optional("pandas")
+PANDAS_AVAILABLE = pd is not None
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +46,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 class DotDict(dict):
     """Dictionary with dot notation access."""
+
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
@@ -148,5 +143,6 @@ def _calculate_file_hash(lpath: str) -> str:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
 
 # EOF

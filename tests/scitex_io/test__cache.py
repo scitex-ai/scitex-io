@@ -25,6 +25,9 @@ class TestCacheBasic:
     def test_cache_save_and_load(self, tmp_path, monkeypatch):
         """Test saving and loading variables with cache."""
         # Patch the cache directory to use tmp_path
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -51,6 +54,9 @@ class TestCacheBasic:
 
     def test_cache_with_numpy_array(self, tmp_path):
         """Test caching numpy arrays."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -72,6 +78,9 @@ class TestCacheBasic:
 
     def test_cache_overwrites_existing(self, tmp_path):
         """Test that cache overwrites existing cached data."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -94,6 +103,9 @@ class TestCacheErrorHandling:
 
     def test_cache_missing_file_error(self, tmp_path):
         """Test error when cache file doesn't exist and variables not defined."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -103,6 +115,9 @@ class TestCacheErrorHandling:
 
     def test_cache_partial_variables_defined(self, tmp_path):
         """Test behavior when only some variables are defined."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -130,6 +145,9 @@ class TestCacheAdvanced:
 
     def test_cache_complex_objects(self, tmp_path):
         """Test caching complex Python objects."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -153,6 +171,9 @@ class TestCacheAdvanced:
 
     def test_cache_multiple_ids(self, tmp_path):
         """Test using multiple cache IDs."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -173,6 +194,9 @@ class TestCacheAdvanced:
 
     def test_cache_directory_creation(self, tmp_path):
         """Test that cache creates necessary directories."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -190,6 +214,9 @@ class TestCacheAdvanced:
 
     def test_cache_single_variable(self, tmp_path):
         """Test caching a single variable."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -211,6 +238,9 @@ class TestCacheEdgeCases:
 
     def test_cache_empty_args(self, tmp_path):
         """Test cache with no variable arguments."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -220,6 +250,9 @@ class TestCacheEdgeCases:
 
     def test_cache_none_values(self, tmp_path):
         """Test caching None values."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -238,6 +271,9 @@ class TestCacheEdgeCases:
 
     def test_cache_special_characters_in_id(self, tmp_path):
         """Test cache with special characters in ID."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -263,6 +299,9 @@ class TestCacheIntegration:
 
     def test_cache_with_large_data(self, tmp_path):
         """Test caching large data structures."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 
@@ -281,6 +320,9 @@ class TestCacheIntegration:
 
     def test_cache_caller_frame_access(self, tmp_path):
         """Test that cache correctly accesses caller's frame."""
+        # Arrange
+        # Act
+        # Assert
         with patch("pathlib.Path.home", return_value=tmp_path):
             from scitex_io import cache
 

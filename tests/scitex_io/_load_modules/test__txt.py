@@ -10,7 +10,6 @@ which handles loading text files with various encodings and formats.
 
 import os
 import tempfile
-import warnings
 
 import pytest
 
@@ -21,6 +20,9 @@ pytest.importorskip("zarr")
 
 def test_load_txt_basic():
     """Test loading a basic text file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     content = "Hello World\nThis is a test\nThird line"
@@ -47,6 +49,9 @@ def test_load_txt_basic():
 
 def test_load_txt_empty_lines():
     """Test handling of empty lines."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     content = "Line 1\n\n\nLine 2\n   \nLine 3\n"
@@ -69,6 +74,9 @@ def test_load_txt_empty_lines():
 
 def test_load_txt_different_extensions():
     """Test loading files with different extensions."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     content = "Test content"
@@ -91,8 +99,11 @@ def test_load_txt_different_extensions():
             os.unlink(temp_path)
 
 
-def test_load_txt_unexpected_extension_warning(caplog):
+def test_load_txt_unexpected_extension_warning():
     """Test warning for unexpected file extensions."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     content = "Test content"
@@ -102,18 +113,18 @@ def test_load_txt_unexpected_extension_warning(caplog):
         temp_path = f.name
 
     try:
-        # Should still load the file
-        loaded = _load_txt(temp_path, as_lines=False)
+        with pytest.warns(UserWarning, match="Unexpected extension"):
+            loaded = _load_txt(temp_path, as_lines=False)
         assert loaded == content
-
-        # Should have logged warning about unexpected extension
-        assert "Unexpected extension" in caplog.text
     finally:
         os.unlink(temp_path)
 
 
 def test_load_txt_unicode_content():
     """Test loading files with Unicode content."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     unicode_content = "Hello 世界\n日本語テスト\n🎉 Emoji test"
@@ -138,6 +149,9 @@ def test_load_txt_unicode_content():
 
 def test_load_txt_different_encodings():
     """Test loading files with different encodings."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     # Test Latin-1 encoded content
@@ -159,6 +173,9 @@ def test_load_txt_different_encodings():
 
 def test_load_txt_with_strip():
     """Test strip functionality."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     content_with_whitespace = "  \n  Hello World  \n  \n"
@@ -185,15 +202,21 @@ def test_load_txt_with_strip():
 
 def test_load_txt_nonexistent_file():
     """Test loading a nonexistent file."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._txt import _load_txt
 
     # The current implementation raises FileNotFoundError directly
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_txt("/nonexistent/path/file.txt")
 
 
 def test_load_txt_empty_file():
     """Test loading an empty file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -213,6 +236,9 @@ def test_load_txt_empty_file():
 
 def test_load_txt_large_file():
     """Test loading a large text file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._txt import _load_txt
 
     # Create a file with many lines

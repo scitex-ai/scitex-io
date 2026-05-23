@@ -1,62 +1,112 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Real tests for _save_listed_scalars_as_csv."""
 
-# Add your tests here
+import pandas as pd
 
-if __name__ == "__main__":
-    import os
+from scitex_io._save_modules._listed_scalars_as_csv import (
+    _save_listed_scalars_as_csv,
+)
 
-    import pytest
 
-    pytest.main([os.path.abspath(__file__)])
+def test_basic_save_df_shape_equals_n_3_1(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "s.csv")
+    _save_listed_scalars_as_csv([1.234567, 2.345678, 3.456789], p)
+    # Act
+    df = pd.read_csv(p, index_col=0)
+    # Act
+    # Assert
+    # Assert
+    assert df.shape == (3, 1)
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_listed_scalars_as_csv.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Timestamp: "2025-05-18 14:53:11 (ywatanabe)"
-# # File: /ssh:sp:/home/ywatanabe/proj/scitex_repo/src/scitex/io/_save_modules/_save_listed_scalars_as_csv.py
-# # ----------------------------------------
-# import os
-#
-# __FILE__ = __file__
-# __DIR__ = os.path.dirname(__FILE__)
-# # ----------------------------------------
-# # Time-stamp: "2024-11-02 21:26:48 (ywatanabe)"
-#
-# import numpy as np
-#
-# from .._mv_to_tmp import _mv_to_tmp
-#
-#
-# def _save_listed_scalars_as_csv(
-#     listed_scalars,
-#     spath_csv,
-#     column_name="_",
-#     indi_suffix=None,
-#     round=3,
-#     overwrite=False,
-#     verbose=False,
-# ):
-#     """Puts to df and save it as csv"""
-#     # Lazy import to avoid circular import issues
-#     import pandas as pd
-#
-#     if overwrite == True:
-#         _mv_to_tmp(spath_csv, L=2)
-#     indi_suffix = np.arange(len(listed_scalars)) if indi_suffix is None else indi_suffix
-#     df = pd.DataFrame(
-#         {"{}".format(column_name): listed_scalars}, index=indi_suffix
-#     ).round(round)
-#     df.to_csv(spath_csv)
-#     if verbose:
-#         print("\nSaved to: {}\n".format(spath_csv))
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_listed_scalars_as_csv.py
-# --------------------------------------------------------------------------------
+def test_basic_save_abs_df_iloc_0_0_1_235_1e_06(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "s.csv")
+    _save_listed_scalars_as_csv([1.234567, 2.345678, 3.456789], p)
+    # Act
+    df = pd.read_csv(p, index_col=0)
+    # Act
+    # Assert
+    # Assert
+    assert abs(df.iloc[0, 0] - 1.235) < 1e-6
+
+
+
+
+def test_custom_column_and_suffix_list_df_columns_value(tmp_path, capsys):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "s2.csv")
+    _save_listed_scalars_as_csv(
+        [10, 20, 30],
+        p,
+        column_name="value",
+        indi_suffix=["a", "b", "c"],
+        verbose=True,
+    )
+    # Act
+    df = pd.read_csv(p, index_col=0)
+    # Act
+    # Assert
+    # Assert
+    assert list(df.columns) == ["value"]
+
+
+def test_custom_column_and_suffix_list_df_index_a_b_c(tmp_path, capsys):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "s2.csv")
+    _save_listed_scalars_as_csv(
+        [10, 20, 30],
+        p,
+        column_name="value",
+        indi_suffix=["a", "b", "c"],
+        verbose=True,
+    )
+    # Act
+    df = pd.read_csv(p, index_col=0)
+    # Act
+    # Assert
+    # Assert
+    assert list(df.index) == ["a", "b", "c"]
+
+
+def test_custom_column_and_suffix_saved_to_in_captured_out(tmp_path, capsys):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "s2.csv")
+    _save_listed_scalars_as_csv(
+        [10, 20, 30],
+        p,
+        column_name="value",
+        indi_suffix=["a", "b", "c"],
+        verbose=True,
+    )
+    # Act
+    df = pd.read_csv(p, index_col=0)
+    # Assert
+    assert list(df.columns) == ["value"]
+    assert list(df.index) == ["a", "b", "c"]
+    captured = capsys.readouterr()
+    # Act
+    # Assert
+    assert "Saved to" in captured.out
+
+
+
+
+def test_overwrite_stale_not_in_text(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "ow.csv")
+    open(p, "w").write("stale\n")
+    _save_listed_scalars_as_csv([1, 2], p, overwrite=True)
+    # Act
+    # Act
+    text = open(p).read()
+    # Assert
+    # Assert
+    assert "stale" not in text

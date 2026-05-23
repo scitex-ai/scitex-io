@@ -2,33 +2,37 @@
 name: scitex-io
 description: |
   [WHAT] Universal one-call file I/O for 30+ scientific formats — CSV,
-  Parquet, NumPy .npy/.npz, pickle, YAML, JSON, HDF5, MATLAB .mat,
-  images, matplotlib figures, PyTorch .pt, MNE .fif, EDF, video. Also
-  YAML config loading, figure metadata embedding, load-time caching.
+  Parquet, Feather, NumPy .npy/.npz, pickle, YAML, JSON, HDF5, Zarr,
+  MATLAB .mat, images, matplotlib figures, PyTorch .pt, MNE .fif, EDF,
+  video. Also YAML config loading with UPPER_CASE normalisation,
+  figure metadata embedding, load-time caching, natural-sorted glob.
   [WHEN] reading or writing any data file — as a drop-in replacement
   for pd.read_csv, np.load, pickle.load, json.load, fig.savefig,
   torch.save. Trigger phrases: "load", "save", "read", "write", "open
   a file", "save this figure", "cache this result", "load my config",
-  "glob these files", "FileNotFoundError after stx.io.save",
+  "glob these files", "FileNotFoundError after sio.save",
   "symlink_from_cwd", "script_out directory".
-  [HOW] stx.io.save(obj, path) / stx.io.load(path) auto-dispatch by
-  extension. save() auto-routes to {script}_out/ from caller context;
-  load() resolves the path against cwd. Pass symlink_from_cwd=True
-  for round-trip, or use absolute paths on both sides.
+  [HOW] sio.save(obj, path) / sio.load(path) auto-dispatch by
+  extension. save() with a relative path is caller-anchored: from a
+  script /path/to/x.py it writes /path/to/x_out/<path>; from a
+  notebook /path/to/x.ipynb it writes /path/to/x_out/<path>; from
+  IPython / REPL it writes $SCITEX_DIR/io/runtime/cache/<path>
+  (default ~/.scitex/io/runtime/cache/). Intermediate dirs auto-
+  created. load() resolves relative paths against cwd — use
+  symlink_from_cwd=True on save, or absolute paths on both sides,
+  to round-trip.
 tags: [scitex-io]
 allowed-tools: mcp__scitex__io_*
 primary_interface: python
 interfaces:
   python: 3
   cli: 1
-  mcp: 2
-  skills: 3
+  mcp: 1
+  skills: 2
   http: 0
 ---
 
 # scitex-io
-
-> **Interfaces:** Python ⭐⭐⭐ · CLI ⭐ · MCP ⭐⭐ · Skills ⭐⭐⭐ · Hook — · HTTP —
 
 Universal scientific data I/O with plugin registry. One `save()`/`load()` for 30+ formats.
 
@@ -75,17 +79,23 @@ rule and the empirical verification table.
 * [16_path-resolution](16_path-resolution.md) — Auto save-path, scitex.path utilities
 
 ### Standards
-* [21_linting-rules](21_linting-rules.md) — STX-IO001–007 lint rules
+* [21_linting-rules](21_linting-rules.md) — STX-IO001..014 + STX-PA001..005 lint rules
 
 ## MCP Tools
 
 | Tool | Purpose |
 |------|---------|
-| `io_save` | Save data to file (auto-detect format) |
-| `io_load` | Load data from file (auto-detect format) |
-| `io_load_configs` | Load config directory as merged dict |
-| `io_list_formats` | List all registered save/load formats |
+| `io_save` / `io_load` | Save / load data (auto-detect format) |
+| `io_load_configs` | Load `./config/*.yaml` as a `DotDict` (UPPER_CASE normalised) |
+| `io_list_formats` / `io_get_saver` / `io_get_loader` | Discover registered handlers |
 | `io_register_info` | Show registration info for a format |
+| `io_glob` / `io_parse_glob` | Natural-sorted globbing with placeholder parsing |
+| `io_get_cache_info` / `io_clear_load_cache` / `io_configure_cache` | Load-cache management |
+| `io_embed_metadata` / `io_read_metadata` / `io_has_metadata` | Figure provenance |
+| `io_explore_h5` / `io_explore_zarr` | Group / dataset trees |
+| `io_has_h5_key` / `io_has_zarr_key` | Cheap existence checks |
+| `io_json2md` | Render JSON as Markdown |
+| `io_skills_list` / `io_skills_get` | Discover and fetch skill pages |
 
 ## CLI
 

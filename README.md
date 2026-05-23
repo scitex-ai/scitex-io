@@ -1,28 +1,35 @@
+<!-- ---
+!-- Timestamp: 2026-05-11 17:27:04
+!-- Author: ywatanabe
+!-- File: /home/ywatanabe/proj/scitex-io/README.md
+!-- --- -->
+
+# SciTeX IO (<code>scitex-io</code>)
+
 <p align="center">
   <a href="https://scitex.ai">
     <img src="docs/scitex-logo-blue-cropped.png" alt="SciTeX" width="400">
   </a>
 </p>
 
-# scitex-io
-
 <p align="center"><b>Universal scientific data I/O with plugin registry</b></p>
 
 <p align="center">
-  <a href="https://scitex-io.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-io</code>
+  <a href="https://scitex-io.readthedocs.io/">Full Documentation</a> · <code>uv pip install scitex-io[all]</code>
 </p>
 
-<p align="center">
 <!-- scitex-badges:start -->
-<a href="https://pypi.org/project/scitex-io/"><img src="https://img.shields.io/pypi/v/scitex-io.svg" alt="PyPI"></a>
-<a href="https://pypi.org/project/scitex-io/"><img src="https://img.shields.io/pypi/pyversions/scitex-io.svg" alt="Python"></a>
-<a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-io/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-<a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/install-test.yml"><img src="https://github.com/ywatanabe1989/scitex-io/actions/workflows/install-test.yml/badge.svg" alt="Install Test"></a>
-<a href="https://codecov.io/gh/ywatanabe1989/scitex-io"><img src="https://codecov.io/gh/ywatanabe1989/scitex-io/graph/badge.svg" alt="Coverage"></a>
-<a href="https://scitex-io.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/scitex-io/badge/?version=latest" alt="Docs"></a>
-<a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/license-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
-<!-- scitex-badges:end -->
+<p align="center">
+  <a href="https://pypi.org/project/scitex-io/"><img src="https://img.shields.io/pypi/v/scitex-io?label=pypi" alt="pypi"></a>
+  <a href="https://pypi.org/project/scitex-io/"><img src="https://img.shields.io/pypi/pyversions/scitex-io?label=python" alt="python"></a>
+  <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/rtd-sphinx-build-on-ubuntu-latest.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-io/rtd-sphinx-build-on-ubuntu-latest.yml?branch=develop&label=docs" alt="docs"></a>
 </p>
+<p align="center">
+  <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-io/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml?branch=develop&label=tests" alt="tests"></a>
+  <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/import-smoke-on-ubuntu-py3-12.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-io/import-smoke-on-ubuntu-py3-12.yml?branch=develop&label=install-check" alt="install-check"></a>
+  <a href="https://codecov.io/gh/ywatanabe1989/scitex-io"><img src="https://img.shields.io/codecov/c/github/ywatanabe1989/scitex-io/develop?label=cov" alt="cov"></a>
+</p>
+<!-- scitex-badges:end -->
 
 ---
 
@@ -30,36 +37,49 @@
 
 | # | Problem | Solution |
 |---|---------|----------|
-| 1 | **Format zoo** -- save/load scattered across `pd.read_csv`, `np.load`, `pickle`, `json`, `h5py`, `torch.save`, `cv2.imread`, etc. Every format = a different API | **One call** -- `stx.io.save(obj, "x.ext")` / `stx.io.load("x.ext")` routes by extension across 30+ formats; plugin registry lets users register custom handlers |
-| 2 | **FileNotFoundError after save** -- `save()` auto-routes to `{script}_out/` but `load()` resolves cwd-relative, so the naive round-trip breaks for new users | **Predictable paths** -- `symlink_from_cwd=True` flag, `CONFIG.SDIR_RUN` session path, or absolute path on both sides — documented prominently in the skill |
-| 3 | **Figure + data diverge** -- save a PNG; the underlying DataFrame lives in a separate `.csv` that goes out of sync | **Auto-CSV export** -- `stx.io.save(fig, "plot.png")` writes `plot.png` + `plot.csv` + `plot.yaml` (figrecipe recipe) atomically, hash-tracked by Clew |
+| 1 | **Format zoo** — every format has its own API (`pd.read_csv`, `np.load`, `pickle`, `h5py`, `torch.save`, …). | **One call** — `sio.save(obj, "x.ext")` / `sio.load("x.ext")` dispatches across 30+ formats. |
+| 2 | **Outputs scatter** — saves land relative to cwd, drift away from the script that produced them. | **Caller-anchored paths** — `sio.save(df, "results.csv")` writes to `{caller}_out/results.csv`. |
+| 3 | **Magic numbers everywhere** — hyperparameters, paths, thresholds duplicated across scripts. | **Centralized config** — `load_configs()` merges every `config/*.yaml` into one `DotDict`. |
 
-## Problem
 
-Three problems recur in every scientific Python project:
+## Quick Start
 
-1. **Format fragmentation.** Loading a CSV requires `pandas.read_csv()`, an HDF5 file requires `h5py.File()`, a NumPy array requires `numpy.load()`. Each format demands its own library, its own API, and its own boilerplate. Operating systems solved this decades ago — double-click any file and the OS dispatches to the right application. Python has no equivalent.
+```python
+import scitex_io as sio
+import pandas as pd
+import numpy as np
 
-2. **Hard-coded parameters scattered across scripts.** Sample rates, thresholds, model hyperparameters, plot dimensions — magic numbers buried in code, duplicated across files, impossible to track or share. Changing one parameter means grepping through the entire project.
+# Demo Data
+df_orig = pd.DataFrame({"x": [1, 2, 3]})
+arr_orig = np.array([1, 2, 3])
+params_orig = {"lr": 1e-3, "epochs": 10}
 
-3. **Figures without provenance.** A saved PNG has no record of the code, parameters, or session that produced it. Months later, reproducing a figure means reverse-engineering which script with which settings generated it.
+# Unified Saving API
+sio.save(df_orig, "data.csv")
+sio.save(arr_orig, "data.npy")
+sio.save(params_orig, "config.yaml")
 
-## Solution
+# Unified Loading API
+df_loaded = sio.load("data.csv")
+arr_loaded = sio.load("data.npy")
+params_loaded = sio.load("config.yaml")
 
-scitex-io addresses all three:
+# Round-trip check
+assert df_loaded.equals(df_orig)
+assert np.array_equal(arr_loaded, arr_orig)
+assert params_loaded == params_orig
+```
 
-- **`save()`/`load()`** — One interface for 30+ formats with automatic extension-based dispatch. A plugin registry lets you add custom formats without modifying the library.
-- **`load_configs()`** — Loads all YAML files from a `config/` directory into a single `DotDict` with dot-notation access. Parameters are version-controlled, centralized, and separate from code.
-- **`embed_metadata()`/`read_metadata()`** — Embeds provenance (timestamps, session IDs, parameters) directly into image and PDF files. The figure carries its own history.
 
 <details>
-<summary><b>Supported Formats (30+)</b></summary>
+<summary><b>Supported Formats (30+) and Customization</b></summary>
 
 <br>
 
 | Category | Extensions |
 |----------|-----------|
 | Spreadsheet | `.csv`, `.tsv`, `.xlsx`, `.xls`, `.xlsm`, `.xlsb` |
+| Columnar | `.parquet`, `.feather` |
 | Scientific | `.npy`, `.npz`, `.mat`, `.hdf5`, `.h5`, `.zarr` |
 | Serialization | `.pkl`, `.pickle`, `.pkl.gz`, `.joblib` |
 | ML/DL | `.pth`, `.pt`, `.cbm` |
@@ -73,200 +93,328 @@ scitex-io addresses all three:
 | Bibliography | `.bib` |
 | EEG | `.vhdr`, `.vmrk`, `.edf`, `.bdf`, `.gdf`, `.cnt`, `.egi`, `.eeg`, `.set`, `.con` |
 
+Need a format not listed above? Register a custom handler with
+`register_saver` / `register_loader` and `sio.save()` / `sio.load()`
+will dispatch to it by extension just like a built-in.
+
+```python
+from scitex_io import register_saver, register_loader
+
+@register_saver(".custom")
+def save_custom(obj, path, **kw):
+    open(path, "w").write(str(obj))
+
+@register_loader(".custom")
+def load_custom(path, **kw):
+    return open(path).read()
+
+sio.save("hello", "data.custom")
+assert sio.load("data.custom") == "hello"
+```
+
 </details>
 
 ## Installation
 
-Requires Python >= 3.9.
-
 ```bash
-pip install scitex-io
-```
-
-For MCP server support:
-
-```bash
-pip install scitex-io[mcp]
-```
-
-## Architecture
-
-```
-scitex_io/
-├── _save.py / _save_modules/      ← extension-based dispatcher + per-format savers
-├── _loading/ / _load_modules/     ← unified load() + per-format loaders
-├── _registry.py                   ← plugin registry (register_saver / register_loader)
-├── _cache.py / _flush.py / _reload.py  ← path+mtime cache
-├── _glob.py                       ← natural-sorted glob, brace expansion, parse_glob
-├── _path.py                       ← auto-routing path resolver (script_out/, etc.)
-├── _metadata.py / _metadata_modules/   ← embed_metadata / read_metadata (PNG/JPEG/SVG/PDF)
-├── _builtin_handlers.py           ← bundled handlers wired to the registry
-├── _image_csv_handler.py          ← figure → png + csv + yaml triplet
-├── _linter_plugin.py              ← STX-IO001..007 rule plugins for scitex-linter
-├── _cli/                          ← `scitex-io` Click CLI
-├── _mcp/                          ← MCP server tools
-└── _skills/                       ← agent-facing skill pages
-```
-
-`save()` and `load()` route by file extension through `_registry`;
-every format is a small handler module discovered eagerly at import. The
-registry is the extension point — see "Custom Format Registration" below.
-
-## Quickstart
-
-### Save and Load
-
-```python
-from scitex_io import save, load
-
-# Universal save/load — format auto-detected from extension
-import pandas as pd
-df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
-save(df, "data.csv")
-loaded = load("data.csv")
-
-# 30+ formats work the same way
-import numpy as np
-save(np.array([1, 2, 3]), "data.npy")
-save({"key": "value"}, "config.yaml")
-save({"nested": [1, 2]}, "data.json")
-```
-
-### Project Configuration
-
-Hard-coded parameters belong in config files, not in code. Use **UPPER_CASE** keys — Python's convention for constants — to signal that these are user-defined values:
-
-```
-project/
-  config/
-    PATHS.yaml          # DATA_DIR: /data/experiment_01
-    PREPROCESS.yaml     # SAMPLE_RATE: 1000, BANDPASS: [0.5, 40]
-    MODEL.yaml          # HIDDEN_DIM: 256, DROPOUT: 0.3
-    PLOT.yaml           # FIGSIZE: [180, 60], DPI: 300
-    IS_DEBUG.yaml       # IS_DEBUG: true
-```
-
-```python
-from scitex_io import load_configs
-
-CONFIG = load_configs()          # loads ./config/*.yaml
-CONFIG.PATHS.DATA_DIR            # "/data/experiment_01"
-CONFIG.PREPROCESS.SAMPLE_RATE    # 1000
-CONFIG.MODEL.HIDDEN_DIM          # 256
-
-# Debug mode: DEBUG_ prefixed keys override their counterparts
-# In MODEL.yaml: { HIDDEN_DIM: 256, DEBUG_HIDDEN_DIM: 32 }
-CONFIG = load_configs(IS_DEBUG=True)
-CONFIG.MODEL.HIDDEN_DIM          # 32 (debug value promoted)
-```
-
-Returns a `DotDict` — a nested dictionary with dot-notation access. Parameters become version-controlled, shareable, and separate from code.
-
-### Metadata Embedding
-
-Embed provenance into figures so they carry their own history:
-
-```python
-from scitex_io import embed_metadata, read_metadata, has_metadata
-
-# Embed metadata into an image
-embed_metadata("figure.png", {
-    "experiment": "exp_042",
-    "model": "resnet50",
-    "accuracy": 0.94,
-    "timestamp": "2026-03-11",
-})
-
-# Read it back — months later, from the file alone
-meta = read_metadata("figure.png")
-print(meta["experiment"])    # "exp_042"
-
-# Check if a file has embedded metadata
-has_metadata("figure.png")   # True
-```
-
-Supports PNG (tEXt chunks), JPEG (EXIF), SVG (XML metadata), and PDF (XMP metadata).
-
-### Advanced Save Features
-
-`save()` auto-routes relative paths based on execution context and supports symlinks and dry runs:
-
-```python
-from scitex_io import save
-
-# Auto path routing — relative paths resolve based on context:
-#   Script analysis.py  → analysis_out/results.csv
-#   Notebook exp.ipynb  → exp_out/results.csv
-#   Interactive/IPython → /tmp/{USER}/results.csv
-#   Absolute paths      → used as-is
-save(df, "results.csv")
-
-# Create symlink from cwd to the auto-routed save location
-save(df, "results.csv", symlink_from_cwd=True)
-
-# Create symlink at a specific path
-save(fig, "fig1.png", symlink_to="/data/latest/fig1.png")
-
-# Skip auto CSV export for image saves
-save(fig, "plot.png", no_csv=True)
-
-# use_caller_path=True — resolve path from the calling script,
-# not the immediate caller. Essential when save() is wrapped by a library.
-save(df, "results.csv", use_caller_path=True)
-
-# Dry run — print resolved path without writing
-save(df, "results.csv", dry_run=True)
-```
-
-### Glob and Caching
-
-```python
-from scitex_io import glob, parse_glob, load
-
-# Natural-sorted file matching (1, 2, 10 — not 1, 10, 2)
-paths = glob("data/**/*.csv")
-paths = glob("results/{exp1,exp2}/*.npy")  # brace expansion
-
-# Parse named placeholders from paths
-paths, parsed = parse_glob("sub_{id}/ses_{session}/*.vhdr")
-# parsed = [{'id': '001', 'session': 'pre'}, ...]
-
-# Glob patterns work directly in load()
-dfs = load("results/*.csv")  # → list of DataFrames
-
-# Caching is automatic (by path + mtime)
-data = load("large.hdf5")        # disk read
-data = load("large.hdf5")        # cache hit (instant)
+uv pip install "scitex-io[all]"
 ```
 
 <details>
-<summary><b>Custom Format Registration</b></summary>
+<summary><b>Per-module extras</b></summary>
+
+<br>
+
+| Extra | Pulls in |
+|---|---|
+| `scientific` | scipy, h5py, zarr, numcodecs, matplotlib (HDF5 / zarr / scientific I/O) |
+| `mcp` | fastmcp (MCP server for agents) |
+| `all` | `scientific` + `mcp` (recommended) |
+| `dev` | pytest, pytest-cov, plotly, Pillow, + every optional dep so the test suite runs |
+| `docs` | Sphinx + RTD theme + myst-parser (docs build only) |
+
+```bash
+uv pip install "scitex-io[scientific]"   # HDF5 / zarr / parquet stack
+uv pip install "scitex-io[mcp]"          # MCP server only
+uv pip install -e ".[dev]"               # editable install for contributors
+```
+
+</details>
+
+## How it works
+
+### 1. Format detection by extension
+
+`save()` / `load()` pick the right reader/writer from the file
+extension via a plugin registry — just as OS does. Custom handlers
+can be available using `register_saver` / `register_loader`.
+
+```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 20, 'rankSpacing': 40, 'curve': 'linear'}, 'themeVariables': {'fontSize': '12px'}}}%%
+flowchart LR
+    A["save(obj, 'x.ext')"] --> B{Registry}
+    L["load('x.ext')"] --> B
+    B -->|.csv .parquet .feather| C[pandas]
+    B -->|.npy .npz| D[numpy]
+    B -->|.h5 .zarr| E[h5py / zarr]
+    B -->|.pkl .joblib| F[pickle / joblib]
+    B -->|.pt .pth| G[torch]
+    B -->|.png .jpg .svg| H[Pillow]
+    B -->|.yaml .json| I[PyYAML / json]
+    B -->|.bib .pdf .docx ...| J[30+ handlers]
+    B -.->|register_*| K[Custom format]
+```
+
+### 2. `save(obj, out.ext)` in `/path/to/script.py` → `/path/to/script_out/out.ext`
+
+Relative paths in `save()` resolve **relative to the calling script /
+notebook**, not the working directory. Scripts and outputs are tied as locations.
+
+```
+/path/to/project/
+├── config/                              # see §3
+│   └── ...
+└── scripts/
+    └── xxx/
+        ├── filename.py                  # sio.save(df, "results.csv")
+        └── filename_out/                # auto-created sibling of the script
+            └── results.csv              # output lands here
+```
+
+> | Caller                          | `sio.save(df, "sub/dir/results.csv")` writes to  |
+> |---------------------------------|--------------------------------------------------|
+> | `/path/to/analysis.py` (script) | `/path/to/analysis_out/sub/dir/results.csv`      |
+> | `/path/to/exp.ipynb` (notebook) | `/path/to/exp_out/sub/dir/results.csv`           |
+> | `python -i` / IPython / REPL    | `~/.scitex/io/runtime/cache/sub/dir/results.csv` |
+
+> **Bare filename or any relative path** — `"results.csv"`,
+> `"sub/dir/results.csv"`, and `"./sub/dir/results.csv"` all work; the
+> whole path is appended under the caller's output anchor.
+>
+> **Intermediate directories created automatically** — no
+> `os.makedirs()` / `Path.mkdir()` calls needed on the caller side.
+
+<details>
+<summary><b>Advanced <code>save()</code> — absolute paths, symlinks, dry-run</b></summary>
+
+<br>
+
+> **Absolute paths bypass auto-routing.** `sio.save(df, "/data/x.csv")`
+> writes to `/data/x.csv` as-is — caller-anchored routing (§2) only
+> applies when the path is relative.
+
+```python
+sio.save(df, "/data/x.csv")                            # absolute → used as-is
+```
+
+> **Symlinks and dry-run.** `symlink_from_cwd=True` drops a symlink at
+> `./results.csv` pointing into the auto-routed location;
+> `symlink_to=…` plants a symlink at a custom path; `dry_run=True`
+> prints the resolved path without writing.
+
+```python
+sio.save(df,  "results.csv", symlink_from_cwd=True)
+sio.save(fig, "fig1.png",    symlink_to="/data/latest/fig1.png")
+sio.save(df,  "results.csv", use_caller_path=True)     # resolve from caller script
+sio.save(df,  "results.csv", dry_run=True)             # print path, don't write
+```
+
+</details>
+
+### 3. Centralized project configuration
+
+Scientific projects benefit from keeping parameters — 
+hyperparameters, paths, thresholds — out of the scripts that consume
+them, as a single source of truth.
+
+`CONFIG = load_configs()` collects every YAML under
+`<project-root>/config/` into one nested `DotDict`. Parameters are
+then accessible as `CONFIG.YAML_FILE_NAME.FIELD_NAME`.
+
+> **UPPER_CASE normalisation.** YAML filenames and field names are
+> recognised in UPPER_CASE, following Python's convention for
+> user-defined parameters. `model.yaml` with `hidden_dim: 256` lands
+> at `CONFIG.MODEL.HIDDEN_DIM` regardless of source casing.
+>
+> **Conflict handling.** When an UPPER/lower pair collide (e.g.
+> `MODEL.yaml` next to `model.yaml`, or `HIDDEN_DIM` next to
+> `hidden_dim`), the UPPER variant is prioritised and a `UserWarning`
+> is emitted pointing at the conflict.
+
+
+```
+/path/to/project/
+├── config/
+│   ├── PATHS.yaml                       # DATA_DIR: /data/experiment_01
+│   ├── PREPROCESS.yaml                  # SAMPLE_RATE: 1000, BANDPASS: [0.5, 40]
+│   ├── MODEL.yaml                       # HIDDEN_DIM: 256, DROPOUT: 0.3
+│   └── IS_DEBUG.yaml                    # IS_DEBUG: true
+└── scripts/
+    └── xxx/
+        └── filename.py                  # CONFIG = sio.load_configs()
+                                         #   CONFIG.MODEL.DROPOUT       → 0.3
+                                         #   CONFIG.PREPROCESS.SAMPLE_RATE → 1000
+```
+
+```python
+CONFIG = sio.load_configs()           # loads ./config/*.yaml
+CONFIG.PREPROCESS.SAMPLE_RATE            # 1000
+
+# Debug mode: DEBUG_ prefixed keys override their counterparts
+# In MODEL.yaml: { HIDDEN_DIM: 256, DEBUG_HIDDEN_DIM: 32 }
+CONFIG = sio.load_configs(IS_DEBUG=True)
+CONFIG.MODEL.HIDDEN_DIM                  # 32 (debug value promoted)
+```
+
+<details>
+<summary><b>Debug mode for parameters</b></summary>
+
+<br>
+
+When debugging or developing, flipping parameters speeds up iteration.
+Any `DEBUG_*` sibling overrides its non-debug counterpart at load time
+(e.g. `CONFIG.MY.DEBUG_PARAM` replaces `CONFIG.MY.PARAM`), so a single
+`IS_DEBUG.yaml` flips the whole project between production and debug
+values.
+
+> **Equivalent triggers** — these three all enable debug mode:
+> `IS_DEBUG.yaml` with `IS_DEBUG: true`, `load_configs(IS_DEBUG=True)`,
+> or running under `CI=True`.
+
+</details>
+
+### 4. Linter for Migration and Hooks
+
+`scitex-io` ships 14 IO-specific (`STX-IO001..014`) and 5 path-handling
+(`STX-PA001..005`) lint rules. They are detected automatically by
+[`scitex-dev`](https://github.com/ywatanabe1989/scitex-dev)'s linter,
+which is already a hard dependency of `scitex-io` — no extra install
+needed.
+
+```bash
+scitex-dev linter check-files src/           # lint a tree
+scitex-dev linter list-rules --category io   # show live rule definitions
+```
+
+<details>
+<summary><b>Rule reference (STX-IO001..014 + STX-PA001..005)</b></summary>
+
+<br>
+
+| Rule | Severity | Trigger |
+|------|----------|---------|
+| `STX-IO001` | warning | `np.save / savez / savez_compressed / savetxt` → use `sio.save()` |
+| `STX-IO002` | warning | `np.load / loadtxt / genfromtxt` → use `sio.load()` |
+| `STX-IO003` | warning | `pd.read_csv / parquet / excel / hdf / pickle / json / feather / orc / table` → use `sio.load()` |
+| `STX-IO004` | warning | `df.to_csv / parquet / excel / hdf / pickle / json / feather / html / orc` → use `sio.save()` |
+| `STX-IO005` | warning | `pickle.dump / dumps / load / loads` (incl. `cPickle`) → use `sio.save()/load()` |
+| `STX-IO006` | warning | `json.dump / dumps / load / loads` → use `sio.save()/load()` |
+| `STX-IO007` | warning | `.savefig(...)` → use `sio.save(fig, path)` for metadata embedding |
+| `STX-IO008` | warning | `torch.save / load` → use `sio.save()/load()` |
+| `STX-IO009` | warning | `joblib.dump / load` → use `sio.save()/load()` |
+| `STX-IO010` | warning | `yaml.dump / safe_dump / dump_all / load / safe_load / full_load` → use `sio.save()/load()` |
+| `STX-IO011` | warning | `scipy.io.savemat / loadmat` → use `sio.save()/load()` |
+| `STX-IO012` | warning | `cv2.imread / imwrite`, `PIL.Image.open`, `plt.imsave / imread`, `imageio.*` → use `sio.save()/load()` |
+| `STX-IO013` | warning | `h5py.File(...)` → use `sio.save()/load()` for HDF5 |
+| `STX-IO014` | warning | `sio.save / load` called with an extension that has no registered handler — register one with `register_saver/register_loader` |
+| `STX-PA001` | warning | Absolute path passed to `sio.*` — prefer relative for reproducibility |
+| `STX-PA002` | warning | `open(...)` → use `sio.save()/load()` for auto-logging |
+| `STX-PA003` | info | `os.makedirs / mkdir` — `sio.save()` auto-creates directories |
+| `STX-PA004` | warning | `os.chdir(...)` — scripts should run from project root |
+| `STX-PA005` | info | Relative path missing `./` prefix — use `./file.ext` for explicit intent |
+
+</details>
+
+<details>
+<summary><b>Claude Code Integration as a Hook</b></summary>
+
+<br>
+
+Wire `scitex-io`'s lint rules into Claude Code so every `Edit` / `Write`
+to a Python file is checked automatically — errors block the turn,
+warnings surface as feedback.
+
+> Reference implementation:
+> [`examples/scitex_io_lint.sh`](./examples/scitex_io_lint.sh) — a
+> self-contained PostToolUse hook (~15 lines) that you can copy into
+> `~/.claude/hooks/post-tool-use/` (or into your project's
+> `.claude/hooks/`).
+
+**1. Install the hook script**:
+
+```bash
+cp examples/scitex_io_lint.sh ~/.claude/hooks/post-tool-use/
+chmod +x ~/.claude/hooks/post-tool-use/scitex_io_lint.sh
+```
+
+**2. Wire it up** — add to `~/.claude/settings.json` (or
+`<project>/.claude/settings.json` for project-scoped):
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command",
+            "command": "~/.claude/hooks/post-tool-use/scitex_io_lint.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+After that, every time Claude Code edits a `.py` file, an
+`STX-IO001..014` / `STX-PA001..005` `error` blocks the turn and Claude
+sees the rule message inline — agents converge on the canonical
+`sio.save() / sio.load()` patterns instead of `np.save / pd.read_csv /
+pickle.dump / …`.
+
+</details>
+
+### 5. Etc.
+
+<details>
+<summary><b>Glob, parse, cache</b></summary>
 
 <br>
 
 ```python
-from scitex_io import register_saver, register_loader, save, load
+paths = sio.glob("data/**/*.csv")                        # natural sort: 1, 2, 10
+paths = sio.glob("results/{exp1,exp2}/*.npy")            # brace expansion
+paths, parsed = sio.parse_glob("sub_{id}/ses_{session}/*.vhdr")
+# parsed = [{'id': '001', 'session': 'pre'}, ...]
 
-@register_saver(".custom")
-def save_custom(obj, path, **kwargs):
-    with open(path, "w") as f:
-        f.write(str(obj))
-
-@register_loader(".custom")
-def load_custom(path, **kwargs):
-    with open(path) as f:
-        return f.read()
-
-save("hello", "data.custom")
-assert load("data.custom") == "hello"
+dfs = sio.load("results/*.csv")                          # list of DataFrames
+data = sio.load("large.hdf5"); data = sio.load("large.hdf5")  # 2nd call: cache hit
 ```
+
+</details>
+
+<details>
+<summary><b>Embed provenance into figures (<code>embed_metadata</code>)</b></summary>
+
+<br>
+
+```python
+sio.embed_metadata("figure.png", {
+    "experiment": "exp_042", "model": "resnet50",
+    "accuracy": 0.94, "timestamp": "2026-03-11",
+})
+meta = sio.read_metadata("figure.png")
+meta["experiment"]              # "exp_042"
+```
+
+Supports PNG (tEXt), JPEG (EXIF), SVG (XML metadata), PDF (XMP).
 
 </details>
 
 ## Four Interfaces
 
-<details open>
-<summary><strong>Python API</strong></summary>
+<details>
+<summary><strong>Python API ⭐⭐⭐</strong></summary>
 
 <br>
 
@@ -287,7 +435,7 @@ embed_metadata("fig.png", d) # Embed provenance into figure
 </details>
 
 <details>
-<summary><strong>CLI Commands</strong></summary>
+<summary><strong>CLI Commands ⭐</strong></summary>
 
 <br>
 
@@ -309,7 +457,7 @@ scitex-io mcp list-tools -vv        # List MCP tools with parameters
 </details>
 
 <details>
-<summary><strong>MCP Server — for AI Agents</strong></summary>
+<summary><strong>MCP Server ⭐</strong></summary>
 
 <br>
 
@@ -318,10 +466,17 @@ AI agents can save, load, and discover formats autonomously.
 | Tool | Description |
 |------|-------------|
 | `io_list_formats` | List all registered save/load formats |
-| `io_load` | Load data from any supported format |
-| `io_save` | Save data to any supported format |
+| `io_load` / `io_save` | Load / save data in any supported format |
 | `io_load_configs` | Load YAML project configurations |
 | `io_register_info` | Show how to register custom formats |
+| `io_glob` / `io_parse_glob` | Natsorted globbing with `{placeholder}` parsing |
+| `io_get_loader` / `io_get_saver` | Look up the registered handler for an extension |
+| `io_read_metadata` / `io_has_metadata` / `io_embed_metadata` | Image provenance metadata |
+| `io_get_cache_info` / `io_clear_load_cache` / `io_configure_cache` | Load-cache management |
+| `io_explore_h5` / `io_explore_zarr` | Print group/dataset trees |
+| `io_has_h5_key` / `io_has_zarr_key` | Cheap existence checks |
+| `io_json2md` | Render JSON as Markdown |
+| `io_skills_list` / `io_skills_get` | Discover and fetch skill pages |
 
 ```bash
 scitex-io mcp start
@@ -332,7 +487,7 @@ scitex-io mcp start
 </details>
 
 <details>
-<summary><strong>Skills — for AI Agent Discovery</strong></summary>
+<summary><strong>Skills ⭐⭐</strong></summary>
 
 <br>
 
@@ -359,47 +514,6 @@ scitex-io skills get supported-formats  # Get all format tables
 Also available via MCP: `io_skills_list()` / `io_skills_get(name)`.
 
 </details>
-
-## Demo
-
-```mermaid
-flowchart LR
-    A["scitex_io.save(obj, 'x.ext')"] --> R["registry: lookup(.ext)"]
-    R --> H["per-format saver"]
-    H --> F["file on disk + sidecar (csv/yaml)"]
-    L["scitex_io.load('x.ext')"] --> R2["registry: lookup(.ext)"]
-    R2 --> H2["per-format loader"]
-    H2 --> O["Python object<br/>(DataFrame, ndarray, ...)"]
-    G["glob('data/**/*.csv')"] --> N["natural-sorted paths"]
-    N --> L
-```
-
-```python
->>> import pandas as pd, scitex_io as sio
->>> df = pd.DataFrame({"x": [1, 2, 3]})
->>> sio.save(df, "out.csv")          # routes by extension
->>> sio.load("out.csv").equals(df)
-True
->>> sio.list_formats()[:5]
-['.csv', '.tsv', '.xlsx', '.npy', '.npz']
-```
-
-A figure save additionally emits the underlying CSV + a figrecipe YAML
-sidecar, keeping figure-and-data atomically in sync.
-
-## Lint Rules
-
-Detected by [scitex-linter](https://github.com/ywatanabe1989/scitex-linter) when this package is installed.
-
-| Rule | Severity | Message |
-|------|----------|---------|
-| `STX-IO001` | warning | `np.save()` detected — use `stx.io.save()` for provenance tracking |
-| `STX-IO002` | warning | `np.load()` detected — use `stx.io.load()` for provenance tracking |
-| `STX-IO003` | warning | `pd.read_csv()` detected — use `stx.io.load()` for provenance tracking |
-| `STX-IO004` | warning | `.to_csv()` detected — use `stx.io.save()` for provenance tracking |
-| `STX-IO005` | warning | `pickle.dump()` detected — use `stx.io.save()` for provenance tracking |
-| `STX-IO006` | warning | `json.dump()` detected — use `stx.io.save()` for provenance tracking |
-| `STX-IO007` | warning | `.savefig()` detected — use `stx.io.save(fig, path)` for metadata embedding |
 
 ## Part of SciTeX
 

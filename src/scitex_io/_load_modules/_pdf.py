@@ -26,6 +26,12 @@ import logging
 import tempfile
 from typing import Any, Dict
 
+# Expose the fitz / pypdf / pdfplumber module handles at this module's
+# top level so tests that `mock.patch("scitex_io._load_modules._pdf.fitz")`
+# can find them. They're re-imported here (not re-exported from
+# _pdf_utils) so the patched value affects only this module's view.
+from scitex_dev import try_import_optional
+
 from ._pdf_utils import (
     FITZ_AVAILABLE,
     PANDAS_AVAILABLE,
@@ -33,25 +39,14 @@ from ._pdf_utils import (
     DotDict,
     _select_backend,
 )
+from ._pdf_utils import (
+    PYPDF2_AVAILABLE as PYPDF2_AVAILABLE,  # re-export for test patches
+)
 
-# Expose the fitz / pypdf / pdfplumber module handles at this module's
-# top level so tests that `mock.patch("scitex_io._load_modules._pdf.fitz")`
-# can find them. They're re-imported here (not re-exported from
-# _pdf_utils) so the patched value affects only this module's view.
-try:
-    import fitz  # noqa: F401  PyMuPDF
-except ImportError:
-    fitz = None  # type: ignore[assignment]
-
-try:
-    import pdfplumber  # noqa: F401
-except ImportError:
-    pdfplumber = None  # type: ignore[assignment]
-
-try:
-    import PyPDF2  # noqa: F401
-except ImportError:
-    PyPDF2 = None  # type: ignore[assignment]
+fitz = try_import_optional("fitz")  # PyMuPDF
+pdfplumber = try_import_optional("pdfplumber")
+# pypdf is the maintained successor to PyPDF2.
+PyPDF2 = try_import_optional("pypdf")
 from ._pdf_content_extractors import (
     _extract_images,
     _extract_metadata,

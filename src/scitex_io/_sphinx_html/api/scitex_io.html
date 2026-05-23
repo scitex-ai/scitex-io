@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io &mdash; SciTeX IO v0.2.13</title>
+  <title>scitex_io &mdash; SciTeX IO v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=ba481074"></script>
+      <script src="../_static/documentation_options.js?v=d5b904a0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -123,6 +123,9 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">scitex_io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#functionalities">Functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#io">IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.register_saver"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.register_loader"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.get_saver"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
@@ -130,6 +133,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.list_formats"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.unregister_saver"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.unregister_loader"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.load_configs"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.glob"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
@@ -164,50 +168,51 @@
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#core-i-o">Core I/O</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id16"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id17"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id23"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id29"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id30"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id18"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id24"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id30"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id31"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#registry">Registry</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id37"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id38"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id39"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id40"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id41"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id44"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id45"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id38"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id39"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id40"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id41"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id42"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id45"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id46"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#cache-control">Cache Control</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id46"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id47"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id48"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id47"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id48"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id49"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#dict-utilities">Dict Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id49"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id50"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id50"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id60"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#metadata">Metadata</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id60"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id61"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id62"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id61"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id62"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id63"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#explorers">Explorers</a><ul>
@@ -245,8 +250,41 @@
              
   <section id="module-scitex_io">
 <span id="scitex-io"></span><h1>scitex_io<a class="headerlink" href="#module-scitex_io" title="Link to this heading"></a></h1>
-<p>scitex-io: Universal scientific data I/O with plugin registry.</p>
-<p>Supports 30+ formats out of the box. Register custom handlers via:</p>
+<p>scitex-io — Universal scientific data I/O with plugin registry.</p>
+<section id="functionalities">
+<h2>Functionalities<a class="headerlink" href="#functionalities" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><cite>save(obj, “path.ext”)</cite> / <cite>load(“path.ext”)</cite> — extension-dispatched
+one-call I/O for 30+ formats (CSV, Parquet, Feather, NumPy,
+pickle, YAML, JSON, HDF5, Zarr, MATLAB, images, matplotlib figures,
+PyTorch, MNE, EDF, video).</p></li>
+<li><p><cite>register_saver(“.ext”)</cite> / <cite>register_loader(“.ext”)</cite> — plugin hooks
+for user-defined formats; dispatch lookup follows the same registry.</p></li>
+<li><p><cite>load_configs()</cite> — collect every <cite>&lt;project-root&gt;/config/*.yaml</cite> into
+a single <cite>DotDict</cite> with UPPER_CASE normalisation + <a href="#id64"><span class="problematic" id="id65">DEBUG_</span></a> overrides.</p></li>
+<li><p><cite>glob</cite> / <cite>parse_glob</cite> — natural-sorted globbing with <cite>{placeholder}</cite>
+parsing; <cite>cache</cite> / <cite>reload</cite> / <cite>flush</cite> — load-cache management.</p></li>
+</ul>
+</section>
+<section id="io">
+<h2>IO<a class="headerlink" href="#io" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Reads: any registered extension; <cite>./config/*.yaml</cite>; <cite>$SCITEX_DIR</cite>
+cache; figure metadata (PNG tEXt, JPEG EXIF, SVG XML, PDF XMP).</p></li>
+<li><p>Writes: relative paths resolve under <cite>{caller}_out/</cite> (script /
+notebook) or <cite>$SCITEX_DIR/io/runtime/cache/</cite> (REPL); absolute paths
+pass through unchanged.</p></li>
+</ul>
+</section>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Hard: <cite>tqdm</cite>, <cite>PyYAML</cite>, <cite>ruamel.yaml</cite>, <cite>mne</cite>, <cite>numpy</cite>, <cite>pandas</cite>,
+<cite>click</cite>, <cite>rich</cite>, <cite>natsort</cite>, <cite>scitex-dev</cite>, <cite>scitex-logging</cite>.</p></li>
+<li><p>Optional (<cite>[scientific]</cite>): <cite>scipy</cite>, <cite>h5py</cite>, <cite>zarr&gt;=3</cite>, <cite>numcodecs</cite>,
+<cite>matplotlib</cite>. (<cite>[mcp]</cite>): <cite>fastmcp</cite>.</p></li>
+</ul>
+<p>Register custom handlers:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_saver</span><span class="p">,</span> <span class="n">register_loader</span>
 
 <span class="nd">@register_saver</span><span class="p">(</span><span class="s2">&quot;.myformat&quot;</span><span class="p">)</span>
@@ -259,6 +297,7 @@
 <p>Top-level imports are PEP 562 lazy — <cite>import scitex_io</cite> is cheap.
 Public symbols load on first attribute access. See
 <cite>_skills/general/03_interface_01_python-api/04_lazy-imports-and-optional-deps.md</cite>.</p>
+</section>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.register_saver">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.register_saver" title="Link to this definition"></a></dt>
@@ -287,7 +326,7 @@ User registrations always override built-ins.</p></li>
 <dt class="sig sig-object py" id="scitex_io.register_loader">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.register_loader" title="Link to this definition"></a></dt>
 <dd><p>Register a load handler for a file extension.</p>
-<p>Same API as <a class="reference internal" href="#id37" title="scitex_io.register_saver"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_saver()</span></code></a>.</p>
+<p>Same API as <a class="reference internal" href="#id38" title="scitex_io.register_saver"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_saver()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -362,6 +401,58 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="scitex_io.save">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specified_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">makedirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_from_cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_csv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_caller_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_save.html#save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.save" title="Link to this definition"></a></dt>
+<dd><p>Save <code class="docutils literal notranslate"><span class="pre">obj</span></code> by extension; <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is caller-anchored.</p>
+<p>The file format is selected from <code class="docutils literal notranslate"><span class="pre">specified_path</span></code>’s extension via
+the plugin registry — <cite>.csv</cite>, <cite>.npy</cite>, <cite>.pkl</cite>, <cite>.yaml</cite>, <cite>.png</cite>,
+<cite>.h5</cite>, … 30+ formats are built in; custom extensions can be added
+with <code class="docutils literal notranslate"><span class="pre">register_saver</span></code>.</p>
+<p>Path resolution rules (when <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is relative):</p>
+<ul class="simple">
+<li><p>Called from a script <code class="docutils literal notranslate"><span class="pre">/path/to/analysis.py</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/analysis_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from a notebook <code class="docutils literal notranslate"><span class="pre">/path/to/exp.ipynb</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/exp_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-i</span></code> / IPython / interactive REPL →
+<code class="docutils literal notranslate"><span class="pre">$SCITEX_DIR/io/runtime/cache/&lt;specified_path&gt;</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">~/.scitex/io/runtime/cache/</span></code>). Honours the canonical scitex
+local-state convention; see scitex-dev skills/general
+<code class="docutils literal notranslate"><span class="pre">01_ecosystem_06_local-state-directories.md</span></code>.</p></li>
+<li><p>Absolute path → used as-is, no routing.</p></li>
+</ul>
+<p>Intermediate directories are created automatically — callers do
+not need <code class="docutils literal notranslate"><span class="pre">os.makedirs()</span></code> / <code class="docutils literal notranslate"><span class="pre">Path.mkdir()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>Any</em>) – The object to be saved.</p></li>
+<li><p><strong>specified_path</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The filename or relative path under which to save <code class="docutils literal notranslate"><span class="pre">obj</span></code>. May
+contain subdirectories (<code class="docutils literal notranslate"><span class="pre">&quot;sub/dir/file.csv&quot;</span></code>); intermediates
+are auto-created. Absolute paths bypass routing.</p></li>
+<li><p><strong>makedirs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Create parent directories on demand. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print a one-line success message. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>symlink_from_cwd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Drop a symlink at <code class="docutils literal notranslate"><span class="pre">./&lt;specified_path&gt;</span></code> pointing into the
+auto-routed location. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>symlink_to</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Plant a symlink at this custom path pointing to the saved file.</p></li>
+<li><p><strong>dry_run</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print the resolved path without writing. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>no_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Skip the auto-CSV sidecar for figure saves. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>use_caller_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Resolve the anchor from the calling script, not the immediate
+caller — needed when <code class="docutils literal notranslate"><span class="pre">save</span></code> is wrapped by a library. Default
+<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed through to the per-format handler.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to saved file on success, <code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">False</span></code> on error.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.load">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.load" title="Link to this definition"></a></dt>
 <dd><p>Load data from various file formats.</p>
@@ -416,24 +507,48 @@ Examples: ‘pdf’, ‘json’, ‘csv’</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.load_configs">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load_configs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IS_DEBUG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_configs.html#load_configs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.load_configs" title="Link to this definition"></a></dt>
-<dd><p>Load YAML configuration files from specified directory.</p>
+<dd><p>Load and merge every YAML under <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> into one <code class="docutils literal notranslate"><span class="pre">DotDict</span></code>.</p>
+<p>Filename stems become top-level keys; YAML keys become nested
+attributes. Every key (filename stem and every nested key) is
+normalised to UPPER_CASE at load time so the in-memory tree is
+case-stable regardless of source casing — <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code> with
+<code class="docutils literal notranslate"><span class="pre">hidden_dim:</span> <span class="pre">256</span></code> lands at <code class="docutils literal notranslate"><span class="pre">CONFIG.MODEL.HIDDEN_DIM</span></code>.</p>
+<p>If two siblings fold to the same UPPER key (e.g. <code class="docutils literal notranslate"><span class="pre">MODEL.yaml</span></code>
+next to <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code>, or <code class="docutils literal notranslate"><span class="pre">HIDDEN_DIM</span></code> next to <code class="docutils literal notranslate"><span class="pre">hidden_dim</span></code>),
+a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> is emitted pointing at the conflict, the
+UPPER variant’s value is kept, and the lowercase one is dropped.</p>
+<p>Debug mode promotes any <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span></code> sibling over its non-debug
+counterpart, so a single <code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> flips the whole project
+between production and debug values. Equivalent triggers:
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> with <code class="docutils literal notranslate"><span class="pre">IS_DEBUG:</span> <span class="pre">true</span></code>, the <code class="docutils literal notranslate"><span class="pre">IS_DEBUG=True</span></code>
+kwarg, or running under <code class="docutils literal notranslate"><span class="pre">CI=True</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Debug mode flag. If None, reads from IS_DEBUG.yaml</p></li>
-<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Show configuration changes</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information</p></li>
-<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing configuration files. Can be a string or pathlib.Path object.
-Defaults to “./config” if None</p></li>
+<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Force debug mode. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), inferred from
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> inside <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> or from the <code class="docutils literal notranslate"><span class="pre">CI</span></code>
+env var.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Echo the <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span> <span class="pre">-&gt;</span> <span class="pre">&lt;KEY&gt;</span></code> substitutions to stdout.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information.</p></li>
+<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing the YAML files. Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;./config&quot;</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Merged configuration dictionary</p>
+<dd class="field-even"><p>Merged configuration tree with UPPER_CASE keys throughout.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#id49" title="scitex_io.DotDict">DotDict</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#id50" title="scitex_io.DotDict">DotDict</a></p>
 </dd>
 </dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">()</span>                       <span class="c1"># ./config/*.yaml</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 256</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">(</span><span class="n">IS_DEBUG</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 32 (DEBUG_ promoted)</span>
+</pre></div>
+</div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -762,7 +877,16 @@ and standard item access for all keys (including integers, etc.).</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.save_mp4">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">save_mp4</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spath_mp4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scitex_io.save_mp4" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Create an MP4 animation from a matplotlib figure.</p>
+<p>matplotlib is lazy-imported inside the function body so that
+<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">scitex.io</span></code> (and the parent <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">scitex</span></code>) does not
+fail on venvs without matplotlib installed (todo#443, same class
+as #279 / #441 / #442). Without lazy-import, the eager top-level
+<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">matplotlib</span> <span class="pre">import</span> <span class="pre">animation</span></code> propagated <code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError</span></code>
+up the <code class="docutils literal notranslate"><span class="pre">_save_modules.__init__</span></code> walk and broke any caller of
+<code class="docutils literal notranslate"><span class="pre">scitex.io.save(dict,</span> <span class="pre">&quot;out.json&quot;)</span></code> who had no business needing
+matplotlib.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.save_listed_dfs_as_csv">
@@ -890,7 +1014,59 @@ when indi_suffix=None is passed, only ‘{}’.format(i) will be added.</p>
 <h2>Core I/O<a class="headerlink" href="#core-i-o" title="Link to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="id0">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specified_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">makedirs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_from_cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_csv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_caller_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_save.html#save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Save <code class="docutils literal notranslate"><span class="pre">obj</span></code> by extension; <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is caller-anchored.</p>
+<p>The file format is selected from <code class="docutils literal notranslate"><span class="pre">specified_path</span></code>’s extension via
+the plugin registry — <cite>.csv</cite>, <cite>.npy</cite>, <cite>.pkl</cite>, <cite>.yaml</cite>, <cite>.png</cite>,
+<cite>.h5</cite>, … 30+ formats are built in; custom extensions can be added
+with <code class="docutils literal notranslate"><span class="pre">register_saver</span></code>.</p>
+<p>Path resolution rules (when <code class="docutils literal notranslate"><span class="pre">specified_path</span></code> is relative):</p>
+<ul class="simple">
+<li><p>Called from a script <code class="docutils literal notranslate"><span class="pre">/path/to/analysis.py</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/analysis_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from a notebook <code class="docutils literal notranslate"><span class="pre">/path/to/exp.ipynb</span></code> →
+<code class="docutils literal notranslate"><span class="pre">/path/to/exp_out/&lt;specified_path&gt;</span></code>.</p></li>
+<li><p>Called from <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-i</span></code> / IPython / interactive REPL →
+<code class="docutils literal notranslate"><span class="pre">$SCITEX_DIR/io/runtime/cache/&lt;specified_path&gt;</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">~/.scitex/io/runtime/cache/</span></code>). Honours the canonical scitex
+local-state convention; see scitex-dev skills/general
+<code class="docutils literal notranslate"><span class="pre">01_ecosystem_06_local-state-directories.md</span></code>.</p></li>
+<li><p>Absolute path → used as-is, no routing.</p></li>
+</ul>
+<p>Intermediate directories are created automatically — callers do
+not need <code class="docutils literal notranslate"><span class="pre">os.makedirs()</span></code> / <code class="docutils literal notranslate"><span class="pre">Path.mkdir()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>Any</em>) – The object to be saved.</p></li>
+<li><p><strong>specified_path</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The filename or relative path under which to save <code class="docutils literal notranslate"><span class="pre">obj</span></code>. May
+contain subdirectories (<code class="docutils literal notranslate"><span class="pre">&quot;sub/dir/file.csv&quot;</span></code>); intermediates
+are auto-created. Absolute paths bypass routing.</p></li>
+<li><p><strong>makedirs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Create parent directories on demand. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print a one-line success message. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>symlink_from_cwd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Drop a symlink at <code class="docutils literal notranslate"><span class="pre">./&lt;specified_path&gt;</span></code> pointing into the
+auto-routed location. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>symlink_to</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Plant a symlink at this custom path pointing to the saved file.</p></li>
+<li><p><strong>dry_run</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Print the resolved path without writing. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>no_csv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Skip the auto-CSV sidecar for figure saves. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>use_caller_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Resolve the anchor from the calling script, not the immediate
+caller — needed when <code class="docutils literal notranslate"><span class="pre">save</span></code> is wrapped by a library. Default
+<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed through to the per-format handler.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to saved file on success, <code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">False</span></code> on error.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id16">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id16" title="Link to this definition"></a></dt>
 <dd><p>Load data from various file formats.</p>
 <p>This function supports loading data from multiple file formats with optional caching.</p>
 <dl class="field-list simple">
@@ -941,39 +1117,63 @@ Examples: ‘pdf’, ‘json’, ‘csv’</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id16">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load_configs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IS_DEBUG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_configs.html#load_configs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id16" title="Link to this definition"></a></dt>
-<dd><p>Load YAML configuration files from specified directory.</p>
+<dt class="sig sig-object py" id="id17">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load_configs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IS_DEBUG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_configs.html#load_configs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id17" title="Link to this definition"></a></dt>
+<dd><p>Load and merge every YAML under <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> into one <code class="docutils literal notranslate"><span class="pre">DotDict</span></code>.</p>
+<p>Filename stems become top-level keys; YAML keys become nested
+attributes. Every key (filename stem and every nested key) is
+normalised to UPPER_CASE at load time so the in-memory tree is
+case-stable regardless of source casing — <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code> with
+<code class="docutils literal notranslate"><span class="pre">hidden_dim:</span> <span class="pre">256</span></code> lands at <code class="docutils literal notranslate"><span class="pre">CONFIG.MODEL.HIDDEN_DIM</span></code>.</p>
+<p>If two siblings fold to the same UPPER key (e.g. <code class="docutils literal notranslate"><span class="pre">MODEL.yaml</span></code>
+next to <code class="docutils literal notranslate"><span class="pre">model.yaml</span></code>, or <code class="docutils literal notranslate"><span class="pre">HIDDEN_DIM</span></code> next to <code class="docutils literal notranslate"><span class="pre">hidden_dim</span></code>),
+a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> is emitted pointing at the conflict, the
+UPPER variant’s value is kept, and the lowercase one is dropped.</p>
+<p>Debug mode promotes any <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span></code> sibling over its non-debug
+counterpart, so a single <code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> flips the whole project
+between production and debug values. Equivalent triggers:
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> with <code class="docutils literal notranslate"><span class="pre">IS_DEBUG:</span> <span class="pre">true</span></code>, the <code class="docutils literal notranslate"><span class="pre">IS_DEBUG=True</span></code>
+kwarg, or running under <code class="docutils literal notranslate"><span class="pre">CI=True</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Debug mode flag. If None, reads from IS_DEBUG.yaml</p></li>
-<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Show configuration changes</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information</p></li>
-<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing configuration files. Can be a string or pathlib.Path object.
-Defaults to “./config” if None</p></li>
+<li><p><strong>IS_DEBUG</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Force debug mode. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), inferred from
+<code class="docutils literal notranslate"><span class="pre">IS_DEBUG.yaml</span></code> inside <code class="docutils literal notranslate"><span class="pre">config_dir</span></code> or from the <code class="docutils literal notranslate"><span class="pre">CI</span></code>
+env var.</p></li>
+<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Echo the <code class="docutils literal notranslate"><span class="pre">DEBUG_&lt;KEY&gt;</span> <span class="pre">-&gt;</span> <span class="pre">&lt;KEY&gt;</span></code> substitutions to stdout.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Print detailed information.</p></li>
+<li><p><strong>config_dir</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Directory containing the YAML files. Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;./config&quot;</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Merged configuration dictionary</p>
+<dd class="field-even"><p>Merged configuration tree with UPPER_CASE keys throughout.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#id49" title="scitex_io.DotDict">DotDict</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#id50" title="scitex_io.DotDict">DotDict</a></p>
 </dd>
 </dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">()</span>                       <span class="c1"># ./config/*.yaml</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 256</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">(</span><span class="n">IS_DEBUG</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>                       <span class="c1"># 32 (DEBUG_ promoted)</span>
+</pre></div>
+</div>
+</div>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id17">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">glob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_one</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_glob.html#glob"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id17" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id18">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">glob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_one</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_glob.html#glob"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id18" title="Link to this definition"></a></dt>
 <dd><p>Perform a glob operation with natural sorting and extended pattern support.</p>
 <p>This function extends the standard glob functionality by adding natural sorting
 and support for curly brace expansion in the glob pattern.</p>
-<section id="id18">
-<h3>Parameters:<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<section id="id19">
+<h3>Parameters:<a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
 <dl class="simple">
 <dt>expression<span class="classifier">Union[str, Path]</span></dt><dd><p>The glob pattern to match against file paths. Can be a string or pathlib.Path object.
-Supports standard glob syntax and curly brace expansion (e.g., ‘dir/{a,b}/<a href="#id19"><span class="problematic" id="id20">*</span></a>.txt’).</p>
+Supports standard glob syntax and curly brace expansion (e.g., ‘dir/{a,b}/<a href="#id20"><span class="problematic" id="id21">*</span></a>.txt’).</p>
 </dd>
 <dt>parse<span class="classifier">bool, optional</span></dt><dd><p>Whether to parse the matched paths. Default is False.</p>
 </dd>
@@ -981,8 +1181,8 @@ Supports standard glob syntax and curly brace expansion (e.g., ‘dir/{a,b}/<a h
 </dd>
 </dl>
 </section>
-<section id="id21">
-<h3>Returns:<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<section id="id22">
+<h3>Returns:<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
 <p>:
 Union[List[str], Tuple[List[str], List[dict]]]</p>
 <blockquote>
@@ -990,8 +1190,8 @@ Union[List[str], Tuple[List[str], List[dict]]]</p>
 If parse=True: Tuple of (paths, parsed results)</p>
 </div></blockquote>
 </section>
-<section id="id22">
-<h3>Examples:<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
+<section id="id23">
+<h3>Examples:<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;data/*.txt&#39;</span><span class="p">)</span>
 <span class="go">[&#39;data/file1.txt&#39;, &#39;data/file2.txt&#39;, &#39;data/file10.txt&#39;]</span>
 </pre></div>
@@ -1015,14 +1215,14 @@ If parse=True: Tuple of (paths, parsed results)</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id23">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">reload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_or_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_reload.html#reload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id23" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id24">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">reload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_or_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_reload.html#reload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id24" title="Link to this definition"></a></dt>
 <dd><p>Reload a module or the module containing a given function.</p>
 <p>This function attempts to reload a module directly if a module is passed,
 or reloads the module containing the function if a function is passed.
 This is useful during development to reflect changes without restarting the Python interpreter.</p>
-<section id="id24">
-<h3>Parameters:<a class="headerlink" href="#id24" title="Link to this heading"></a></h3>
+<section id="id25">
+<h3>Parameters:<a class="headerlink" href="#id25" title="Link to this heading"></a></h3>
 <dl class="simple">
 <dt>module_or_func<span class="classifier">module or function</span></dt><dd><p>The module to reload, or a function whose containing module should be reloaded.</p>
 </dd>
@@ -1030,28 +1230,28 @@ This is useful during development to reflect changes without restarting the Pyth
 </dd>
 </dl>
 </section>
-<section id="id25">
-<h3>Returns:<a class="headerlink" href="#id25" title="Link to this heading"></a></h3>
+<section id="id26">
+<h3>Returns:<a class="headerlink" href="#id26" title="Link to this heading"></a></h3>
 <p>:
 None</p>
 </section>
-<section id="id26">
-<h3>Raises:<a class="headerlink" href="#id26" title="Link to this heading"></a></h3>
+<section id="id27">
+<h3>Raises:<a class="headerlink" href="#id27" title="Link to this heading"></a></h3>
 <dl class="simple">
 <dt>Exception</dt><dd><p>If the module cannot be found or if there’s an error during the reload process.</p>
 </dd>
 </dl>
 </section>
-<section id="id27">
-<h3>Notes:<a class="headerlink" href="#id27" title="Link to this heading"></a></h3>
+<section id="id28">
+<h3>Notes:<a class="headerlink" href="#id28" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Reloading modules can have unexpected side effects, especially for modules that
 maintain state or have complex imports. Use with caution.</p></li>
 <li><p>This function modifies sys.modules, which affects the global state of the Python interpreter.</p></li>
 </ul>
 </section>
-<section id="id28">
-<h3>Examples:<a class="headerlink" href="#id28" title="Link to this heading"></a></h3>
+<section id="id29">
+<h3>Examples:<a class="headerlink" href="#id29" title="Link to this heading"></a></h3>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">my_module</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">reload</span><span class="p">(</span><span class="n">my_module</span><span class="p">)</span>
 </pre></div>
@@ -1064,46 +1264,46 @@ maintain state or have complex imports. Use with caution.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id29">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;module</span> <span class="pre">'sys'</span> <span class="pre">(built-in)&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_flush.html#flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id29" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id30">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;module</span> <span class="pre">'sys'</span> <span class="pre">(built-in)&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_flush.html#flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id30" title="Link to this definition"></a></dt>
 <dd><p>Flushes the system’s stdout and stderr, and syncs the file system.
 This ensures all pending write operations are completed.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id30">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_cache.html#cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id30" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id31">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_cache.html#cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id31" title="Link to this definition"></a></dt>
 <dd><p>Store or fetch data using a pickle file.</p>
 <p>This function provides a simple caching mechanism for storing and retrieving
 Python objects. It uses pickle to serialize the data and stores it in a file
 with a unique identifier. If the data is already cached, it can be retrieved
 without recomputation.</p>
-<section id="id31">
-<h3>Parameters:<a class="headerlink" href="#id31" title="Link to this heading"></a></h3>
+<section id="id32">
+<h3>Parameters:<a class="headerlink" href="#id32" title="Link to this heading"></a></h3>
 <dl class="simple">
 <dt>id<span class="classifier">str</span></dt><dd><p>A unique identifier for the cache file.</p>
 </dd>
-<dt><a href="#id32"><span class="problematic" id="id33">*</span></a>args<span class="classifier">str</span></dt><dd><p>Variable names to be cached or loaded.</p>
+<dt><a href="#id33"><span class="problematic" id="id34">*</span></a>args<span class="classifier">str</span></dt><dd><p>Variable names to be cached or loaded.</p>
 </dd>
 </dl>
 </section>
-<section id="id34">
-<h3>Returns:<a class="headerlink" href="#id34" title="Link to this heading"></a></h3>
+<section id="id35">
+<h3>Returns:<a class="headerlink" href="#id35" title="Link to this heading"></a></h3>
 <p>:
 tuple</p>
 <blockquote>
 <div><p>A tuple of cached values corresponding to the input variable names.</p>
 </div></blockquote>
 </section>
-<section id="id35">
-<h3>Raises:<a class="headerlink" href="#id35" title="Link to this heading"></a></h3>
+<section id="id36">
+<h3>Raises:<a class="headerlink" href="#id36" title="Link to this heading"></a></h3>
 <dl class="simple">
 <dt>ValueError</dt><dd><p>If the cache file is not found and not all variables are defined.</p>
 </dd>
 </dl>
 </section>
-<section id="id36">
-<h3>Example:<a class="headerlink" href="#id36" title="Link to this heading"></a></h3>
+<section id="id37">
+<h3>Example:<a class="headerlink" href="#id37" title="Link to this heading"></a></h3>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt;</span>
@@ -1129,8 +1329,8 @@ tuple</p>
 <section id="registry">
 <h2>Registry<a class="headerlink" href="#registry" title="Link to this heading"></a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="id37">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id37" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id38">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id38" title="Link to this definition"></a></dt>
 <dd><p>Register a save handler for a file extension.</p>
 <p>Can be used as a decorator or called directly:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@register_saver</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">)</span>
@@ -1153,10 +1353,10 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id38">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id38" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id39">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#register_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id39" title="Link to this definition"></a></dt>
 <dd><p>Register a load handler for a file extension.</p>
-<p>Same API as <a class="reference internal" href="#id37" title="scitex_io.register_saver"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_saver()</span></code></a>.</p>
+<p>Same API as <a class="reference internal" href="#id38" title="scitex_io.register_saver"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_saver()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1169,8 +1369,8 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id39">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">get_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#get_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id39" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id40">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">get_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#get_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id40" title="Link to this definition"></a></dt>
 <dd><p>Look up a save handler. User overrides take priority.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1180,8 +1380,8 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id40">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">get_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#get_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id40" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id41">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">get_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#get_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id41" title="Link to this definition"></a></dt>
 <dd><p>Look up a load handler. User overrides take priority.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1191,13 +1391,13 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id41">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">list_formats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#list_formats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id41" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id42">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">list_formats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#list_formats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id42" title="Link to this definition"></a></dt>
 <dd><p>List all registered formats.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><dl class="simple">
-<dt><a href="#id42"><span class="problematic" id="id43">``</span></a>{“save”: {“builtin”: […], “user”: […]},</dt><dd><p>”load”: {“builtin”: […], “user”: […]}}``</p>
+<dt><a href="#id43"><span class="problematic" id="id44">``</span></a>{“save”: {“builtin”: […], “user”: […]},</dt><dd><p>”load”: {“builtin”: […], “user”: […]}}``</p>
 </dd>
 </dl>
 </p>
@@ -1209,8 +1409,8 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id44">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">unregister_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#unregister_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id44" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id45">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">unregister_saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#unregister_saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id45" title="Link to this definition"></a></dt>
 <dd><p>Remove a user-registered saver. Returns True if found.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1220,8 +1420,8 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id45">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">unregister_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#unregister_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id45" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id46">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">unregister_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_registry.html#unregister_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id46" title="Link to this definition"></a></dt>
 <dd><p>Remove a user-registered loader. Returns True if found.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1234,8 +1434,8 @@ User registrations always override built-ins.</p></li>
 <section id="cache-control">
 <h2>Cache Control<a class="headerlink" href="#cache-control" title="Link to this heading"></a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="id46">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">get_cache_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_cache.html#get_cache_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id46" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id47">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">get_cache_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_cache.html#get_cache_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id47" title="Link to this definition"></a></dt>
 <dd><p>Get cache statistics and configuration.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1248,8 +1448,8 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id47">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">configure_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_cache.html#configure_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id47" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id48">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">configure_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load_cache.html#configure_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id48" title="Link to this definition"></a></dt>
 <dd><p>Configure cache settings.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1266,8 +1466,8 @@ User registrations always override built-ins.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id48">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">clear_load_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id48" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id49">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">clear_load_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id49" title="Link to this definition"></a></dt>
 <dd><p>Clear all cached data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1280,59 +1480,59 @@ User registrations always override built-ins.</p></li>
 <section id="dict-utilities">
 <h2>Dict Utilities<a class="headerlink" href="#dict-utilities" title="Link to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="id49">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">DotDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id49" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id50">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">DotDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id50" title="Link to this definition"></a></dt>
 <dd><p>A dictionary-like object that allows attribute-like access (for valid identifier keys)
 and standard item access for all keys (including integers, etc.).</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="id50">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id50" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="id51">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id51" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id51" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id52">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_private</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id52" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id52" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id53">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_private</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id53" title="Link to this definition"></a></dt>
 <dd><p>Recursively convert to plain dict.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id53">
-<span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id53" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="id54">
-<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id54" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id54" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id55">
-<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.items"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id55" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id55" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id56">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id56" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.items"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id56" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id57">
-<span class="sig-name descname"><span class="pre">setdefault</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.setdefault"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id57" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id57" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id58">
-<span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id58" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">setdefault</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.setdefault"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id58" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id59">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id59" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id59" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id60">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_utils.html#DotDict.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id60" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1341,8 +1541,8 @@ and standard item access for all keys (including integers, etc.).</p>
 <section id="metadata">
 <h2>Metadata<a class="headerlink" href="#metadata" title="Link to this heading"></a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="id60">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">embed_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_metadata_modules/_embed.html#embed_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id60" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id61">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">embed_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_metadata_modules/_embed.html#embed_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id61" title="Link to this definition"></a></dt>
 <dd><p>Embed metadata into an existing image or PDF file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1376,8 +1576,8 @@ and standard item access for all keys (including integers, etc.).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id61">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">read_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_metadata_modules/_read.html#read_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id61" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id62">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">read_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_metadata_modules/_read.html#read_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id62" title="Link to this definition"></a></dt>
 <dd><p>Read metadata from an image or PDF file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1408,8 +1608,8 @@ and standard item access for all keys (including integers, etc.).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="id62">
-<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">has_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_metadata_modules/_utils.html#has_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id62" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="id63">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">has_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_metadata_modules/_utils.html#has_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id63" title="Link to this definition"></a></dt>
 <dd><p>Check if an image file has embedded metadata.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

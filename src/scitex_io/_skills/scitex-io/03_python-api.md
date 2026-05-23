@@ -129,5 +129,5 @@ call directly for advanced flags.
 ## See also
 
 - [04_cli-reference.md](04_cli-reference.md) — same surface from the shell
-- [21_linting-rules.md](21_linting-rules.md) — STX-IO001–007 rules
+- [21_linting-rules.md](21_linting-rules.md) — STX-IO001..014 + STX-PA001..005 rules
 - Full RTD: <https://scitex-io.readthedocs.io/en/latest/api/scitex_io.html>

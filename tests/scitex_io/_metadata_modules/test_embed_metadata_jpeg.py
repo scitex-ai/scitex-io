@@ -1,94 +1,98 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Tests for embed_metadata_jpeg."""
 
-# Add your tests here
+import json
 
-if __name__ == "__main__":
-    import os
+import pytest
 
-    import pytest
+PIL = pytest.importorskip("PIL")
+piexif = pytest.importorskip("piexif")
 
-    pytest.main([os.path.abspath(__file__)])
+from scitex_io._metadata_modules.embed_metadata_jpeg import embed_metadata_jpeg
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/embed_metadata_jpeg.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # File: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata/embed_metadata_jpeg.py
-#
-# """JPEG metadata embedding using EXIF ImageDescription field."""
-#
-# from PIL import Image
-#
-#
-# def embed_metadata_jpeg(image_path: str, metadata_json: str) -> None:
-#     """
-#     Embed metadata into a JPEG file using EXIF ImageDescription field.
-#
-#     Args:
-#         image_path: Path to the JPEG file.
-#         metadata_json: JSON string of metadata to embed.
-#
-#     Raises:
-#         ImportError: If piexif is not installed.
-#     """
-#     try:
-#         import piexif
-#     except ImportError:
-#         raise ImportError(
-#             "piexif is required for JPEG metadata support. "
-#             "Install with: pip install piexif"
-#         )
-#
-#     img = Image.open(image_path)
-#
-#     # Convert to RGB if necessary (JPEG doesn't support RGBA)
-#     if img.mode in ("RGBA", "LA", "P"):
-#         rgb_img = Image.new("RGB", img.size, (255, 255, 255))
-#         if img.mode == "P":
-#             img = img.convert("RGBA")
-#         if img.mode in ("RGBA", "LA"):
-#             rgb_img.paste(img, mask=img.split()[-1])
-#         else:
-#             rgb_img.paste(img)
-#         img = rgb_img
-#
-#     # Create EXIF dict with metadata in ImageDescription field
-#     exif_dict = {
-#         "0th": {piexif.ImageIFD.ImageDescription: metadata_json.encode("utf-8")},
-#         "Exif": {},
-#         "GPS": {},
-#         "1st": {},
-#     }
-#
-#     # Try to preserve existing EXIF data
-#     try:
-#         existing_exif = piexif.load(img.info.get("exif", b""))
-#         # Merge with new metadata (prioritize new metadata)
-#         for ifd in ["Exif", "GPS", "1st"]:
-#             if ifd in existing_exif:
-#                 exif_dict[ifd].update(existing_exif[ifd])
-#     except:
-#         pass  # If existing EXIF is corrupted, just use new metadata
-#
-#     exif_bytes = piexif.dump(exif_dict)
-#
-#     # Save with EXIF metadata (quality=100 for maximum quality)
-#     img.save(
-#         image_path,
-#         "JPEG",
-#         quality=100,
-#         subsampling=0,
-#         optimize=False,
-#         exif=exif_bytes,
-#     )
-#     img.close()
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/embed_metadata_jpeg.py
-# --------------------------------------------------------------------------------
+def _make_jpeg(path, size=(10, 10), mode="RGB"):
+    img = PIL.Image.new(mode, size, color=(128, 64, 32) if mode == "RGB" else 128)
+    img.save(str(path), "JPEG", quality=95)
+    return path
+
+
+def test_embed_jpeg_round_trip(tmp_path):
+    # Arrange
+    # Arrange
+    p = _make_jpeg(tmp_path / "a.jpg")
+    payload = json.dumps({"k": "v", "n": 42})
+    embed_metadata_jpeg(str(p), payload)
+    exif = piexif.load(str(p))
+    # Act
+    # Act
+    desc = exif["0th"][piexif.ImageIFD.ImageDescription].decode("utf-8")
+    # Assert
+    # Assert
+    assert desc == payload
+
+
+def test_embed_jpeg_rgba_converted(tmp_path):
+    # Arrange
+    # Arrange
+    p = tmp_path / "rgba.jpg"
+    img = PIL.Image.new("RGBA", (8, 8), (10, 20, 30, 200))
+    img.save(str(p), "PNG")
+    embed_metadata_jpeg(str(p), json.dumps({"mode": "rgba"}))
+    # Act
+    # Act
+    out = PIL.Image.open(str(p))
+    # Assert
+    # Assert
+    assert out.mode == "RGB"
+
+
+def test_embed_jpeg_palette_mode(tmp_path):
+    # Arrange
+    # Arrange
+    p = tmp_path / "pal.jpg"
+    img = PIL.Image.new("P", (8, 8), 5)
+    img.save(str(p), "PNG")
+    embed_metadata_jpeg(str(p), json.dumps({"mode": "p"}))
+    # Act
+    # Act
+    out = PIL.Image.open(str(p))
+    # Assert
+    # Assert
+    assert out.mode == "RGB"
+
+
+def test_embed_jpeg_la_mode(tmp_path):
+    # Arrange
+    # Arrange
+    p = tmp_path / "la.jpg"
+    img = PIL.Image.new("LA", (8, 8), (128, 200))
+    img.save(str(p), "PNG")
+    embed_metadata_jpeg(str(p), json.dumps({"mode": "la"}))
+    # Act
+    # Act
+    out = PIL.Image.open(str(p))
+    # Assert
+    # Assert
+    assert out.mode == "RGB"
+
+
+def test_embed_jpeg_preserves_other_exif(tmp_path):
+    # Arrange
+    # Arrange
+    p = _make_jpeg(tmp_path / "b.jpg")
+    exif_dict = {
+        "0th": {},
+        "Exif": {piexif.ExifIFD.UserComment: b"prior"},
+        "GPS": {},
+        "1st": {},
+    }
+    img = PIL.Image.open(str(p))
+    img.save(str(p), "JPEG", quality=95, exif=piexif.dump(exif_dict))
+    embed_metadata_jpeg(str(p), json.dumps({"k": "v"}))
+    # Act
+    # Act
+    after = piexif.load(str(p))
+    # Assert
+    # Assert
+    assert after["Exif"][piexif.ExifIFD.UserComment] == b"prior"

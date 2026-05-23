@@ -14,10 +14,18 @@ import tempfile
 
 import pytest
 
+# Optional deps for the markdown loader (`scitex_io._load_modules._markdown`
+# imports both at runtime). Skip cleanly when either is missing so the
+# suite stays green on fresh installs.
+pytest.importorskip("markdown")
+pytest.importorskip("html2text")
+
+import pytest
+
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import Mock, patch
 
 
 class TestLoadMarkdown:
@@ -25,6 +33,9 @@ class TestLoadMarkdown:
 
     def test_load_markdown_basic_plain_text(self):
         """Test loading basic Markdown file as plain text."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = """# Test Header
@@ -53,6 +64,9 @@ More content here."""
 
     def test_load_markdown_html_output(self):
         """Test loading Markdown file as HTML."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = """# Test Header
@@ -79,6 +93,9 @@ This is a **bold** paragraph with *italic* text.
 
     def test_load_markdown_empty_file(self):
         """Test loading empty Markdown file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
@@ -93,6 +110,9 @@ This is a **bold** paragraph with *italic* text.
 
     def test_load_markdown_invalid_style(self):
         """Test loading Markdown with invalid style option."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = "# Test"
@@ -109,13 +129,19 @@ This is a **bold** paragraph with *italic* text.
 
     def test_load_markdown_nonexistent_file(self):
         """Test loading non-existent Markdown file."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._markdown import _load_markdown
 
+        # Assert
         with pytest.raises(FileNotFoundError):
             _load_markdown("nonexistent_file.md")
 
     def test_load_markdown_complex_content(self):
         """Test loading complex Markdown content."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = """# Main Title
@@ -177,6 +203,9 @@ Final paragraph."""
 
     def test_load_markdown_with_kwargs(self):
         """Test that _load_markdown accepts kwargs parameter."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = "# Test"
@@ -194,6 +223,9 @@ Final paragraph."""
 
     def test_load_markdown_special_characters(self):
         """Test loading Markdown with special characters."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = """# Título con acentos
@@ -219,33 +251,105 @@ Contenido con caracteres especiales: ñáéíóú
         finally:
             os.unlink(temp_path)
 
-    def test_load_markdown_function_signature(self):
-        """Test that _load_markdown has correct function signature."""
+    def test_load_markdown_function_signature_lpath_md_in_params(self):
+        # Arrange
+        # Arrange
         import inspect
-
         from scitex_io._load_modules._markdown import _load_markdown
-
         sig = inspect.signature(_load_markdown)
+        # Act
         params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert "lpath_md" in params
+
+    def test_load_markdown_function_signature_style_in_params(self):
+        # Arrange
+        # Arrange
+        import inspect
+        from scitex_io._load_modules._markdown import _load_markdown
+        sig = inspect.signature(_load_markdown)
+        # Act
+        params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert "style" in params
+
+    def test_load_markdown_function_signature_kwargs_in_params_or_len_p_for_p_in_sig_parameters_values_if_(self):
+        # Arrange
+        # Arrange
+        import inspect
+        from scitex_io._load_modules._markdown import _load_markdown
+        sig = inspect.signature(_load_markdown)
+        # Act
+        params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert (
             "kwargs" in params
             or len([p for p in sig.parameters.values() if p.kind == p.VAR_KEYWORD]) > 0
         )
 
-    def test_load_markdown_docstring(self):
-        """Test that _load_markdown has comprehensive docstring."""
-        from scitex_io._load_modules._markdown import _load_markdown
 
+    def test_load_markdown_docstring_load_markdown_doc_is_not_none(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._markdown import _load_markdown
+        # Act
+        # Assert
+        # Assert
         assert _load_markdown.__doc__ is not None
+
+    def test_load_markdown_docstring_len_load_markdown_doc_strip_100(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._markdown import _load_markdown
+        # Act
+        # Assert
+        # Assert
         assert len(_load_markdown.__doc__.strip()) > 100
+
+    def test_load_markdown_docstring_markdown_in_load_markdown_doc(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._markdown import _load_markdown
+        # Act
+        # Assert
+        # Assert
         assert "Markdown" in _load_markdown.__doc__
+
+    def test_load_markdown_docstring_parameters_in_load_markdown_doc(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._markdown import _load_markdown
+        # Act
+        # Assert
+        # Assert
         assert "Parameters" in _load_markdown.__doc__
+
+    def test_load_markdown_docstring_returns_in_load_markdown_doc(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._markdown import _load_markdown
+        # Act
+        # Assert
+        # Assert
         assert "Returns" in _load_markdown.__doc__
+
 
     def test_load_markdown_default_style(self):
         """Test that default style is plain_text."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = "# Test **bold**"
@@ -273,6 +377,9 @@ class TestLoadMarkdownAlternative:
 
     def test_load_markdown_alt_basic(self):
         """Test the alternative load_markdown function."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules import load_markdown
 
         md_content = "# Test Header\n\nParagraph content."
@@ -290,6 +397,9 @@ class TestLoadMarkdownAlternative:
 
     def test_load_markdown_alt_html(self):
         """Test alternative load_markdown function with HTML output."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules import load_markdown
 
         md_content = "# Test **bold**"
@@ -305,23 +415,53 @@ class TestLoadMarkdownAlternative:
         finally:
             os.unlink(temp_path)
 
-    def test_load_markdown_alt_signature(self):
-        """Test alternative load_markdown function signature."""
+    def test_load_markdown_alt_signature_lpath_md_in_params(self):
+        # Arrange
+        # Arrange
         import inspect
-
         from scitex_io._load_modules import load_markdown
-
         sig = inspect.signature(load_markdown)
+        # Act
         params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert "lpath_md" in params
+
+    def test_load_markdown_alt_signature_style_in_params(self):
+        # Arrange
+        # Arrange
+        import inspect
+        from scitex_io._load_modules import load_markdown
+        sig = inspect.signature(load_markdown)
+        # Act
+        params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert "style" in params
 
-    def test_load_markdown_alt_docstring(self):
-        """Test that alternative load_markdown has docstring."""
-        from scitex_io._load_modules import load_markdown
 
+    def test_load_markdown_alt_docstring_load_markdown_doc_is_not_none(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules import load_markdown
+        # Act
+        # Assert
+        # Assert
         assert load_markdown.__doc__ is not None
+
+    def test_load_markdown_alt_docstring_markdown_in_load_markdown_doc(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules import load_markdown
+        # Act
+        # Assert
+        # Assert
         assert "Markdown" in load_markdown.__doc__
+
 
 
 class TestMarkdownDependencies:
@@ -330,6 +470,9 @@ class TestMarkdownDependencies:
     @patch("markdown.markdown")
     def test_markdown_conversion_mocked(self, mock_markdown_func):
         """Test Markdown conversion with mocked markdown library."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         # Mock the markdown conversion function
@@ -354,6 +497,9 @@ class TestMarkdownDependencies:
         self, mock_markdown_func, mock_html2text_class
     ):
         """Test HTML to text conversion with mocked html2text library."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         # Setup mocks
@@ -379,6 +525,9 @@ class TestMarkdownDependencies:
 
     def test_file_encoding_handling(self):
         """Test handling of different file encodings."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         # Test with UTF-8 content
@@ -399,6 +548,9 @@ class TestMarkdownDependencies:
 
     def test_large_file_handling(self):
         """Test handling of large Markdown files."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         # Create a large Markdown content
@@ -430,6 +582,9 @@ class TestMarkdownErrorHandling:
 
     def test_file_permission_error(self):
         """Test handling of file permission errors."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         # Create a file and remove read permissions (on Unix systems)
@@ -459,16 +614,22 @@ class TestMarkdownErrorHandling:
     @patch("builtins.open")
     def test_io_error_handling(self, mock_open_func):
         """Test handling of IO errors during file reading."""
+        # Arrange
         from scitex_io._load_modules._markdown import _load_markdown
 
         # Mock open to raise an IOError
+        # Act
         mock_open_func.side_effect = IOError("Mocked IO error")
 
+        # Assert
         with pytest.raises(IOError):
             _load_markdown("test.md")
 
     def test_markdown_conversion_edge_cases(self):
         """Test edge cases in Markdown conversion."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         edge_cases = [
@@ -501,6 +662,9 @@ class TestMarkdownIntegration:
 
     def test_markdown_to_html_to_text_conversion(self):
         """Test complete workflow from Markdown to HTML to text."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown
 
         md_content = """# Main Title
@@ -543,6 +707,9 @@ This is a paragraph with **bold** and *italic* text.
 
     def test_both_function_consistency(self):
         """Test that both load_markdown functions produce consistent results."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._markdown import _load_markdown, load_markdown
 
         md_content = "# Test\n\nContent **bold**"

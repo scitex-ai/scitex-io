@@ -40,16 +40,23 @@ both paths, install both: `pip install scitex scitex-io` (or
 
 ## Optional format extras
 
-Heavy / format-specific dependencies are imported lazily — the import
-fails silently and the format becomes unavailable at runtime. Install
-extras as needed:
+Heavy / format-specific dependencies are imported lazily via
+`scitex_dev.try_import_optional`. A missing dep does not crash
+`import scitex_io`; the format becomes unavailable at runtime and a
+clear `ImportError` (with `pip install scitex-io[<extra>]` hint) fires
+only at use-site. Each gated dep exposes a `<NAME>_AVAILABLE` boolean
+for code that wants to feature-flag without raising.
+
+Install extras as needed:
 
 ```bash
-pip install h5py zarr           # HDF5 / Zarr
-pip install pypdf Pillow        # PDF / image metadata
-pip install mne                 # EEG (.edf, .vhdr, .set, …)
-pip install opencv-python       # MP4 video
-pip install python-docx         # .docx
+pip install 'scitex-io[scientific]'   # HDF5 + Zarr + scipy + matplotlib
+pip install 'scitex-io[optuna]'       # Optuna study load/save
+pip install pypdf Pillow              # PDF / image metadata
+pip install mne                       # EEG (.edf, .vhdr, .set, …)
+pip install opencv-python             # MP4 video
+pip install python-docx               # .docx
+pip install pdfplumber PyMuPDF        # PDF table + fitz-based extractors
 ```
 
 `scitex-io list-formats` shows what is currently registered in your

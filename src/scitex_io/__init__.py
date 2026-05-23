@@ -1,8 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""scitex-io: Universal scientific data I/O with plugin registry.
+"""scitex-io — Universal scientific data I/O with plugin registry.
 
-Supports 30+ formats out of the box. Register custom handlers via::
+Functionalities
+---------------
+- `save(obj, "path.ext")` / `load("path.ext")` — extension-dispatched
+  one-call I/O for 30+ formats (CSV, Parquet, Feather, NumPy,
+  pickle, YAML, JSON, HDF5, Zarr, MATLAB, images, matplotlib figures,
+  PyTorch, MNE, EDF, video).
+- `register_saver(".ext")` / `register_loader(".ext")` — plugin hooks
+  for user-defined formats; dispatch lookup follows the same registry.
+- `load_configs()` — collect every `<project-root>/config/*.yaml` into
+  a single `DotDict` with UPPER_CASE normalisation + DEBUG_ overrides.
+- `glob` / `parse_glob` — natural-sorted globbing with `{placeholder}`
+  parsing; `cache` / `reload` / `flush` — load-cache management.
+
+IO
+--
+- Reads: any registered extension; `./config/*.yaml`; `$SCITEX_DIR`
+  cache; figure metadata (PNG tEXt, JPEG EXIF, SVG XML, PDF XMP).
+- Writes: relative paths resolve under `{caller}_out/` (script /
+  notebook) or `$SCITEX_DIR/io/runtime/cache/` (REPL); absolute paths
+  pass through unchanged.
+
+Dependencies
+------------
+- Hard: `tqdm`, `PyYAML`, `ruamel.yaml`, `mne`, `numpy`, `pandas`,
+  `click`, `rich`, `natsort`, `scitex-dev`, `scitex-logging`.
+- Optional (`[scientific]`): `scipy`, `h5py`, `zarr>=3`, `numcodecs`,
+  `matplotlib`. (`[mcp]`): `fastmcp`.
+
+Register custom handlers::
 
     from scitex_io import register_saver, register_loader
 

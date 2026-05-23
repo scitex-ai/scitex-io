@@ -24,6 +24,9 @@ class TestLoadImage:
 
     def test_basic_rgb_image_loading(self):
         """Test loading basic RGB image files in various formats."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create a simple RGB image with distinct colors
@@ -65,6 +68,9 @@ class TestLoadImage:
 
     def test_grayscale_image_loading(self):
         """Test loading grayscale images."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create grayscale image with gradient
@@ -90,6 +96,9 @@ class TestLoadImage:
 
     def test_rgba_image_with_transparency(self):
         """Test loading RGBA images with transparency."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create RGBA image with transparency
@@ -119,6 +128,9 @@ class TestLoadImage:
 
     def test_tiff_format_support(self):
         """Test loading TIFF format images (both .tiff and .tif extensions)."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create high-resolution image for TIFF
@@ -145,6 +157,9 @@ class TestLoadImage:
 
     def test_large_image_loading(self):
         """Test loading large images to verify memory handling."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create a large image (4K-like resolution)
@@ -171,6 +186,9 @@ class TestLoadImage:
 
     def test_scientific_image_formats(self):
         """Test loading images commonly used in scientific applications."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # 16-bit grayscale (common in microscopy)
@@ -196,6 +214,9 @@ class TestLoadImage:
 
     def test_multipage_tiff_loading(self):
         """Test loading multi-page TIFF (loads first page)."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create multi-page TIFF
@@ -225,6 +246,9 @@ class TestLoadImage:
 
     def test_kwargs_parameter_passing(self):
         """Test that kwargs are properly passed to PIL Image.open."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create test image
@@ -244,8 +268,11 @@ class TestLoadImage:
         finally:
             os.unlink(temp_path)
 
-    def test_unsupported_extensions(self):
+    def test_unsupported_extensions_smoke_case(self):
         """Test that unsupported file extensions raise ValueError."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         unsupported_extensions = [
@@ -265,6 +292,9 @@ class TestLoadImage:
 
     def test_supported_extensions_validation(self):
         """Test that all documented supported extensions are recognized."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # These should not raise ValueError (will raise FileNotFoundError instead)
@@ -291,6 +321,9 @@ class TestLoadImage:
 
     def test_nonexistent_file_error(self):
         """Test that loading non-existent files raises appropriate errors."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         nonexistent_files = [
@@ -305,6 +338,9 @@ class TestLoadImage:
 
     def test_corrupted_image_file(self):
         """Test handling of corrupted image files."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create a file with image extension but invalid content
@@ -323,6 +359,9 @@ class TestLoadImage:
 
     def test_empty_image_file(self):
         """Test handling of empty image files."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create empty file with image extension
@@ -337,6 +376,9 @@ class TestLoadImage:
 
     def test_case_insensitive_extensions(self):
         """Test that file extension matching is case-insensitive."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Create test image
@@ -371,6 +413,7 @@ class TestLoadImage:
     @patch("PIL.Image.open")
     def test_pil_integration_mocking(self, mock_open):
         """Test integration with PIL using mocking."""
+        # Arrange
         from scitex_io._load_modules._image import _load_image
 
         # Setup mock
@@ -380,15 +423,20 @@ class TestLoadImage:
         mock_open.return_value = mock_image
 
         # Test function call with metadata=False to get just the image
+        # Act
         result = _load_image("test_image.png", metadata=False)
 
         # Verify behavior
+        # Assert
         assert result is mock_image
         mock_open.assert_called_once_with("test_image.png")
 
     @patch("PIL.Image.open")
     def test_kwargs_forwarding_to_pil(self, mock_open):
         """Test that kwargs are properly forwarded to PIL.Image.open."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._image import _load_image
 
         # Setup mock
@@ -406,24 +454,36 @@ class TestLoadImage:
 # Legacy test functions for backward compatibility
 def test_load_image_basic():
     """Legacy test function - basic image loading."""
+    # Arrange
+    # Act
+    # Assert
     test_instance = TestLoadImage()
     test_instance.test_basic_rgb_image_loading()
 
 
 def test_load_image_grayscale():
     """Legacy test function - grayscale image loading."""
+    # Arrange
+    # Act
+    # Assert
     test_instance = TestLoadImage()
     test_instance.test_grayscale_image_loading()
 
 
 def test_load_image_invalid_extension():
     """Legacy test function - invalid extension handling."""
+    # Arrange
+    # Act
+    # Assert
     test_instance = TestLoadImage()
-    test_instance.test_unsupported_extensions()
+    test_instance.test_unsupported_extensions_smoke_case()
 
 
 def test_load_image_nonexistent():
     """Legacy test function - nonexistent file handling."""
+    # Arrange
+    # Act
+    # Assert
     test_instance = TestLoadImage()
     test_instance.test_nonexistent_file_error()
 

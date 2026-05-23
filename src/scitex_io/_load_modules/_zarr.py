@@ -4,6 +4,7 @@
 # File: /ssh:sp:/home/ywatanabe/proj/scitex_repo/src/scitex/io/_load_modules/_zarr.py
 # ----------------------------------------
 import os
+
 __FILE__ = __file__
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
@@ -29,21 +30,26 @@ def _load_zarr(lpath: str, key: Optional[str] = None, **kwargs) -> Any:
     Any : Loaded data
     """
     from pathlib import Path
-    
+
     lpath_obj = Path(lpath)
-    
+
     try:
         # Check if it's a zip store
-        if lpath.endswith('.zip') or lpath.endswith('.zarr.zip'):
-            store = zarr.ZipStore(lpath, mode='r')
-            root = zarr.open(store, mode='r')
+        if lpath.endswith(".zip") or lpath.endswith(".zarr.zip"):
+            # zarr v3 moved ZipStore to zarr.storage
+            try:
+                from zarr.storage import ZipStore
+            except ImportError:
+                ZipStore = zarr.ZipStore  # type: ignore[attr-defined]
+            store = ZipStore(lpath, mode="r")
+            root = zarr.open(store, mode="r")
         # Check if it's consolidated
-        elif lpath_obj.joinpath('.zmetadata').exists():
-            root = zarr.open_consolidated(lpath, mode='r')
+        elif lpath_obj.joinpath(".zmetadata").exists():
+            root = zarr.open_consolidated(lpath, mode="r")
         else:
             # Regular directory store
             root = zarr.open(lpath, mode="r")
-    except ValueError as e:
+    except ValueError:
         raise FileNotFoundError(f"Cannot open Zarr store: {lpath}")
 
     # Navigate to target
@@ -102,11 +108,11 @@ def _load_zarr_dataset(dataset):
     if hasattr(dataset, "attrs") and dataset.attrs.get("_type") == "pickled":
         pickled_bytes = dataset[:]
         return pickle.loads(pickled_bytes.tobytes())
-    
+
     # Check if it's a string
     if hasattr(dataset, "attrs") and dataset.attrs.get("_type") == "string":
         data = dataset[:]
-        return data.decode('utf-8') if hasattr(data, 'decode') else str(data)
+        return data.decode("utf-8") if hasattr(data, "decode") else str(data)
 
     # Regular data
     # Handle 0-d arrays (scalars) differently
@@ -119,8 +125,9 @@ def _load_zarr_dataset(dataset):
     if dataset.dtype.kind == "U":  # Unicode string
         return str(data) if dataset.ndim == 0 else data
     elif dataset.dtype.kind == "S":  # Byte string
-        return data.decode('utf-8') if hasattr(data, 'decode') else str(data)
+        return data.decode("utf-8") if hasattr(data, "decode") else str(data)
 
     return data
+
 
 # EOF

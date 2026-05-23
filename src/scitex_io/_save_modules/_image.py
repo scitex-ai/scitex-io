@@ -11,15 +11,10 @@ __DIR__ = os.path.dirname(__FILE__)
 
 import io as _io
 
-try:
-    import plotly
-except ImportError:
-    plotly = None
+from scitex_dev import try_import_optional
 
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
+plotly = try_import_optional("plotly")
+Image = try_import_optional("PIL", "Image")
 
 
 def _is_plotly_figure(obj) -> bool:

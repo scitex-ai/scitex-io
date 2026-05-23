@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._loading._load_configs &mdash; SciTeX IO v0.2.13</title>
+  <title>scitex_io._loading._load_configs &mdash; SciTeX IO v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=ba481074"></script>
+      <script src="../../../_static/documentation_options.js?v=d5b904a0"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -121,6 +121,9 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_io.html">scitex_io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#functionalities">Functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#io">IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#dependencies">Dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_saver"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_loader"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.get_saver"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
@@ -128,6 +131,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.list_formats"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.unregister_saver"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.unregister_loader"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.load_configs"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.glob"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
@@ -162,50 +166,51 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#core-i-o">Core I/O</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id0"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id16"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id17"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id23"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id29"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id30"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id0"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id16"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id17"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id18"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id24"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id30"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id31"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#registry">Registry</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id37"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id38"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id39"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id40"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id41"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id44"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id45"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id38"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id39"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id40"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id41"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id42"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id45"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id46"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#cache-control">Cache Control</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id46"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id47"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id48"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id47"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id48"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id49"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#dict-utilities">Dict Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id49"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id50"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id50"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/scitex_io.html#id60"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#metadata">Metadata</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id60"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id61"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id62"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id61"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id62"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#id63"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#explorers">Explorers</a><ul>
@@ -255,12 +260,60 @@
 <span class="n">__DIR__</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__FILE__</span><span class="p">)</span>
 <span class="c1"># ----------------------------------------</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._glob</span><span class="w"> </span><span class="kn">import</span> <span class="n">glob</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DotDict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._load</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_to_upper</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;CONFIG&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize every key in a config tree to UPPER_CASE.</span>
+
+<span class="sd">    Walks a (possibly nested) dict/DotDict in place and renames every</span>
+<span class="sd">    string key to its ``str.upper()`` form so the loaded config is</span>
+<span class="sd">    case-stable regardless of how filenames and YAML keys were written.</span>
+
+<span class="sd">    If two siblings fold to the same UPPER key (e.g. ``MODEL`` +</span>
+<span class="sd">    ``model``, or ``HIDDEN_DIM`` + ``hidden_dim``), keep the value</span>
+<span class="sd">    associated with the already-UPPER variant and drop the lowercase</span>
+<span class="sd">    one, emitting a ``UserWarning`` pointing at the conflict location.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">DotDict</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="n">by_upper</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">by_upper</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">upper</span><span class="p">,</span> <span class="n">variants</span> <span class="ow">in</span> <span class="n">by_upper</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variants</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">keep</span> <span class="o">=</span> <span class="n">upper</span> <span class="k">if</span> <span class="n">upper</span> <span class="ow">in</span> <span class="n">variants</span> <span class="k">else</span> <span class="n">variants</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variants</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">keep</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;load_configs: case conflict at </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.* — &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">variants</span><span class="si">!r}</span><span class="s2"> fold to </span><span class="si">{</span><span class="n">upper</span><span class="si">!r}</span><span class="s2">; keeping value &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;from </span><span class="si">{</span><span class="n">keep</span><span class="si">!r}</span><span class="s2">, dropping </span><span class="si">{</span><span class="n">v</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                        <span class="ne">UserWarning</span><span class="p">,</span>
+                        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="c1"># After de-duplication, rename keep → upper if needed.</span>
+            <span class="k">if</span> <span class="n">keep</span> <span class="o">!=</span> <span class="n">upper</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">upper</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">only</span><span class="p">,)</span> <span class="o">=</span> <span class="n">variants</span>
+            <span class="k">if</span> <span class="n">only</span> <span class="o">!=</span> <span class="n">upper</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">upper</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">only</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">DotDict</span><span class="p">)):</span>
+            <span class="n">_normalize_to_upper</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span>
 
 
 <div class="viewcode-block" id="load_configs">
@@ -271,24 +324,49 @@
     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">config_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load YAML configuration files from specified directory.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load and merge every YAML under ``config_dir`` into one ``DotDict``.</span>
+
+<span class="sd">    Filename stems become top-level keys; YAML keys become nested</span>
+<span class="sd">    attributes. Every key (filename stem and every nested key) is</span>
+<span class="sd">    normalised to UPPER_CASE at load time so the in-memory tree is</span>
+<span class="sd">    case-stable regardless of source casing — ``model.yaml`` with</span>
+<span class="sd">    ``hidden_dim: 256`` lands at ``CONFIG.MODEL.HIDDEN_DIM``.</span>
+
+<span class="sd">    If two siblings fold to the same UPPER key (e.g. ``MODEL.yaml``</span>
+<span class="sd">    next to ``model.yaml``, or ``HIDDEN_DIM`` next to ``hidden_dim``),</span>
+<span class="sd">    a ``UserWarning`` is emitted pointing at the conflict, the</span>
+<span class="sd">    UPPER variant&#39;s value is kept, and the lowercase one is dropped.</span>
+
+<span class="sd">    Debug mode promotes any ``DEBUG_&lt;KEY&gt;`` sibling over its non-debug</span>
+<span class="sd">    counterpart, so a single ``IS_DEBUG.yaml`` flips the whole project</span>
+<span class="sd">    between production and debug values. Equivalent triggers:</span>
+<span class="sd">    ``IS_DEBUG.yaml`` with ``IS_DEBUG: true``, the ``IS_DEBUG=True``</span>
+<span class="sd">    kwarg, or running under ``CI=True``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    IS_DEBUG : bool, optional</span>
-<span class="sd">        Debug mode flag. If None, reads from IS_DEBUG.yaml</span>
+<span class="sd">        Force debug mode. If ``None`` (default), inferred from</span>
+<span class="sd">        ``IS_DEBUG.yaml`` inside ``config_dir`` or from the ``CI``</span>
+<span class="sd">        env var.</span>
 <span class="sd">    show : bool</span>
-<span class="sd">        Show configuration changes</span>
+<span class="sd">        Echo the ``DEBUG_&lt;KEY&gt; -&gt; &lt;KEY&gt;`` substitutions to stdout.</span>
 <span class="sd">    verbose : bool</span>
-<span class="sd">        Print detailed information</span>
+<span class="sd">        Print detailed information.</span>
 <span class="sd">    config_dir : Union[str, Path], optional</span>
-<span class="sd">        Directory containing configuration files. Can be a string or pathlib.Path object.</span>
-<span class="sd">        Defaults to &quot;./config&quot; if None</span>
+<span class="sd">        Directory containing the YAML files. Defaults to ``&quot;./config&quot;``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    DotDict</span>
-<span class="sd">        Merged configuration dictionary</span>
+<span class="sd">        Merged configuration tree with UPPER_CASE keys throughout.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG = load_configs()                       # ./config/*.yaml</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG.MODEL.HIDDEN_DIM                       # 256</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG = load_configs(IS_DEBUG=True)</span>
+<span class="sd">    &gt;&gt;&gt; CONFIG.MODEL.HIDDEN_DIM                       # 32 (DEBUG_ promoted)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">apply_debug_values</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">IS_DEBUG</span><span class="p">):</span>
@@ -342,6 +420,13 @@
                 <span class="k">if</span> <span class="n">config</span> <span class="o">:=</span> <span class="n">load</span><span class="p">(</span><span class="n">lpath</span><span class="p">):</span>
                     <span class="n">filename</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span>
                     <span class="n">CONFIGS</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span> <span class="o">=</span> <span class="n">apply_debug_values</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">IS_DEBUG</span><span class="p">)</span>
+
+        <span class="c1"># Normalise every filename-level key (from YAML stem) and every</span>
+        <span class="c1"># nested key to UPPER_CASE so the loaded config is case-stable</span>
+        <span class="c1"># regardless of source casing. Conflicts (e.g. MODEL.yaml +</span>
+        <span class="c1"># model.yaml, HIDDEN_DIM + hidden_dim) warn and drop the</span>
+        <span class="c1"># lowercase variant in favour of the UPPER one.</span>
+        <span class="n">_normalize_to_upper</span><span class="p">(</span><span class="n">CONFIGS</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">DotDict</span><span class="p">(</span><span class="n">CONFIGS</span><span class="p">)</span>
 

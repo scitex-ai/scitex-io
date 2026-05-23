@@ -53,6 +53,22 @@ Available Tools
      - Load YAML project configurations from a directory. Returns namespaced config dict.
    * - ``io_register_info``
      - Show how to register custom format handlers with examples
+   * - ``io_glob`` / ``io_parse_glob``
+     - Natsort-ordered globbing; ``parse_glob`` extracts ``{placeholder}`` values
+   * - ``io_get_loader`` / ``io_get_saver``
+     - Look up the registered handler function for a given extension
+   * - ``io_read_metadata`` / ``io_has_metadata`` / ``io_embed_metadata``
+     - Inspect / verify / write provenance metadata embedded in PNG/JPEG by ``io_save``
+   * - ``io_get_cache_info`` / ``io_clear_load_cache`` / ``io_configure_cache``
+     - Inspect, clear, or reconfigure the load-side cache
+   * - ``io_explore_h5`` / ``io_explore_zarr``
+     - Print group/dataset trees for HDF5 and Zarr stores
+   * - ``io_has_h5_key`` / ``io_has_zarr_key``
+     - Cheap existence check for a key inside an HDF5 file or Zarr store
+   * - ``io_json2md``
+     - Render a JSON object as Markdown headings + bullet lists
+   * - ``io_skills_list`` / ``io_skills_get``
+     - Discover and fetch the skill pages shipped with scitex-io
 
 Tool Details
 ------------

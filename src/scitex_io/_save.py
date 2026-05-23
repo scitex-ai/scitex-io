@@ -104,36 +104,61 @@ def save(
     use_caller_path: bool = False,
     **kwargs,
 ) -> None:
-    """
-    Save an object to a file with the specified format.
+    """Save ``obj`` by extension; ``specified_path`` is caller-anchored.
+
+    The file format is selected from ``specified_path``'s extension via
+    the plugin registry — `.csv`, `.npy`, `.pkl`, `.yaml`, `.png`,
+    `.h5`, ... 30+ formats are built in; custom extensions can be added
+    with ``register_saver``.
+
+    Path resolution rules (when ``specified_path`` is relative):
+
+    - Called from a script ``/path/to/analysis.py`` →
+      ``/path/to/analysis_out/<specified_path>``.
+    - Called from a notebook ``/path/to/exp.ipynb`` →
+      ``/path/to/exp_out/<specified_path>``.
+    - Called from ``python -i`` / IPython / interactive REPL →
+      ``$SCITEX_DIR/io/runtime/cache/<specified_path>`` (default
+      ``~/.scitex/io/runtime/cache/``). Honours the canonical scitex
+      local-state convention; see scitex-dev skills/general
+      ``01_ecosystem_06_local-state-directories.md``.
+    - Absolute path → used as-is, no routing.
+
+    Intermediate directories are created automatically — callers do
+    not need ``os.makedirs()`` / ``Path.mkdir()``.
 
     Parameters
     ----------
     obj : Any
         The object to be saved.
     specified_path : Union[str, Path]
-        The file name or path where the object should be saved.
+        The filename or relative path under which to save ``obj``. May
+        contain subdirectories (``"sub/dir/file.csv"``); intermediates
+        are auto-created. Absolute paths bypass routing.
     makedirs : bool, optional
-        If True, create the directory path if it does not exist. Default is True.
+        Create parent directories on demand. Default ``True``.
     verbose : bool, optional
-        If True, print a message upon successful saving. Default is True.
+        Print a one-line success message. Default ``True``.
     symlink_from_cwd : bool, optional
-        If True, create a symlink from the current working directory. Default is False.
+        Drop a symlink at ``./<specified_path>`` pointing into the
+        auto-routed location. Default ``False``.
     symlink_to : Union[str, Path], optional
-        If specified, create a symlink at this path pointing to the saved file.
+        Plant a symlink at this custom path pointing to the saved file.
     dry_run : bool, optional
-        If True, simulate the saving process without writing files. Default is False.
+        Print the resolved path without writing. Default ``False``.
     no_csv : bool, optional
-        If True, skip CSV export for image saves. Default is False.
+        Skip the auto-CSV sidecar for figure saves. Default ``False``.
     use_caller_path : bool, optional
-        If True, skip internal library frames for path detection. Default is False.
+        Resolve the anchor from the calling script, not the immediate
+        caller — needed when ``save`` is wrapped by a library. Default
+        ``False``.
     **kwargs
-        Additional keyword arguments to pass to the underlying save function.
+        Passed through to the per-format handler.
 
     Returns
     -------
     Path or None
-        Path to saved file on success, False on error.
+        Path to saved file on success, ``None``/``False`` on error.
     """
     try:
         if isinstance(specified_path, Path):
@@ -220,8 +245,19 @@ def save(
                     or ("<stdin>" in script_path)
                     or env_type in ["ipython", "interactive"]
                 ):
-                    script_path = f"/tmp/{_os.getenv('USER')}"
-                    sdir = script_path
+                    # Interactive sessions (IPython / REPL / `python -i`)
+                    # have no script to anchor _out/ to, so route writes
+                    # into the canonical scitex local-state cache:
+                    #   $SCITEX_DIR/io/runtime/cache/  (default ~/.scitex)
+                    # See scitex-dev skills/general/
+                    #   01_ecosystem_06_local-state-directories.md
+                    _scitex_dir = _os.environ.get(
+                        "SCITEX_DIR",
+                        _os.path.join(_os.path.expanduser("~"), ".scitex"),
+                    )
+                    sdir = _os.path.join(_scitex_dir, "io", "runtime", "cache")
+                    _os.makedirs(sdir, exist_ok=True)
+                    script_path = sdir
                 else:
                     sdir = _os.path.join(_os.getcwd(), "output")
                 spath = _os.path.join(sdir, specified_path)

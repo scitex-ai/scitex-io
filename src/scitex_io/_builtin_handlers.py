@@ -35,8 +35,18 @@ from ._save_modules import (
 )
 
 try:
+    from ._save_modules._parquet import _save_parquet as save_parquet
+except Exception:
+    save_parquet = None
+
+try:
+    from ._save_modules._feather import _save_feather as save_feather
+except Exception:
+    save_feather = None
+
+try:
     from ._save_modules._bibtex import save_bibtex
-except ImportError:
+except Exception:
     save_bibtex = None
 
 _SAVER_MAP = {
@@ -44,6 +54,9 @@ _SAVER_MAP = {
     ".csv": save_csv,
     ".xlsx": save_excel,
     ".xls": save_excel,
+    # Columnar
+    ".parquet": save_parquet,
+    ".feather": save_feather,
     # NumPy
     ".npy": save_npy,
     ".npz": save_npz,
@@ -115,109 +128,117 @@ for _ext, _fn in _SAVER_MAP.items():
 
 try:
     from ._load_modules._bibtex import _load_bibtex
-except ImportError:
+except Exception:
     _load_bibtex = None
 
 try:
     from ._load_modules._catboost import _load_catboost
-except ImportError:
+except Exception:
     _load_catboost = None
 
 try:
     from ._load_modules._con import _load_con
-except ImportError:
+except Exception:
     _load_con = None
 
 try:
     from ._load_modules._docx import _load_docx
-except ImportError:
+except Exception:
     _load_docx = None
 
 try:
     from ._load_modules._eeg import _load_eeg_data
-except ImportError:
+except Exception:
     _load_eeg_data = None
 
 try:
     from ._load_modules._hdf5 import _load_hdf5
-except ImportError:
+except Exception:
     _load_hdf5 = None
 
 try:
     from ._load_modules._image import _load_image
-except ImportError:
+except Exception:
     _load_image = None
 
 try:
     from ._load_modules._joblib import _load_joblib
-except ImportError:
+except Exception:
     _load_joblib = None
 
 try:
     from ._load_modules._json import _load_json
-except ImportError:
+except Exception:
     _load_json = None
 
 try:
     from ._load_modules._markdown import _load_markdown
-except ImportError:
+except Exception:
     _load_markdown = None
 
 try:
     from ._load_modules._matlab import _load_matlab
-except ImportError:
+except Exception:
     _load_matlab = None
 
 try:
     from ._load_modules._numpy import _load_npy
-except ImportError:
+except Exception:
     _load_npy = None
 
 try:
-    from ._load_modules._pandas import _load_csv, _load_excel, _load_tsv
-except ImportError:
+    from ._load_modules._pandas import (
+        _load_csv,
+        _load_excel,
+        _load_feather,
+        _load_parquet,
+        _load_tsv,
+    )
+except Exception:
     _load_csv = None
     _load_excel = None
+    _load_feather = None
+    _load_parquet = None
     _load_tsv = None
 
 try:
     from ._load_modules._pdf import _load_pdf
-except ImportError:
+except Exception:
     _load_pdf = None
 
 try:
     from ._load_modules._pickle import _load_pickle
-except ImportError:
+except Exception:
     _load_pickle = None
 
 try:
     from ._load_modules._sqlite3 import _load_db_sqlite3
-except ImportError:
+except Exception:
     _load_db_sqlite3 = None
 
 try:
     from ._load_modules._torch import _load_torch
-except ImportError:
+except Exception:
     _load_torch = None
 
 try:
     from ._load_modules._txt import _load_txt
-except ImportError:
+except Exception:
     _load_txt = None
 
 try:
     from ._load_modules._xml import _load_xml
-except ImportError:
+except Exception:
     _load_xml = None
 
 try:
     from ._load_modules._yaml import _load_yaml
-except ImportError:
+except Exception:
     _load_yaml = None
 
 try:
     from ._load_modules._zarr import _load_zarr
-except ImportError:
+except Exception:
     _load_zarr = None
 
 _LOADER_MAP = {
@@ -245,6 +266,8 @@ _LOADER_MAP = {
     ".xlsx": _load_excel,
     ".xlsm": _load_excel,
     ".xlsb": _load_excel,
+    ".parquet": _load_parquet,
+    ".feather": _load_feather,
     ".db": _load_db_sqlite3,
     # Scientific
     ".npy": _load_npy,
@@ -254,11 +277,10 @@ _LOADER_MAP = {
     ".h5": _load_hdf5,
     ".zarr": _load_zarr,
     ".con": _load_con,
-    # Documents
+    # Documents (text formats — `.md` overridden below by markdown loader)
     ".txt": _load_txt,
     ".tex": _load_txt,
     ".log": _load_txt,
-    ".md": _load_txt,
     ".mmd": _load_txt,
     ".dot": _load_txt,
     ".gv": _load_txt,
@@ -273,10 +295,8 @@ _LOADER_MAP = {
     ".py": _load_txt,
     ".css": _load_txt,
     ".js": _load_txt,
-    ".log": _load_txt,
     ".event": _load_txt,
-    ".py": _load_txt,
-    ".sh": _load_txt,
+    # Specialized document loaders
     ".md": _load_markdown,
     ".docx": _load_docx,
     ".pdf": _load_pdf,

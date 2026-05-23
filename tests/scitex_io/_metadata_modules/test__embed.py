@@ -17,8 +17,11 @@ from scitex_io._metadata_modules import embed_metadata, read_metadata
 class TestEmbedMetadataDispatcher:
     """Tests for embed_metadata dispatcher function."""
 
-    def test_embed_png(self):
+    def test_embed_png_smoke_case(self):
         """Test embedding metadata into PNG via dispatcher."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             png_path = f.name
 
@@ -35,8 +38,11 @@ class TestEmbedMetadataDispatcher:
         finally:
             os.unlink(png_path)
 
-    def test_embed_svg(self):
+    def test_embed_svg_smoke_case(self):
         """Test embedding metadata into SVG via dispatcher."""
+        # Arrange
+        # Act
+        # Assert
         svg_content = """<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
 <rect width="100" height="100"/>
@@ -58,11 +64,17 @@ class TestEmbedMetadataDispatcher:
 
     def test_file_not_found_raises_error(self):
         """Test that non-existent file raises FileNotFoundError."""
+        # Arrange
+        # Act
+        # Assert
         with pytest.raises(FileNotFoundError):
             embed_metadata("/nonexistent/path.png", {"test": 1})
 
     def test_unsupported_format_raises_error(self):
         """Test that unsupported format raises ValueError."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".bmp", delete=False) as f:
             bmp_path = f.name
 
@@ -78,6 +90,9 @@ class TestEmbedMetadataDispatcher:
 
     def test_case_insensitive_extension(self):
         """Test that file extension matching is case insensitive."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".PNG", delete=False) as f:
             png_path = f.name
 
@@ -96,6 +111,9 @@ class TestEmbedMetadataDispatcher:
 
     def test_roundtrip_all_formats(self):
         """Test metadata roundtrip for all supported formats."""
+        # Arrange
+        # Act
+        # Assert
         metadata = {"roundtrip": True, "number": 123}
 
         # PNG

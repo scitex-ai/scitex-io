@@ -1,0 +1,4 @@
+# Single boolean — flips DEBUG_* promotion across every other YAML.
+# When true, every DEBUG_<KEY> sibling replaces <KEY> at load time.
+# Equivalent to calling `load_configs(IS_DEBUG=True)` or setting CI=True.
+IS_DEBUG: false

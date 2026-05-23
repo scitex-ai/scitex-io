@@ -56,7 +56,7 @@ When `specified_path` is relative, the output directory is auto-determined:
 |---------|-----------------|---------|
 | Script `analysis.py` | `analysis_out/{path}` | `analysis_out/results.csv` |
 | Notebook `exp.ipynb` | `exp_out/{path}` | `exp_out/fig.png` |
-| Interactive/IPython | `/tmp/{USER}/{path}` | `/tmp/ywatanabe/data.csv` |
+| Interactive/IPython | `$SCITEX_DIR/io/runtime/cache/{path}` (default `~/.scitex/io/runtime/cache/`) | `~/.scitex/io/runtime/cache/data.csv` |
 | Absolute path | Used as-is | `/data/output/results.csv` |
 
 ```python
@@ -89,7 +89,7 @@ def save_results(df):
     # → ~/proj/scripts/analysis_out/results.csv  (CORRECT — resolves to calling script)
 ```
 
-This is essential for `stx.io.save()` inside the scitex framework, where `save()` is wrapped by `scitex.io.save()`. Without it, all saves would route to the scitex package directory.
+This is essential for `sio.save()` inside the scitex framework, where `save()` is wrapped by `scitex.io.save()`. Without it, all saves would route to the scitex package directory.
 
 ### symlink_from_cwd
 

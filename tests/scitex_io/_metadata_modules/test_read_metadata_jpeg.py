@@ -1,77 +1,76 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Tests for read_metadata_jpeg."""
 
-# Add your tests here
+import json
 
-if __name__ == "__main__":
-    import os
+import pytest
 
-    import pytest
+PIL = pytest.importorskip("PIL")
+piexif = pytest.importorskip("piexif")
 
-    pytest.main([os.path.abspath(__file__)])
+from scitex_io._metadata_modules.embed_metadata_jpeg import embed_metadata_jpeg
+from scitex_io._metadata_modules.read_metadata_jpeg import read_metadata_jpeg
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/read_metadata_jpeg.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # File: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/read_metadata_jpeg.py
-#
-# """JPEG metadata reading from EXIF ImageDescription field."""
-#
-# import json
-# from typing import Any, Dict, Optional
-#
-# from PIL import Image
-#
-#
-# def read_metadata_jpeg(image_path: str) -> Optional[Dict[str, Any]]:
-#     """
-#     Read metadata from a JPEG file.
-#
-#     Args:
-#         image_path: Path to the JPEG file.
-#
-#     Returns:
-#         Dictionary containing metadata, or None if no metadata found.
-#     """
-#     metadata = None
-#     img = Image.open(image_path)
-#     try:
-#         try:
-#             import piexif
-#
-#             # Load EXIF data
-#             if "exif" in img.info:
-#                 exif_dict = piexif.load(img.info["exif"])
-#
-#                 # Try to read ImageDescription field
-#                 if piexif.ImageIFD.ImageDescription in exif_dict.get("0th", {}):
-#                     description = exif_dict["0th"][piexif.ImageIFD.ImageDescription]
-#
-#                     # Decode bytes to string
-#                     if isinstance(description, bytes):
-#                         description = description.decode("utf-8", errors="ignore")
-#
-#                     # Try to parse as JSON
-#                     try:
-#                         metadata = json.loads(description)
-#                     except json.JSONDecodeError:
-#                         # If not JSON, return as raw text
-#                         metadata = {"raw": description}
-#         except ImportError:
-#             pass  # piexif not available, return None
-#         except Exception:
-#             pass  # EXIF data corrupted or not readable
-#     finally:
-#         img.close()
-#
-#     return metadata
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/read_metadata_jpeg.py
-# --------------------------------------------------------------------------------
+def _make_jpeg(path):
+    img = PIL.Image.new("RGB", (8, 8), (10, 20, 30))
+    img.save(str(path), "JPEG", quality=95)
+    return path
+
+
+def test_read_returns_none_when_no_metadata(tmp_path):
+    # Arrange
+    # Act
+    # Arrange
+    # Act
+    p = _make_jpeg(tmp_path / "no_meta.jpg")
+    # Assert
+    # Assert
+    assert read_metadata_jpeg(str(p)) is None
+
+
+def test_read_json_round_trip(tmp_path):
+    # Arrange
+    # Arrange
+    p = _make_jpeg(tmp_path / "with_meta.jpg")
+    payload = {"k": "v", "n": 7}
+    embed_metadata_jpeg(str(p), json.dumps(payload))
+    # Act
+    # Act
+    out = read_metadata_jpeg(str(p))
+    # Assert
+    # Assert
+    assert out == payload
+
+
+def test_read_non_json_description_returns_raw(tmp_path):
+    # Arrange
+    # Arrange
+    p = _make_jpeg(tmp_path / "raw.jpg")
+    exif_dict = {
+        "0th": {piexif.ImageIFD.ImageDescription: b"plain text"},
+        "Exif": {},
+        "GPS": {},
+        "1st": {},
+    }
+    img = PIL.Image.open(str(p))
+    img.save(str(p), "JPEG", quality=95, exif=piexif.dump(exif_dict))
+    # Act
+    # Act
+    out = read_metadata_jpeg(str(p))
+    # Assert
+    # Assert
+    assert out == {"raw": "plain text"}
+
+
+def test_read_returns_none_when_no_exif(tmp_path):
+    # Arrange
+    # Arrange
+    p = _make_jpeg(tmp_path / "no_exif.jpg")
+    # No EXIF attached; should return None.
+    # Act
+    # Act
+    out = read_metadata_jpeg(str(p))
+    # Assert
+    # Assert
+    assert out is None

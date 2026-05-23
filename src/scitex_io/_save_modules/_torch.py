@@ -4,6 +4,13 @@
 # File: /data/gpfs/projects/punim2354/ywatanabe/scitex_repo/src/scitex/io/_save_modules/_torch.py
 
 
+import importlib.util as _importlib_util
+
+# Probe via find_spec instead of `import torch` so double-import during
+# audit doesn't trigger TORCH_LIBRARY re-registration.
+TORCH_AVAILABLE = _importlib_util.find_spec("torch") is not None
+
+
 def _save_torch(obj, spath, **kwargs):
     """
     Save a PyTorch model or tensor.

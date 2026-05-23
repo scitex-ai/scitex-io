@@ -1,75 +1,143 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Real tests for scitex_io._save_modules._numpy."""
 
-# Add your tests here
+import numpy as np
+import pytest
 
-if __name__ == "__main__":
-    import os
+from scitex_io._save_modules._numpy import _save_npy, _save_npz
 
-    import pytest
 
-    pytest.main([os.path.abspath(__file__)])
+def test_save_npy_int(tmp_path):
+    # Arrange
+    # Act
+    # Assert
+    # Arrange
+    p = str(tmp_path / "x.npy")
+    arr = np.arange(10, dtype=np.int32)
+    _save_npy(arr, p)
+    # Act
+    back = np.load(p)
+    # Assert
+    assert np.array_equal(back, arr)
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_numpy.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Timestamp: "2025-05-16 12:19:07 (ywatanabe)"
-# # File: /data/gpfs/projects/punim2354/ywatanabe/scitex_repo/src/scitex/io/_save_modules/_numpy.py
-#
-# import numpy as np
-#
-#
-# def _save_npy(obj, spath):
-#     """
-#     Save a numpy array to .npy format.
-#
-#     Parameters
-#     ----------
-#     obj : numpy.ndarray
-#         The numpy array to save.
-#     spath : str
-#         Path where the .npy file will be saved.
-#
-#     Returns
-#     -------
-#     None
-#     """
-#     np.save(spath, obj)
-#
-#
-# def _save_npz(obj, spath):
-#     """
-#     Save numpy arrays to .npz format.
-#
-#     Parameters
-#     ----------
-#     obj : dict or list/tuple of numpy.ndarray
-#         Either a dictionary of arrays or a list/tuple of arrays.
-#     spath : str
-#         Path where the .npz file will be saved.
-#
-#     Returns
-#     -------
-#     None
-#
-#     Raises
-#     ------
-#     ValueError
-#         If obj is not a dict of arrays or a list/tuple of arrays.
-#     """
-#     if isinstance(obj, dict):
-#         np.savez_compressed(spath, **obj)
-#     elif isinstance(obj, (list, tuple)) and all(isinstance(x, np.ndarray) for x in obj):
-#         obj = {str(ii): obj[ii] for ii in range(len(obj))}
-#         np.savez_compressed(spath, **obj)
-#     else:
-#         raise ValueError(
-#             "For .npz files, obj must be a dict of arrays or a list/tuple of arrays."
-#         )
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_numpy.py
-# --------------------------------------------------------------------------------
+def test_save_npy_float(tmp_path):
+    # Arrange
+    # Act
+    # Assert
+    # Arrange
+    p = str(tmp_path / "f.npy")
+    arr = np.linspace(0, 1, 7)
+    # Act
+    _save_npy(arr, p)
+    # Assert
+    assert np.allclose(np.load(p), arr)
+
+
+def test_save_npy_object(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "o.npy")
+    arr = np.array([{"a": 1}, {"b": 2}], dtype=object)
+    _save_npy(arr, p)
+    # Act
+    # Act
+    back = np.load(p, allow_pickle=True)
+    # Assert
+    # Assert
+    assert back[0] == {"a": 1}
+
+
+def test_save_npz_dict_np_array_equal_z_a_np_arange_3(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "x.npz")
+    _save_npz({"a": np.arange(3), "b": np.eye(2)}, p)
+    # Act
+    z = np.load(p)
+    # Act
+    # Assert
+    # Assert
+    assert np.array_equal(z["a"], np.arange(3))
+
+
+def test_save_npz_dict_np_array_equal_z_b_np_eye_2(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "x.npz")
+    _save_npz({"a": np.arange(3), "b": np.eye(2)}, p)
+    # Act
+    z = np.load(p)
+    # Act
+    # Assert
+    # Assert
+    assert np.array_equal(z["b"], np.eye(2))
+
+
+
+
+def test_save_npz_list_np_array_equal_z_0_np_arange_3(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "y.npz")
+    _save_npz([np.arange(3), np.arange(4)], p)
+    # Act
+    z = np.load(p)
+    # Act
+    # Assert
+    # Assert
+    assert np.array_equal(z["0"], np.arange(3))
+
+
+def test_save_npz_list_np_array_equal_z_1_np_arange_4(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "y.npz")
+    _save_npz([np.arange(3), np.arange(4)], p)
+    # Act
+    z = np.load(p)
+    # Act
+    # Assert
+    # Assert
+    assert np.array_equal(z["1"], np.arange(4))
+
+
+
+
+def test_save_npz_tuple(tmp_path):
+    # Arrange
+    # Act
+    # Assert
+    # Arrange
+    p = str(tmp_path / "t.npz")
+    _save_npz((np.zeros(2), np.ones(2)), p)
+    # Act
+    z = np.load(p)
+    # Assert
+    assert np.array_equal(z["0"], np.zeros(2))
+
+
+def test_save_npz_invalid_raises_raises_valueerror(tmp_path):
+    # Arrange
+    # Arrange
+    # Act
+    p = str(tmp_path / "bad.npz")
+    # Act
+    # Assert
+    # Assert
+    with pytest.raises(ValueError):
+        _save_npz("not arrays", p)
+
+
+def test_save_npz_invalid_raises_raises_valueerror(tmp_path):
+    # Arrange
+    # Arrange
+    # Act
+    p = str(tmp_path / "bad.npz")
+    # Act
+    # Assert
+    # Assert
+    with pytest.raises(ValueError):
+        _save_npz([1, 2, 3], p)
+
+

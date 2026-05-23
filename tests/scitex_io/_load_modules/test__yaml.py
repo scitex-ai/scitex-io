@@ -21,6 +21,9 @@ import yaml
 
 def test_load_yaml_basic():
     """Test loading a basic YAML file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     # Create a temporary YAML file
@@ -48,6 +51,9 @@ list:
 
 def test_load_yaml_yml_extension():
     """Test loading a .yml file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
@@ -63,6 +69,9 @@ def test_load_yaml_yml_extension():
 
 def test_load_yaml_complex_structure():
     """Test loading YAML with nested structures."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     yaml_data = """
@@ -102,6 +111,9 @@ multiline: |
 
 def test_load_yaml_lowercase_keys():
     """Test loading YAML with lowercase key option."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     yaml_data = """
@@ -137,21 +149,37 @@ ALLCAPS: value4
         os.unlink(temp_path)
 
 
-def test_load_yaml_invalid_extension():
-    """Test loading non-YAML extension files (extension validation is done by load(), not _load_yaml)."""
+def test_load_yaml_invalid_extension_raises_filenotfounderror():
+    # Arrange
+    # Arrange
+    # Act
     from scitex_io._load_modules._yaml import _load_yaml
-
-    # _load_yaml doesn't validate extensions - that's done by the top-level load() function
-    # It will raise FileNotFoundError for non-existent files
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_yaml("test.txt")
 
+
+def test_load_yaml_invalid_extension_raises_filenotfounderror():
+    # Arrange
+    # Arrange
+    # Act
+    from scitex_io._load_modules._yaml import _load_yaml
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_yaml("/path/to/file.json")
 
 
+
+
 def test_load_yaml_invalid_yaml_content():
     """Test handling of invalid YAML content."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     # Create a file with clearly invalid YAML (unbalanced brackets/quotes)
@@ -168,6 +196,9 @@ def test_load_yaml_invalid_yaml_content():
 
 def test_load_yaml_empty_file():
     """Test loading an empty YAML file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -182,6 +213,9 @@ def test_load_yaml_empty_file():
 
 def test_load_yaml_unicode_content():
     """Test loading YAML with Unicode characters."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     yaml_data = """
@@ -208,8 +242,11 @@ mixed: Hello 世界
 
 def test_load_yaml_nonexistent_file():
     """Test loading a nonexistent file."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._yaml import _load_yaml
 
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_yaml("/nonexistent/path/file.yaml")
 

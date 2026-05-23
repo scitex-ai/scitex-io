@@ -1,76 +1,95 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Real tests for _save_listed_dfs_as_csv."""
 
-# Add your tests here
 
-if __name__ == "__main__":
-    import os
+import pandas as pd
 
-    import pytest
+from scitex_io._save_modules._listed_dfs_as_csv import _save_listed_dfs_as_csv
 
-    pytest.main([os.path.abspath(__file__)])
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_listed_dfs_as_csv.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Timestamp: "2025-05-18 14:52:59 (ywatanabe)"
-# # File: /ssh:sp:/home/ywatanabe/proj/scitex_repo/src/scitex/io/_save_modules/_save_listed_dfs_as_csv.py
-# # ----------------------------------------
-# import os
-#
-# __FILE__ = __file__
-# __DIR__ = os.path.dirname(__FILE__)
-# # ----------------------------------------
-# # Time-stamp: "2024-11-02 21:28:56 (ywatanabe)"
-#
-# import csv
-#
-# import numpy as np
-#
-# from .._mv_to_tmp import _mv_to_tmp
-#
-#
-# def _save_listed_dfs_as_csv(
-#     listed_dfs,
-#     spath_csv,
-#     indi_suffix=None,
-#     overwrite=False,
-#     verbose=False,
-# ):
-#     """listed_dfs:
-#         [df1, df2, df3, ..., dfN]. They will be written vertically in the order.
-#
-#     spath_csv:
-#         /hoge/fuga/foo.csv
-#
-#     indi_suffix:
-#         At the left top cell on the output csv file, '{}'.format(indi_suffix[i])
-#         will be added, where i is the index of the df.On the other hand,
-#         when indi_suffix=None is passed, only '{}'.format(i) will be added.
-#     """
-#
-#     if overwrite == True:
-#         _mv_to_tmp(spath_csv, L=2)
-#
-#     indi_suffix = np.arange(len(listed_dfs)) if indi_suffix is None else indi_suffix
-#     for i, df in enumerate(listed_dfs):
-#         with open(spath_csv, mode="a") as f:
-#             f_writer = csv.writer(f)
-#             i_suffix = indi_suffix[i]
-#             f_writer.writerow(["{}".format(indi_suffix[i])])
-#         df.to_csv(spath_csv, mode="a", index=True, header=True)
-#         with open(spath_csv, mode="a") as f:
-#             f_writer = csv.writer(f)
-#             f_writer.writerow([""])
-#     if verbose:
-#         print("Saved to: {}".format(spath_csv))
-#
-#
-# # EOF
+def test_default_suffixes_n0_n_in_text_or_text_startswith_0_n(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "out.csv")
+    dfs = [pd.DataFrame({"x": [1, 2]}), pd.DataFrame({"x": [3, 4]})]
+    _save_listed_dfs_as_csv(dfs, p)
+    # Act
+    text = open(p).read()
+    # Act
+    # Assert
+    # Assert
+    assert "\n0\n" in text or text.startswith("0\n")
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_save_modules/_listed_dfs_as_csv.py
-# --------------------------------------------------------------------------------
+
+def test_default_suffixes_n_1_n_in_text(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "out.csv")
+    dfs = [pd.DataFrame({"x": [1, 2]}), pd.DataFrame({"x": [3, 4]})]
+    _save_listed_dfs_as_csv(dfs, p)
+    # Act
+    text = open(p).read()
+    # Act
+    # Assert
+    # Assert
+    assert "1\n" in text
+
+
+
+
+def test_custom_suffixes_alpha_in_text(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "out2.csv")
+    dfs = [pd.DataFrame({"x": [1]}), pd.DataFrame({"x": [2]})]
+    _save_listed_dfs_as_csv(dfs, p, indi_suffix=["alpha", "beta"])
+    # Act
+    text = open(p).read()
+    # Act
+    # Assert
+    # Assert
+    assert "alpha" in text
+
+
+def test_custom_suffixes_beta_in_text(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "out2.csv")
+    dfs = [pd.DataFrame({"x": [1]}), pd.DataFrame({"x": [2]})]
+    _save_listed_dfs_as_csv(dfs, p, indi_suffix=["alpha", "beta"])
+    # Act
+    text = open(p).read()
+    # Act
+    # Assert
+    # Assert
+    assert "beta" in text
+
+
+
+
+def test_verbose_saved_to_in_captured_out(tmp_path, capsys):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "verb.csv")
+    _save_listed_dfs_as_csv([pd.DataFrame({"x": [1]})], p, verbose=True)
+    # Act
+    # Act
+    captured = capsys.readouterr()
+    # Assert
+    # Assert
+    assert "Saved to" in captured.out
+
+
+def test_overwrite_stale_not_in_open_p_read(tmp_path):
+    # Arrange
+    # Arrange
+    p = str(tmp_path / "ow.csv")
+    # Create existing file first
+    open(p, "w").write("stale\n")
+    # Act
+    # Act
+    _save_listed_dfs_as_csv([pd.DataFrame({"x": [1, 2]})], p, overwrite=True)
+    # File is rewritten — original "stale" should not remain at top
+    # Assert
+    # Assert
+    assert "stale" not in open(p).read()

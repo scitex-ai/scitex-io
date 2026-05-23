@@ -19,6 +19,9 @@ class TestEmbedMetadataPng:
 
     def test_embed_simple_metadata(self):
         """Test embedding simple metadata into PNG."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             png_path = f.name
 
@@ -42,6 +45,9 @@ class TestEmbedMetadataPng:
 
     def test_embed_overwrites_existing_metadata(self):
         """Test that new metadata overwrites existing metadata."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             png_path = f.name
 
@@ -65,6 +71,9 @@ class TestEmbedMetadataPng:
 
     def test_embed_unicode_metadata(self):
         """Test embedding metadata with unicode characters."""
+        # Arrange
+        # Act
+        # Assert
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             png_path = f.name
 

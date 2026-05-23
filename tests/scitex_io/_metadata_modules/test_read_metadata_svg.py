@@ -18,6 +18,9 @@ class TestReadMetadataSvg:
 
     def test_read_existing_metadata(self):
         """Test reading metadata from SVG with embedded metadata."""
+        # Arrange
+        # Act
+        # Assert
         svg_content = """<?xml version="1.0"?>
 <svg xmlns:scitex="http://scitex.io/metadata" xmlns="http://www.w3.org/2000/svg">
 <metadata id="scitex_metadata"><scitex:data>{"test": "value", "num": 42}</scitex:data></metadata>
@@ -37,6 +40,9 @@ class TestReadMetadataSvg:
 
     def test_read_no_metadata_returns_none(self):
         """Test that SVG without metadata returns None."""
+        # Arrange
+        # Act
+        # Assert
         svg_content = """<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg">
 <rect width="100" height="100"/>
@@ -55,6 +61,9 @@ class TestReadMetadataSvg:
 
     def test_read_invalid_json_returns_raw(self):
         """Test that invalid JSON is returned as raw."""
+        # Arrange
+        # Act
+        # Assert
         svg_content = """<?xml version="1.0"?>
 <svg xmlns:scitex="http://scitex.io/metadata" xmlns="http://www.w3.org/2000/svg">
 <metadata id="scitex_metadata"><scitex:data>not valid json</scitex:data></metadata>
@@ -73,6 +82,9 @@ class TestReadMetadataSvg:
 
     def test_read_multiline_metadata(self):
         """Test reading metadata that spans multiple lines."""
+        # Arrange
+        # Act
+        # Assert
         metadata = {"key1": "value1", "key2": "value2", "nested": {"a": 1}}
         svg_content = f"""<?xml version="1.0"?>
 <svg xmlns:scitex="http://scitex.io/metadata" xmlns="http://www.w3.org/2000/svg">

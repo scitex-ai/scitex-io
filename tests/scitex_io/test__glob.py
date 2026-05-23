@@ -19,28 +19,82 @@ pytest.importorskip("zarr")
 class TestGlobBasic:
     """Test basic glob functionality."""
 
-    def test_glob_simple_pattern(self, tmp_path):
-        """Test glob with simple wildcard pattern."""
+    def test_glob_simple_pattern_len_result_is_3(self, tmp_path):
+        # Arrange
+        # Arrange
         from scitex_io import glob
-
         # Create test files
         (tmp_path / "file1.txt").touch()
         (tmp_path / "file2.txt").touch()
         (tmp_path / "file10.txt").touch()
         (tmp_path / "other.csv").touch()
-
         # Test glob
         pattern = str(tmp_path / "*.txt")
+        # Act
         result = glob(pattern)
-
-        # Should return naturally sorted list
+        # Act
+        # Assert
+        # Assert
         assert len(result) == 3
+
+    def test_glob_simple_pattern_result_0_endswith_file1_txt(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files
+        (tmp_path / "file1.txt").touch()
+        (tmp_path / "file2.txt").touch()
+        (tmp_path / "file10.txt").touch()
+        (tmp_path / "other.csv").touch()
+        # Test glob
+        pattern = str(tmp_path / "*.txt")
+        # Act
+        result = glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert result[0].endswith("file1.txt")
+
+    def test_glob_simple_pattern_result_1_endswith_file2_txt(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files
+        (tmp_path / "file1.txt").touch()
+        (tmp_path / "file2.txt").touch()
+        (tmp_path / "file10.txt").touch()
+        (tmp_path / "other.csv").touch()
+        # Test glob
+        pattern = str(tmp_path / "*.txt")
+        # Act
+        result = glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert result[1].endswith("file2.txt")
+
+    def test_glob_simple_pattern_result_2_endswith_file10_txt(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files
+        (tmp_path / "file1.txt").touch()
+        (tmp_path / "file2.txt").touch()
+        (tmp_path / "file10.txt").touch()
+        (tmp_path / "other.csv").touch()
+        # Test glob
+        pattern = str(tmp_path / "*.txt")
+        # Act
+        result = glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert result[2].endswith("file10.txt")  # Natural sort: 10 after 2
+
 
     def test_glob_natural_sorting(self, tmp_path):
         """Test that glob returns naturally sorted results."""
+        # Arrange
         from scitex_io import glob
 
         # Create files with numbers
@@ -51,7 +105,9 @@ class TestGlobBasic:
         result = glob(pattern)
 
         # Check natural sorting order
+        # Act
         basenames = [os.path.basename(p) for p in result]
+        # Assert
         assert basenames == [
             "data1.txt",
             "data2.txt",
@@ -62,92 +118,293 @@ class TestGlobBasic:
 
     def test_glob_no_matches(self, tmp_path):
         """Test glob with pattern that matches nothing."""
+        # Arrange
         from scitex_io import glob
 
         pattern = str(tmp_path / "nonexistent*.txt")
+        # Act
         result = glob(pattern)
 
+        # Assert
         assert result == []
 
-    def test_glob_recursive_pattern(self, tmp_path):
-        """Test glob with recursive ** pattern."""
+    def test_glob_recursive_pattern_len_result_is_2(self, tmp_path):
+        # Arrange
+        # Arrange
         from scitex_io import glob
-
         # Create nested structure
         (tmp_path / "dir1").mkdir()
         (tmp_path / "dir1" / "file1.txt").touch()
         (tmp_path / "dir2").mkdir()
         (tmp_path / "dir2" / "subdir").mkdir()
         (tmp_path / "dir2" / "subdir" / "file2.txt").touch()
-
         # Test recursive glob
         pattern = str(tmp_path / "**" / "*.txt")
+        # Act
         result = glob(pattern)
-
+        # Act
+        # Assert
+        # Assert
         assert len(result) == 2
+
+    def test_glob_recursive_pattern_any_file1_txt_in_p_for_p_in_result(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create nested structure
+        (tmp_path / "dir1").mkdir()
+        (tmp_path / "dir1" / "file1.txt").touch()
+        (tmp_path / "dir2").mkdir()
+        (tmp_path / "dir2" / "subdir").mkdir()
+        (tmp_path / "dir2" / "subdir" / "file2.txt").touch()
+        # Test recursive glob
+        pattern = str(tmp_path / "**" / "*.txt")
+        # Act
+        result = glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert any("file1.txt" in p for p in result)
+
+    def test_glob_recursive_pattern_any_file2_txt_in_p_for_p_in_result(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create nested structure
+        (tmp_path / "dir1").mkdir()
+        (tmp_path / "dir1" / "file1.txt").touch()
+        (tmp_path / "dir2").mkdir()
+        (tmp_path / "dir2" / "subdir").mkdir()
+        (tmp_path / "dir2" / "subdir" / "file2.txt").touch()
+        # Test recursive glob
+        pattern = str(tmp_path / "**" / "*.txt")
+        # Act
+        result = glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert any("file2.txt" in p for p in result)
+
 
 
 class TestGlobParsing:
     """Test glob with parsing functionality."""
 
-    def test_glob_with_parse(self, tmp_path):
-        """Test glob with parse=True."""
+    def test_glob_with_parse_len_paths_is_3(self, tmp_path):
+        # Arrange
+        # Arrange
         from scitex_io import glob
-
         # Create test files with pattern
         (tmp_path / "subj_001").mkdir()
         (tmp_path / "subj_001" / "run_01.txt").touch()
         (tmp_path / "subj_001" / "run_02.txt").touch()
         (tmp_path / "subj_002").mkdir()
         (tmp_path / "subj_002" / "run_01.txt").touch()
-
         # Test with parsing
         pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
         paths, parsed = glob(pattern, parse=True)
-
+        # Act
+        # Assert
+        # Assert
         assert len(paths) == 3
+
+    def test_glob_with_parse_len_parsed_is_3(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert len(parsed) == 3
 
-        # Check parsed results - parser converts numeric strings to integers
+    def test_glob_with_parse_parsed_0_id_1(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["id"] == 1
+
+    def test_glob_with_parse_parsed_0_run_1(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["run"] == 1
+
+    def test_glob_with_parse_parsed_1_id_1(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[1]["id"] == 1
+
+    def test_glob_with_parse_parsed_1_run_2(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[1]["run"] == 2
+
+    def test_glob_with_parse_parsed_2_id_2(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[2]["id"] == 2
+
+    def test_glob_with_parse_parsed_2_run_1(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create test files with pattern
+        (tmp_path / "subj_001").mkdir()
+        (tmp_path / "subj_001" / "run_01.txt").touch()
+        (tmp_path / "subj_001" / "run_02.txt").touch()
+        (tmp_path / "subj_002").mkdir()
+        (tmp_path / "subj_002" / "run_01.txt").touch()
+        # Test with parsing
+        pattern = str(tmp_path / "subj_{id}" / "run_{run}.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[2]["run"] == 1
 
-    def test_parse_glob_function(self, tmp_path):
-        """Test the parse_glob convenience function."""
-        from scitex_io import parse_glob
 
+    def test_parse_glob_function_len_paths_is_3(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import parse_glob
         # Create test files
         (tmp_path / "exp_01_trial_001.dat").touch()
         (tmp_path / "exp_01_trial_002.dat").touch()
         (tmp_path / "exp_02_trial_001.dat").touch()
-
         # Test parse_glob
         pattern = str(tmp_path / "exp_{exp}_trial_{trial}.dat")
+        # Act
         paths, parsed = parse_glob(pattern)
-
+        # Act
+        # Assert
+        # Assert
         assert len(paths) == 3
+
+    def test_parse_glob_function_len_parsed_is_3(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import parse_glob
+        # Create test files
+        (tmp_path / "exp_01_trial_001.dat").touch()
+        (tmp_path / "exp_01_trial_002.dat").touch()
+        (tmp_path / "exp_02_trial_001.dat").touch()
+        # Test parse_glob
+        pattern = str(tmp_path / "exp_{exp}_trial_{trial}.dat")
+        # Act
+        paths, parsed = parse_glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert len(parsed) == 3
 
-        # Verify parsing
+    def test_parse_glob_function_all_exp_in_p_and_trial_in_p_for_p_in_parsed(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import parse_glob
+        # Create test files
+        (tmp_path / "exp_01_trial_001.dat").touch()
+        (tmp_path / "exp_01_trial_002.dat").touch()
+        (tmp_path / "exp_02_trial_001.dat").touch()
+        # Test parse_glob
+        pattern = str(tmp_path / "exp_{exp}_trial_{trial}.dat")
+        # Act
+        paths, parsed = parse_glob(pattern)
+        # Act
+        # Assert
+        # Assert
         assert all("exp" in p and "trial" in p for p in parsed)
 
-    def test_glob_parse_complex_pattern(self, tmp_path):
-        """Test parsing with complex patterns."""
-        from scitex_io import glob
 
+    def test_glob_parse_complex_pattern_len_parsed_is_3(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
         # Create complex structure - use {year} placeholder for parsing
         base = tmp_path / "data" / "2024"
         base.mkdir(parents=True)
         (base / "patient_A01_session_pre_scan_001.nii").touch()
         (base / "patient_A01_session_post_scan_001.nii").touch()
         (base / "patient_B02_session_pre_scan_001.nii").touch()
-
         # Pattern with {year} so parsing can match the year directory
         pattern = str(
             tmp_path
@@ -155,70 +412,201 @@ class TestGlobParsing:
             / "{year}"
             / "patient_{pid}_session_{session}_scan_{scan}.nii"
         )
+        # Act
         paths, parsed = glob(pattern, parse=True)
-
+        # Act
+        # Assert
+        # Assert
         assert len(parsed) == 3
-        # Parser converts numeric strings to integers
-        # Files are naturally sorted, "post" comes before "pre" alphabetically
+
+    def test_glob_parse_complex_pattern_parsed_0_year_2024(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create complex structure - use {year} placeholder for parsing
+        base = tmp_path / "data" / "2024"
+        base.mkdir(parents=True)
+        (base / "patient_A01_session_pre_scan_001.nii").touch()
+        (base / "patient_A01_session_post_scan_001.nii").touch()
+        (base / "patient_B02_session_pre_scan_001.nii").touch()
+        # Pattern with {year} so parsing can match the year directory
+        pattern = str(
+            tmp_path
+            / "data"
+            / "{year}"
+            / "patient_{pid}_session_{session}_scan_{scan}.nii"
+        )
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["year"] == 2024
+
+    def test_glob_parse_complex_pattern_parsed_0_pid_a01(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create complex structure - use {year} placeholder for parsing
+        base = tmp_path / "data" / "2024"
+        base.mkdir(parents=True)
+        (base / "patient_A01_session_pre_scan_001.nii").touch()
+        (base / "patient_A01_session_post_scan_001.nii").touch()
+        (base / "patient_B02_session_pre_scan_001.nii").touch()
+        # Pattern with {year} so parsing can match the year directory
+        pattern = str(
+            tmp_path
+            / "data"
+            / "{year}"
+            / "patient_{pid}_session_{session}_scan_{scan}.nii"
+        )
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["pid"] == "A01"
+
+    def test_glob_parse_complex_pattern_parsed_0_session_post(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create complex structure - use {year} placeholder for parsing
+        base = tmp_path / "data" / "2024"
+        base.mkdir(parents=True)
+        (base / "patient_A01_session_pre_scan_001.nii").touch()
+        (base / "patient_A01_session_post_scan_001.nii").touch()
+        (base / "patient_B02_session_pre_scan_001.nii").touch()
+        # Pattern with {year} so parsing can match the year directory
+        pattern = str(
+            tmp_path
+            / "data"
+            / "{year}"
+            / "patient_{pid}_session_{session}_scan_{scan}.nii"
+        )
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["session"] == "post"  # post < pre alphabetically
+
+    def test_glob_parse_complex_pattern_parsed_0_scan_1(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create complex structure - use {year} placeholder for parsing
+        base = tmp_path / "data" / "2024"
+        base.mkdir(parents=True)
+        (base / "patient_A01_session_pre_scan_001.nii").touch()
+        (base / "patient_A01_session_post_scan_001.nii").touch()
+        (base / "patient_B02_session_pre_scan_001.nii").touch()
+        # Pattern with {year} so parsing can match the year directory
+        pattern = str(
+            tmp_path
+            / "data"
+            / "{year}"
+            / "patient_{pid}_session_{session}_scan_{scan}.nii"
+        )
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["scan"] == 1
+
 
 
 class TestGlobEnsureOne:
     """Test glob with ensure_one parameter."""
 
-    def test_glob_ensure_one_success(self, tmp_path):
-        """Test glob with ensure_one when exactly one match exists."""
+    def test_glob_ensure_one_success_len_result_is_1(self, tmp_path):
+        # Arrange
+        # Arrange
         from scitex_io import glob
-
         # Create exactly one matching file
         (tmp_path / "unique.txt").touch()
-
         pattern = str(tmp_path / "unique.txt")
+        # Act
         result = glob(pattern, ensure_one=True)
-
+        # Act
+        # Assert
+        # Assert
         assert len(result) == 1
+
+    def test_glob_ensure_one_success_result_0_endswith_unique_txt(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create exactly one matching file
+        (tmp_path / "unique.txt").touch()
+        pattern = str(tmp_path / "unique.txt")
+        # Act
+        result = glob(pattern, ensure_one=True)
+        # Act
+        # Assert
+        # Assert
         assert result[0].endswith("unique.txt")
+
 
     def test_glob_ensure_one_failure(self, tmp_path):
         """Test glob with ensure_one when multiple matches exist."""
+        # Arrange
         from scitex_io import glob
 
         # Create multiple matching files
         (tmp_path / "file1.txt").touch()
         (tmp_path / "file2.txt").touch()
 
+        # Act
         pattern = str(tmp_path / "*.txt")
 
         # Should raise AssertionError
+        # Assert
         with pytest.raises(AssertionError):
             glob(pattern, ensure_one=True)
 
     def test_glob_ensure_one_no_match(self, tmp_path):
         """Test glob with ensure_one when no matches exist."""
+        # Arrange
         from scitex_io import glob
 
+        # Act
         pattern = str(tmp_path / "nonexistent.txt")
 
         # Should raise AssertionError
+        # Assert
         with pytest.raises(AssertionError):
             glob(pattern, ensure_one=True)
 
-    def test_parse_glob_ensure_one(self, tmp_path):
-        """Test parse_glob with ensure_one parameter."""
+    def test_parse_glob_ensure_one_len_paths_is_1(self, tmp_path):
+        # Arrange
+        # Arrange
         from scitex_io import parse_glob
-
         # Create one file
         (tmp_path / "data_001.txt").touch()
-
         pattern = str(tmp_path / "data_{id}.txt")
+        # Act
         paths, parsed = parse_glob(pattern, ensure_one=True)
-
+        # Act
+        # Assert
+        # Assert
         assert len(paths) == 1
-        # Parser converts numeric strings to integers
+
+    def test_parse_glob_ensure_one_parsed_0_id_1(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import parse_glob
+        # Create one file
+        (tmp_path / "data_001.txt").touch()
+        pattern = str(tmp_path / "data_{id}.txt")
+        # Act
+        paths, parsed = parse_glob(pattern, ensure_one=True)
+        # Act
+        # Assert
+        # Assert
         assert parsed[0]["id"] == 1
+
 
 
 class TestGlobAdvanced:
@@ -226,6 +614,7 @@ class TestGlobAdvanced:
 
     def test_glob_curly_brace_pattern(self, tmp_path):
         """Test glob with curly brace expansion pattern."""
+        # Arrange
         from scitex_io import glob
 
         # Create files in different directories
@@ -235,13 +624,16 @@ class TestGlobAdvanced:
 
         # Pattern with braces should be converted to wildcards
         pattern = str(tmp_path / "{a,b}" / "*.txt")
+        # Act
         result = glob(pattern)
 
         # Should match files in all directories (braces become *)
+        # Assert
         assert len(result) >= 2
 
     def test_glob_eval_safety(self, tmp_path):
         """Test that glob handles eval safely."""
+        # Arrange
         from scitex_io import glob
 
         # Create a file
@@ -251,11 +643,14 @@ class TestGlobAdvanced:
         pattern = str(tmp_path / "test.txt'; import os; os.system('echo hacked')")
 
         # Should handle safely (fall back to regular glob)
+        # Act
         result = glob(pattern)
+        # Assert
         assert result == []  # No match for malicious pattern
 
     def test_glob_special_characters(self, tmp_path):
         """Test glob with special characters in filenames."""
+        # Arrange
         from scitex_io import glob
 
         # Create files with special characters
@@ -270,12 +665,15 @@ class TestGlobAdvanced:
             (tmp_path / fname).touch()
 
         pattern = str(tmp_path / "*.txt")
+        # Act
         result = glob(pattern)
 
+        # Assert
         assert len(result) == len(special_files)
 
     def test_glob_hidden_files(self, tmp_path):
         """Test glob with hidden files."""
+        # Arrange
         from scitex_io import glob
 
         # Create hidden and regular files
@@ -284,8 +682,10 @@ class TestGlobAdvanced:
 
         # Test with pattern that should match hidden files
         pattern = str(tmp_path / ".*")
+        # Act
         result = glob(pattern)
 
+        # Assert
         assert any(".hidden.txt" in p for p in result)
 
 
@@ -294,6 +694,7 @@ class TestGlobIntegration:
 
     def test_glob_with_pathlib(self, tmp_path):
         """Test glob works with pathlib paths."""
+        # Arrange
         from scitex_io import glob
 
         # Create test structure
@@ -304,38 +705,65 @@ class TestGlobIntegration:
 
         # Use pathlib Path for pattern
         pattern = data_dir / "*.csv"
+        # Act
         result = glob(str(pattern))
 
+        # Assert
         assert len(result) == 2
 
-    def test_glob_parse_integration(self, tmp_path):
-        """Test glob parsing integrates with scitex.str.parse."""
+    def test_glob_parse_integration_len_parsed_is_6(self, tmp_path):
+        # Arrange
+        # Arrange
         from scitex_io import glob
-
         # Create structured data
         for year in [2022, 2023]:
             for month in [1, 2, 12]:
                 dir_path = tmp_path / f"data_{year}_{month:02d}"
                 dir_path.mkdir()
                 (dir_path / "report.txt").touch()
-
         # Parse structured pattern
         pattern = str(tmp_path / "data_{year}_{month}" / "report.txt")
+        # Act
         paths, parsed = glob(pattern, parse=True)
+        # Act
+        # Assert
+        # Assert
+        assert len(parsed) == 6
 
+    def test_glob_parse_integration_n_2022_in_years_and_2023_in_years(self, tmp_path):
+        # Arrange
+        # Arrange
+        from scitex_io import glob
+        # Create structured data
+        for year in [2022, 2023]:
+            for month in [1, 2, 12]:
+                dir_path = tmp_path / f"data_{year}_{month:02d}"
+                dir_path.mkdir()
+                (dir_path / "report.txt").touch()
+        # Parse structured pattern
+        pattern = str(tmp_path / "data_{year}_{month}" / "report.txt")
+        # Act
+        paths, parsed = glob(pattern, parse=True)
+        # Assert
         assert len(parsed) == 6
         # Check parsing worked correctly - parser converts to integers
         years = [p["year"] for p in parsed]
+        # Act
+        # Assert
         assert 2022 in years and 2023 in years
+
 
     def test_glob_empty_directory(self, tmp_path):
         """Test glob on empty directory."""
+        # Arrange
         from scitex_io import glob
 
         # Empty directory
         pattern = str(tmp_path / "*")
+        # Act
         result = glob(pattern)
 
+        # Assert
         assert result == []
 
 
@@ -344,27 +772,34 @@ class TestGlobEdgeCases:
 
     def test_glob_root_pattern(self):
         """Test glob with root directory pattern."""
+        # Arrange
         from scitex_io import glob
 
         # Pattern at root - should work but return limited results
+        # Act
         result = glob("/*.txt")
 
         # Should return list (possibly empty)
+        # Assert
         assert isinstance(result, list)
 
     def test_glob_invalid_pattern(self, tmp_path):
         """Test glob with invalid pattern."""
+        # Arrange
         from scitex_io import glob
 
         # Pattern with invalid syntax
         pattern = str(tmp_path / "[")
 
         # Should handle gracefully
+        # Act
         result = glob(pattern)
+        # Assert
         assert isinstance(result, list)
 
     def test_glob_unicode_filenames(self, tmp_path):
         """Test glob with unicode filenames."""
+        # Arrange
         from scitex_io import glob
 
         # Create files with unicode names
@@ -382,9 +817,11 @@ class TestGlobEdgeCases:
                 pass  # Skip if filesystem doesn't support
 
         pattern = str(tmp_path / "*.txt")
+        # Act
         result = glob(pattern)
 
         # Should handle unicode gracefully
+        # Assert
         assert isinstance(result, list)
 
 

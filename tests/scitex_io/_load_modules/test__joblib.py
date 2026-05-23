@@ -58,6 +58,9 @@ class TestLoadJoblibBasic:
 
     def test_load_simple_dict(self):
         """Test loading a simple dictionary."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"key1": "value1", "key2": 42, "key3": 3.14}
@@ -76,6 +79,9 @@ class TestLoadJoblibBasic:
 
     def test_load_numpy_arrays(self):
         """Test loading various numpy arrays."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         arrays = {
@@ -102,6 +108,9 @@ class TestLoadJoblibBasic:
 
     def test_load_pandas_objects(self):
         """Test loading pandas DataFrames and Series."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         df = pd.DataFrame(
@@ -130,6 +139,9 @@ class TestLoadJoblibBasic:
 
     def test_load_nested_structures(self):
         """Test loading deeply nested data structures."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         nested_data = {
@@ -168,6 +180,9 @@ class TestLoadJoblibCompression:
 
     def test_load_all_compression_levels(self):
         """Test loading files with different compression levels."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = np.random.rand(100, 100)
@@ -185,6 +200,9 @@ class TestLoadJoblibCompression:
 
     def test_load_different_compression_methods(self):
         """Test loading files with different compression methods."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"array": np.random.rand(50, 50), "value": 42}
@@ -217,6 +235,9 @@ class TestLoadJoblibCompression:
 
     def test_load_large_compressed_data(self):
         """Test loading large compressed data."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         # Create large dataset
@@ -249,6 +270,9 @@ class TestLoadJoblibCustomObjects:
 
     def test_load_custom_class(self):
         """Test loading custom class instances."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         obj = CustomObject(x=42, y="test")
@@ -266,8 +290,11 @@ class TestLoadJoblibCustomObjects:
         finally:
             os.unlink(temp_path)
 
-    def test_load_dataclass(self):
+    def test_load_dataclass_calls_testdata(self):
         """Test loading dataclass instances."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = TestData(
@@ -289,6 +316,9 @@ class TestLoadJoblibCustomObjects:
 
     def test_load_lambda_functions(self):
         """Test loading lambda functions (if supported)."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         # Note: Lambda functions might not be serializable depending on joblib version
@@ -317,6 +347,9 @@ class TestLoadJoblibEdgeCases:
 
     def test_load_empty_file(self):
         """Test loading an empty joblib file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
@@ -332,6 +365,9 @@ class TestLoadJoblibEdgeCases:
 
     def test_load_corrupted_file(self):
         """Test loading a corrupted joblib file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
@@ -346,6 +382,9 @@ class TestLoadJoblibEdgeCases:
 
     def test_wrong_file_extension(self):
         """Test various wrong file extensions."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         wrong_extensions = [
@@ -365,15 +404,21 @@ class TestLoadJoblibEdgeCases:
             with pytest.raises(ValueError, match="must have .joblib extension"):
                 _load_joblib(filename)
 
-    def test_nonexistent_file(self):
+    def test_nonexistent_file_raises_filenotfounderror(self):
         """Test loading a non-existent file."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._joblib import _load_joblib
 
+        # Assert
         with pytest.raises(FileNotFoundError):
             _load_joblib("/tmp/nonexistent_file_12345.joblib")
 
     def test_load_none_values(self):
         """Test loading None values and empty containers."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {
@@ -414,6 +459,9 @@ class TestLoadJoblibWithKwargs:
         using file handles vs filenames. This test verifies the data is loaded
         correctly regardless of mmap_mode.
         """
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         # Large array that benefits from memory mapping
@@ -439,6 +487,9 @@ class TestLoadJoblibWithKwargs:
 
     def test_load_with_custom_kwargs(self):
         """Test passing custom kwargs to joblib.load."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"test": "data", "array": np.array([1, 2, 3])}
@@ -462,6 +513,9 @@ class TestLoadJoblibPathHandling:
 
     def test_load_with_pathlib_path(self):
         """Test loading with pathlib.Path object."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"pathlib": "test"}
@@ -479,6 +533,9 @@ class TestLoadJoblibPathHandling:
 
     def test_load_with_relative_path(self):
         """Test loading with relative paths."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"relative": "path"}
@@ -496,6 +553,9 @@ class TestLoadJoblibPathHandling:
 
     def test_load_with_special_characters_in_path(self):
         """Test loading files with special characters in path."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"special": "chars"}
@@ -528,6 +588,9 @@ class TestLoadJoblibConcurrency:
 
     def test_load_same_file_multiple_times(self):
         """Test loading the same file multiple times."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"concurrent": np.random.rand(100, 100)}
@@ -557,6 +620,9 @@ class TestLoadJoblibIntegration:
 
     def test_load_machine_learning_model(self):
         """Test loading a mock ML model structure."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         # Mock ML model data
@@ -595,6 +661,9 @@ class TestLoadJoblibIntegration:
 
     def test_load_scientific_data(self):
         """Test loading scientific computation results."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         # Mock scientific data
@@ -633,8 +702,11 @@ class TestLoadJoblibIntegration:
             os.unlink(temp_path)
 
 
-def test_backwards_compatibility():
+def test_backwards_compatibility_smoke_case():
     """Test loading joblib files created with pickle protocol."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._joblib import _load_joblib
 
     # Create data and save with different protocols

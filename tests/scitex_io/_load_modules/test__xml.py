@@ -27,6 +27,9 @@ class TestLoadXml:
 
     def test_load_xml_basic(self):
         """Test loading basic XML file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -48,13 +51,19 @@ class TestLoadXml:
 
     def test_load_xml_invalid_extension(self):
         """Test loading non-XML file raises ValueError."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._xml import _load_xml
 
+        # Assert
         with pytest.raises(ValueError, match="File must have .xml extension"):
             _load_xml("file.txt")
 
     def test_load_xml_with_extension_variations(self):
         """Test various file extensions."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         # Valid extensions
@@ -78,14 +87,20 @@ class TestLoadXml:
 
     def test_load_xml_nonexistent_file(self):
         """Test loading non-existent XML file."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._xml import _load_xml
 
         # Should raise an error when trying to parse non-existent file
+        # Assert
         with pytest.raises((FileNotFoundError, ET.ParseError)):
             _load_xml("nonexistent_file.xml")
 
     def test_load_xml_malformed_xml(self):
         """Test loading malformed XML file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -105,6 +120,9 @@ class TestLoadXml:
 
     def test_load_xml_with_attributes(self):
         """Test XML with attributes."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -126,6 +144,9 @@ class TestLoadXml:
 
     def test_load_xml_nested_structure(self):
         """Test XML with nested structure."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -152,6 +173,9 @@ class TestLoadXml:
 
     def test_load_xml_with_text_content(self):
         """Test XML with simple text content."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -176,6 +200,9 @@ class TestLoadXml:
 
     def test_load_xml_with_repeated_elements(self):
         """Test XML with repeated elements."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -201,6 +228,9 @@ class TestLoadXml:
 
     def test_load_xml_empty_elements(self):
         """Test XML with empty elements."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -223,6 +253,9 @@ class TestLoadXml:
 
     def test_load_xml_mixed_content(self):
         """Test XML with mixed content types."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -248,30 +281,72 @@ class TestLoadXml:
         finally:
             os.unlink(temp_path)
 
-    def test_load_xml_function_signature(self):
-        """Test that _load_xml function has correct signature."""
+    def test_load_xml_function_signature_lpath_in_params(self):
+        # Arrange
+        # Arrange
         import inspect
-
         from scitex_io._load_modules._xml import _load_xml
-
         sig = inspect.signature(_load_xml)
+        # Act
         params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert "lpath" in params
+
+    def test_load_xml_function_signature_kwargs_in_params_or_len_p_for_p_in_sig_parameters_values_if_(self):
+        # Arrange
+        # Arrange
+        import inspect
+        from scitex_io._load_modules._xml import _load_xml
+        sig = inspect.signature(_load_xml)
+        # Act
+        params = list(sig.parameters.keys())
+        # Act
+        # Assert
+        # Assert
         assert (
             "kwargs" in params
             or len([p for p in sig.parameters.values() if p.kind == p.VAR_KEYWORD]) > 0
         )
 
-    def test_load_xml_docstring(self):
-        """Test that _load_xml function has a docstring."""
-        from scitex_io._load_modules._xml import _load_xml
 
+    def test_load_xml_docstring_load_xml_doc_is_not_none(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._xml import _load_xml
+        # Act
+        # Assert
+        # Assert
         assert _load_xml.__doc__ is not None
+
+    def test_load_xml_docstring_len_load_xml_doc_strip_0(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._xml import _load_xml
+        # Act
+        # Assert
+        # Assert
         assert len(_load_xml.__doc__.strip()) > 0
+
+    def test_load_xml_docstring_xml_in_load_xml_doc(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._xml import _load_xml
+        # Act
+        # Assert
+        # Assert
         assert "XML" in _load_xml.__doc__
+
 
     def test_load_xml_return_type(self):
         """Test that _load_xml returns a dictionary."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
@@ -289,6 +364,9 @@ class TestLoadXml:
 
     def test_load_xml_complex_structure(self):
         """Test complex XML structure."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -335,6 +413,9 @@ class TestLoadXml:
 
     def test_load_xml_special_characters(self):
         """Test XML with special characters."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -359,6 +440,9 @@ class TestLoadXml:
 
     def test_load_xml_real_world_patterns(self):
         """Test common real-world XML patterns."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         # RSS-like structure
@@ -385,24 +469,45 @@ class TestLoadXml:
         finally:
             os.unlink(temp_path)
 
-    def test_load_xml_error_handling(self):
-        """Test error handling for various edge cases."""
+    def test_load_xml_error_handling_raises_valueerror(self):
+        # Arrange
+        # Arrange
+        # Act
         from scitex_io._load_modules._xml import _load_xml
-
-        # Empty string path
+        # Act
+        # Assert
+        # Assert
         with pytest.raises(ValueError):
             _load_xml("")
 
-        # Path with wrong extension
+    def test_load_xml_error_handling_raises_valueerror(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._xml import _load_xml
+        # Act
+        # Assert
+        # Assert
         with pytest.raises(ValueError):
             _load_xml("file.json")
 
-        # Path without extension
+    def test_load_xml_error_handling_raises_valueerror(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._xml import _load_xml
+        # Act
+        # Assert
+        # Assert
         with pytest.raises(ValueError):
             _load_xml("file")
 
+
     def test_load_xml_kwargs_handling(self):
         """Test that kwargs parameter exists even if not used."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
@@ -424,6 +529,9 @@ class TestLoadXmlAdvancedFeatures:
 
     def test_load_xml_cdata_sections(self):
         """Test XML with CDATA sections."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -447,6 +555,9 @@ class TestLoadXmlAdvancedFeatures:
 
     def test_load_xml_comments_handling(self):
         """Test XML with comments."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -470,6 +581,9 @@ class TestLoadXmlAdvancedFeatures:
 
     def test_load_xml_namespaces(self):
         """Test XML with namespaces."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -492,6 +606,9 @@ class TestLoadXmlAdvancedFeatures:
 
     def test_load_xml_processing_instructions(self):
         """Test XML with processing instructions."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -513,6 +630,9 @@ class TestLoadXmlAdvancedFeatures:
 
     def test_load_xml_whitespace_preservation(self):
         """Test whitespace handling in XML."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         xml_content = """<?xml version="1.0"?>
@@ -543,6 +663,9 @@ class TestLoadXmlStressTests:
 
     def test_load_xml_large_file(self):
         """Test loading large XML file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         # Generate large XML content
@@ -564,6 +687,9 @@ class TestLoadXmlStressTests:
 
     def test_load_xml_deeply_nested(self):
         """Test deeply nested XML structure."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         # Generate deeply nested XML
@@ -597,6 +723,9 @@ class TestLoadXmlRealWorldExamples:
 
     def test_load_xml_svg_file(self):
         """Test loading SVG XML file."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         svg_content = """<?xml version="1.0"?>
@@ -619,6 +748,9 @@ class TestLoadXmlRealWorldExamples:
 
     def test_load_xml_configuration_file(self):
         """Test loading configuration-style XML."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._xml import _load_xml
 
         config_content = """<?xml version="1.0" encoding="UTF-8"?>

@@ -21,6 +21,9 @@ import numpy as np
 
 def test_load_npy_basic():
     """Test loading a basic NPY file."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     # Create test data
@@ -39,6 +42,9 @@ def test_load_npy_basic():
 
 def test_load_npy_multidimensional():
     """Test loading multidimensional arrays."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     # Test 2D array
@@ -72,6 +78,9 @@ def test_load_npy_multidimensional():
 
 def test_load_npz_single_array():
     """Test loading NPZ file with single array (backward compatibility)."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     test_array = np.array([[1, 2, 3], [4, 5, 6]])
@@ -91,6 +100,9 @@ def test_load_npz_single_array():
 
 def test_load_npz_multiple_arrays():
     """Test loading NPZ file with multiple arrays."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     array1 = np.array([1, 2, 3])
@@ -118,6 +130,9 @@ def test_load_npz_multiple_arrays():
 
 def test_load_npy_with_objects():
     """Test loading NPY file with Python objects (using pickle)."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     # Create array with Python objects
@@ -136,28 +151,48 @@ def test_load_npy_with_objects():
         os.unlink(temp_path)
 
 
-def test_load_npy_invalid_extension():
-    """Test that loading non-numpy file raises ValueError."""
+def test_load_npy_invalid_extension_raises_valueerror():
+    # Arrange
+    # Arrange
+    # Act
     from scitex_io._load_modules._numpy import _load_npy
-
-    # _load_npy validates extensions and raises ValueError
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(ValueError, match="File must have .npy or .npz extension"):
         _load_npy("test.txt")
 
+
+def test_load_npy_invalid_extension_raises_valueerror():
+    # Arrange
+    # Arrange
+    # Act
+    from scitex_io._load_modules._numpy import _load_npy
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(ValueError, match="File must have .npy or .npz extension"):
         _load_npy("/path/to/file.mat")
 
 
+
+
 def test_load_npy_nonexistent_file():
     """Test loading a nonexistent file."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._numpy import _load_npy
 
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_npy("/nonexistent/path/file.npy")
 
 
 def test_load_npy_structured_array():
     """Test loading structured arrays."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     # Create structured array
@@ -180,6 +215,9 @@ def test_load_npy_structured_array():
 
 def test_load_npz_compressed():
     """Test loading compressed NPZ files."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._numpy import _load_npy
 
     # Create large array for compression benefit

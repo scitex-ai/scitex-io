@@ -25,19 +25,28 @@ class TestLoadTorchAvailableFlags:
 
     def test_torch_available_flag_exists(self):
         """Test that TORCH_AVAILABLE flag is exported."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._torch import TORCH_AVAILABLE
 
+        # Assert
         assert isinstance(TORCH_AVAILABLE, bool)
 
     def test_torch_available_is_true_when_torch_installed(self):
         """Test that TORCH_AVAILABLE is True when torch is installed."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._torch import TORCH_AVAILABLE
 
+        # Assert
         assert TORCH_AVAILABLE is True
 
 
 def test_load_torch_tensor():
     """Test loading a PyTorch tensor."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     # Create various tensors
@@ -59,6 +68,9 @@ def test_load_torch_tensor():
 
 def test_load_torch_state_dict():
     """Test loading a model state dict."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     # Create a simple model
@@ -95,6 +107,9 @@ def test_load_torch_state_dict():
 
 def test_load_torch_checkpoint():
     """Test loading a training checkpoint."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     # Create a typical checkpoint dictionary
@@ -132,6 +147,9 @@ def test_load_torch_checkpoint():
 
 def test_load_torch_with_pt_extension():
     """Test loading with .pt extension."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     data = {"test": torch.tensor([1, 2, 3])}
@@ -147,20 +165,37 @@ def test_load_torch_with_pt_extension():
         os.unlink(temp_path)
 
 
-def test_load_torch_invalid_extension():
-    """Test that loading non-torch file raises ValueError."""
+def test_load_torch_invalid_extension_raises_valueerror():
+    # Arrange
+    # Arrange
+    # Act
     from scitex_io._load_modules._torch import _load_torch
-
-    # _load_torch validates extensions and raises ValueError
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(ValueError, match="File must have .pth or .pt extension"):
         _load_torch("model.pkl")
 
+
+def test_load_torch_invalid_extension_raises_valueerror():
+    # Arrange
+    # Arrange
+    # Act
+    from scitex_io._load_modules._torch import _load_torch
+    # Act
+    # Assert
+    # Assert
     with pytest.raises(ValueError, match="File must have .pth or .pt extension"):
         _load_torch("/path/to/file.json")
 
 
+
+
 def test_load_torch_map_location():
     """Test loading with map_location parameter."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     # Create tensor on CPU
@@ -185,14 +220,20 @@ def test_load_torch_map_location():
 
 def test_load_torch_nonexistent_file():
     """Test loading a nonexistent file."""
+    # Arrange
+    # Act
     from scitex_io._load_modules._torch import _load_torch
 
+    # Assert
     with pytest.raises(FileNotFoundError):
         _load_torch("/nonexistent/path/model.pth")
 
 
 def test_load_torch_multiple_objects():
     """Test loading multiple objects saved together."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     # Save multiple objects
@@ -225,6 +266,9 @@ def test_load_torch_multiple_objects():
 
 def test_load_torch_cuda_tensor_to_cpu():
     """Test loading CUDA tensor to CPU (if CUDA available)."""
+    # Arrange
+    # Act
+    # Assert
     from scitex_io._load_modules._torch import _load_torch
 
     if not torch.cuda.is_available():

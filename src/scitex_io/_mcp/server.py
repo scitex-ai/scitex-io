@@ -95,7 +95,7 @@ def io_save(
     path: str,
     verbose: bool = False,
 ) -> Dict[str, Any]:
-    """Save ANY data to a file — format auto-detected from extension. Drop-in replacement for `df.to_csv`, `np.save/savez`, `pickle.dump`, `json.dump`, `yaml.dump`, `h5py` writes, `torch.save`, `fig.savefig`, `cv2.imwrite`, `scipy.io.savemat`, etc. Use whenever the user asks to "save", "write", "export", "dump", or "persist" data. Auto-routes relative paths to `{script}_out/` (or `{notebook}_out/`), embeds provenance metadata in figures, and auto-exports companion `.csv` for plots. Data arrives as a JSON string.
+    """Save ANY data to a file — format auto-detected from extension. Drop-in replacement for `df.to_csv`, `np.save/savez`, `pickle.dump`, `json.dump`, `yaml.dump`, `h5py` writes, `torch.save`, `fig.savefig`, `cv2.imwrite`, `scipy.io.savemat`, etc. Use whenever the user asks to "save", "write", "export", "dump", or "persist" data. Auto-routes relative paths: from a script → `{script}_out/`, from a notebook → `{notebook}_out/`, from IPython / REPL → `$SCITEX_DIR/io/runtime/cache/` (default `~/.scitex/io/runtime/cache/`); absolute paths bypass routing. Intermediate directories are auto-created — no `os.makedirs()` needed. Data arrives as a JSON string.
 
     Parameters
     ----------
@@ -129,7 +129,7 @@ def io_load_configs(
     config_dir: str = "./config",
     is_debug: Optional[bool] = None,
 ) -> Dict[str, Any]:
-    """Load a directory of YAML config files as one merged dotted-access dict. Use whenever the user mentions "config", "configs", "settings file", "hyperparameters file", "PATH.yaml", "PARAMS.yaml", or wants to centralize constants/magic-numbers out of source code. Returns a DotDict so callers can do `CONFIG.PATH.DATA_DIR` instead of `CONFIG["PATH"]["DATA_DIR"]`. Auto-promotes `DEBUG_*` keys when `is_debug=True` or when CI is detected.
+    """Load a directory of YAML config files as one merged dotted-access dict. Use whenever the user mentions "config", "configs", "settings file", "hyperparameters file", "PATH.yaml", "PARAMS.yaml", or wants to centralize constants/magic-numbers out of source code. Every filename stem and every YAML key is normalised to UPPER_CASE at load time, so `model.yaml` with `hidden_dim: 256` lands at `CONFIG.MODEL.HIDDEN_DIM` regardless of source casing — your callers always read the same shape. Case-conflicting siblings (e.g. `MODEL.yaml` + `model.yaml`) emit a `UserWarning` and keep the UPPER variant. Returns a DotDict so callers can do `CONFIG.PATH.DATA_DIR` instead of `CONFIG["PATH"]["DATA_DIR"]`. Auto-promotes `DEBUG_*` keys when `is_debug=True` or when CI is detected.
 
     Loads all *.yaml files from config_dir, namespaced by filename.
     Also loads from config_dir/categories/ if it exists.
@@ -255,3 +255,8 @@ def io_skills_get(name: str) -> str:
         )
     except Exception as e:
         return json.dumps({"success": False, "error": str(e)}, indent=2)
+
+
+# Register §6 parity tools (glob, registry, metadata, cache, h5/zarr, json2md).
+# Imported at the bottom so `mcp` is already defined when decorators run.
+from . import _tools_extra  # noqa: E402, F401

@@ -20,6 +20,9 @@ class TestReloadModule:
 
     def test_reload_module_in_sys_modules(self):
         """Test reloading a module that exists in sys.modules."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create a mock module with __name__
@@ -41,6 +44,9 @@ class TestReloadModule:
 
     def test_reload_module_by_name(self):
         """Test reloading a module when it has __name__ attribute."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create a mock module with __name__
@@ -59,6 +65,9 @@ class TestReloadModule:
 
     def test_reload_module_verbose(self):
         """Test reload with verbose output."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         mock_module = types.ModuleType("verbose_module")
@@ -81,8 +90,11 @@ class TestReloadModule:
 class TestReloadFunction:
     """Test function module reloading functionality."""
 
-    def test_reload_function(self):
+    def test_reload_function_calls_moduletype(self):
         """Test reloading module containing a function."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create a mock function with __module__ attribute
@@ -109,6 +121,9 @@ class TestReloadFunction:
 
     def test_reload_function_module_not_found(self):
         """Test reloading function when its module is not in sys.modules."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create mock function with module that's not loaded
@@ -129,8 +144,11 @@ class TestReloadFunction:
                 "Module nonexistent_module not found in sys.modules. Cannot reload."
             )
 
-    def test_reload_class(self):
+    def test_reload_class_calls_moduletype(self):
         """Test reloading module containing a class."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create a mock class with __module__ attribute
@@ -161,6 +179,9 @@ class TestReloadErrorHandling:
 
     def test_reload_unrecognized_object(self):
         """Test reloading an object that's neither module nor function/class."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create object without __module__ or valid __name__ in sys.modules
@@ -185,6 +206,9 @@ class TestReloadErrorHandling:
 
     def test_reload_module_not_in_sys_modules(self):
         """Test reloading when module is not in sys.modules."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         mock_module = types.ModuleType("missing_module")
@@ -204,6 +228,9 @@ class TestReloadErrorHandling:
 
     def test_reload_importlib_exception(self):
         """Test handling of exception during importlib.reload."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         mock_module = types.ModuleType("error_module")
@@ -223,8 +250,11 @@ class TestReloadErrorHandling:
             if "error_module" in sys.modules:
                 del sys.modules["error_module"]
 
-    def test_reload_keyerror(self):
+    def test_reload_keyerror_calls_moduletype(self):
         """Test handling of KeyError during reload."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create a function that claims to be from a module
@@ -257,6 +287,9 @@ class TestReloadIntegration:
 
     def test_reload_actual_module(self):
         """Test reloading an actual imported module."""
+        # Arrange
+        # Act
+        # Assert
         import json  # Use a standard library module
 
         from scitex_io._reload import reload
@@ -270,6 +303,9 @@ class TestReloadIntegration:
 
     def test_reload_from_imported_function(self):
         """Test reloading from an imported function."""
+        # Arrange
+        # Act
+        # Assert
         from os.path import join  # Import a function
 
         from scitex_io._reload import reload
@@ -283,6 +319,9 @@ class TestReloadIntegration:
 
     def test_reload_edge_case_module_in_sys_modules_branch(self):
         """Test the behavior when passing a module object."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._reload import reload
 
         # Create a proper module

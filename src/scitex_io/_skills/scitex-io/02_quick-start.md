@@ -37,7 +37,7 @@ every extension currently registered.
 |-------------------|----------------------------------------------------|
 | Script            | `{script_name}_out/{path}`                         |
 | Jupyter notebook  | `{notebook_dir}/{notebook_base}_out/{path}`        |
-| Interactive REPL  | `/tmp/{USER}/{path}`                               |
+| Interactive REPL  | `~/.scitex/io/runtime/cache/{path}` (honours `$SCITEX_DIR`) |
 | Absolute path     | used as-is                                         |
 
 `load()` resolves relative paths against **cwd**. Naive round-trip

@@ -1,0 +1,6 @@
+# Flat, all-UPPER — top-level project paths.
+# Access: CONFIG.PATHS.DATA_DIR, CONFIG.PATHS.OUTPUT_DIR, ...
+DATA_DIR: /data/experiment_01
+OUTPUT_DIR: ./results
+RAW_SUBDIR: raw
+SCRATCH_DIR: /tmp/scratch

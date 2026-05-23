@@ -115,7 +115,7 @@ def _save_separate_legends(obj, spath, symlink_from_cwd=False, dry_run=False, **
             print(
                 color_text(
                     f"\nSaved legend to: {legend_filename} ({file_size})",
-                    c="yellow",
+                    color="yellow",
                 )
             )
 

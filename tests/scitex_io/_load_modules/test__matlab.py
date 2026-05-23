@@ -25,6 +25,8 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
+# scipy is required by the MATLAB loader (`from scipy.io import loadmat`).
+pytest.importorskip("scipy")
 from unittest.mock import patch
 
 import numpy as np
@@ -36,6 +38,9 @@ class TestLoadMatlab:
 
     def test_basic_matlab_loading(self):
         """Test loading basic MATLAB .mat file with scipy.io."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Create test data with various types
@@ -76,8 +81,11 @@ class TestLoadMatlab:
         finally:
             os.unlink(temp_path)
 
-    def test_extension_validation(self):
+    def test_extension_validation_smoke_case(self):
         """Test that function validates .mat extension."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         invalid_extensions = [
@@ -96,6 +104,9 @@ class TestLoadMatlab:
 
     def test_scipy_loadmat_functionality(self):
         """Test scipy.io.loadmat functionality with different options."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Create test data with metadata
@@ -127,6 +138,9 @@ class TestLoadMatlab:
 
     def test_struct_array_handling(self):
         """Test loading MATLAB struct arrays."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Create nested structure data
@@ -172,6 +186,9 @@ class TestLoadMatlab:
 
     def test_large_file_handling(self):
         """Test loading large MATLAB files."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Create large data for performance testing
@@ -204,6 +221,9 @@ class TestLoadMatlab:
 
     def test_different_matlab_versions(self):
         """Test loading different MATLAB file format versions."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         test_data = {
@@ -235,8 +255,11 @@ class TestLoadMatlab:
                     if os.path.exists(temp_path):
                         os.unlink(temp_path)
 
-    def test_pymatreader_fallback(self):
+    def test_pymatreader_fallback_smoke_case(self):
         """Test fallback to pymatreader when scipy fails."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Mock pymatreader
@@ -262,6 +285,9 @@ class TestLoadMatlab:
 
     def test_both_loaders_fail(self):
         """Test when both scipy and pymatreader fail."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Make both loaders fail
@@ -283,6 +309,9 @@ class TestLoadMatlab:
 
     def test_kwargs_forwarding_to_scipy(self):
         """Test that kwargs are forwarded to scipy.io.loadmat."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         test_data = {"simple_array": np.array([1, 2, 3])}
@@ -307,6 +336,9 @@ class TestLoadMatlab:
 
     def test_kwargs_forwarding_to_pymatreader(self):
         """Test that kwargs are forwarded to pymatreader when used as fallback."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         mock_pymat_data = {"pymat_data": np.array([4, 5, 6])}
@@ -322,19 +354,37 @@ class TestLoadMatlab:
                 mock_read_mat.assert_called_once_with("test.mat", **custom_kwargs)
                 assert result == mock_pymat_data
 
-    def test_error_handling_file_not_found(self):
-        """Test error handling for non-existent files."""
+    def test_error_handling_file_not_found_raises_valueerror(self):
+        # Arrange
+        # Arrange
+        # Act
         from scitex_io._load_modules._matlab import _load_matlab
-
-        # Both scipy and pymatreader should fail for non-existent file
+        # Act
+        # Assert
+        # Assert
         with pytest.raises(ValueError) as exc_info:
             _load_matlab("nonexistent_file.mat")
 
+    def test_error_handling_file_not_found_error_loading_file_nonexistent_file_mat_in_error_message(self):
+        # Arrange
+        # Arrange
+        # Act
+        from scitex_io._load_modules._matlab import _load_matlab
+        # Both scipy and pymatreader should fail for non-existent file
+        # Assert
+        with pytest.raises(ValueError) as exc_info:
+            _load_matlab("nonexistent_file.mat")
         error_message = str(exc_info.value)
+        # Act
+        # Assert
         assert "Error loading file nonexistent_file.mat" in error_message
+
 
     def test_corrupted_file_handling(self):
         """Test handling of corrupted MATLAB files."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Create a file that's not a valid MATLAB file
@@ -355,6 +405,9 @@ class TestLoadMatlab:
 
     def test_scientific_computing_scenarios(self):
         """Test real-world scientific computing scenarios."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Simulate typical scientific data
@@ -400,8 +453,11 @@ class TestLoadMatlab:
         finally:
             os.unlink(temp_path)
 
-    def test_edge_cases(self):
+    def test_edge_cases_smoke_case(self):
         """Test edge cases and corner case scenarios."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Test with various edge case data
@@ -446,6 +502,9 @@ class TestLoadMatlab:
 
     def test_integration_with_main_load_function(self):
         """Test integration with scitex_io.load dispatch."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import scitex_io
 
@@ -476,8 +535,11 @@ class TestLoadMatlab:
         except ImportError:
             pytest.skip("SciTeX not available for integration testing")
 
-    def test_memory_efficiency(self):
+    def test_memory_efficiency_smoke_case(self):
         """Test memory efficiency with repeated loading."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._matlab import _load_matlab
 
         # Create moderately large data

@@ -10,7 +10,7 @@ tags: [scitex-io-path-resolution, scitex-io, scitex-package]
 
 ## Auto save-path routing (scitex-io)
 
-`stx.io.save(obj, "relative/path.csv")` auto-routes the actual write
+`sio.save(obj, "relative/path.csv")` auto-routes the actual write
 location based on caller context:
 
 | Context | Output directory |
@@ -18,14 +18,14 @@ location based on caller context:
 | Script | `{script_name}_out/{path}` (e.g. `analysis_out/results.csv`) |
 | `@stx.session` | `{script_name}_out/FINISHED_{status}/{session_id}/{path}` |
 | Jupyter (`*.ipynb`) | `{notebook_dir}/{notebook_base}_out/{path}` (see "Jupyter notebook routing" below) |
-| Interactive REPL | `/tmp/{USER}/{path}` |
+| Interactive REPL | `$SCITEX_DIR/io/runtime/cache/{path}` (default `~/.scitex/io/runtime/cache/`) |
 | Absolute path | Used as-is, no routing |
 
 ### The round-trip gotcha (important for new users + agents)
 
 ```python
-stx.io.save(df, "results.csv")    # writes to analysis_out/results.csv
-df = stx.io.load("results.csv")   # ❌ FileNotFoundError — looks in cwd
+sio.save(df, "results.csv")    # writes to analysis_out/results.csv
+df = sio.load("results.csv")   # ❌ FileNotFoundError — looks in cwd
 ```
 
 `save()` routes by caller context; `load()` resolves relative paths
@@ -34,8 +34,8 @@ against **the current working directory**. Three idiomatic fixes:
 1. **Drop a symlink at cwd** — one-flag round trip by filename:
 
    ```python
-   stx.io.save(df, "results.csv", symlink_from_cwd=True)
-   df = stx.io.load("results.csv")   # ✓ works via the cwd symlink
+   sio.save(df, "results.csv", symlink_from_cwd=True)
+   df = sio.load("results.csv")   # ✓ works via the cwd symlink
    ```
 
 2. **Use the absolute path** returned by save's provenance (or
@@ -43,8 +43,8 @@ against **the current working directory**. Three idiomatic fixes:
 
    ```python
    spath = stx.path.mk_spath("results.csv")  # analysis_out/results.csv
-   stx.io.save(df, spath)
-   df = stx.io.load(spath)            # ✓ absolute on both sides
+   sio.save(df, spath)
+   df = sio.load(spath)            # ✓ absolute on both sides
    ```
 
 3. **Stay within `@stx.session`** — every output lives under
@@ -58,12 +58,12 @@ against **the current working directory**. Three idiomatic fixes:
    ```python
    @stx.session
    def main(CONFIG=stx.session.INJECTED):
-       stx.io.save(df, "results.csv")                       # auto-routed
-       df = stx.io.load(CONFIG.SDIR_RUN / "results.csv")    # explicit session-path load
+       sio.save(df, "results.csv")                       # auto-routed
+       df = sio.load(CONFIG.SDIR_RUN / "results.csv")    # explicit session-path load
    ```
 
 Once you learn the routing, it's a feature, not a bug: every
-`stx.io.save` call produces a clean side-effect-free directory layout
+`sio.save` call produces a clean side-effect-free directory layout
 that's trivial to archive, hash-verify via Clew, and reproduce.
 
 ### Jupyter notebook routing

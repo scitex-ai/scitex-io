@@ -18,6 +18,8 @@ tags: [scitex-io-supported-formats, scitex-io, scitex-package]
 | `.xls` | DataFrame | DataFrame | Legacy Excel |
 | `.xlsm` | DataFrame | — | Macro-enabled Excel |
 | `.xlsb` | DataFrame | — | Binary Excel |
+| `.parquet` | DataFrame | DataFrame | Apache Parquet (requires pyarrow / fastparquet) |
+| `.feather` | DataFrame | DataFrame | Apache Arrow Feather v2 (requires pyarrow) |
 | `.db` | DataFrame | — | SQLite3 database |
 
 ## Array

@@ -4,19 +4,19 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-io"
-version = "0.2.14"
+version = "0.2.15"
 description = "Universal scientific data I/O with plugin registry"
 readme = "README.md"
 license = "AGPL-3.0-only"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
-    { name = "Yusuke Watanabe", email = "ywatanabe@scitex.ai" },
+    { name = "Yusuke Watanabe", email = "noreply@scitex.ai" },
 ]
 keywords = [
     "scientific-data",
     "io",
     "hdf5",
-    "zarr",
+    "zarr>=3",
     "csv",
     "numpy",
     "pandas",
@@ -29,7 +29,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
@@ -43,8 +42,16 @@ dependencies = [
     "pandas",
     "click>=8.0.0",
     "rich>=13.0.0",
-    "scitex-dev>=0.1.0",
-    "scitex-linter>=0.3.0",
+    "scitex-dev>=0.11.7",
+    # scitex_io._save imports scitex_logging at module top (also _bibtex
+    # load/save modules) — the runtime needs it.
+    "scitex-logging>=0.1.0",
+    # `scitex_io.glob` documents natural sorting as part of its contract;
+    # the previous try/import fallback to `sorted` silently degraded to
+    # lexical order, breaking `test_glob_natural_sorting` and any user
+    # who relied on `file1.txt, file2.txt, …, file10.txt` ordering.
+    # Make natsort a hard runtime dep so the documented behaviour holds.
+    "natsort>=8.0",
 ]
 
 [project.optional-dependencies]
@@ -54,9 +61,12 @@ mcp = [
 scientific = [
     "scipy",
     "h5py",
-    "zarr",
+    "zarr>=3",
     "numcodecs",
     "matplotlib",
+]
+optuna = [
+    "optuna",
 ]
 dev = [
     "pytest>=7.0",
@@ -71,6 +81,23 @@ dev = [
     # `[dev]` extras completeness.
     "fastmcp>=2.0",       # tested via scitex_io._mcp_server
     "numcodecs",          # tested via [scientific] zarr/blosc paths
+    "pymatreader",        # tested via _load_modules/_matlab fallback path
+    "openpyxl",           # excel writes go through this engine
+    "pyarrow",            # parquet/feather backend
+    "torch",              # tested via _save_modules/_torch
+    "joblib",             # tested via _save_modules/_joblib
+    "PyPDF2",             # legacy pdf reader path
+    "pypdf",              # current pdf reader path
+    "pdfplumber",         # _pdf_content_extractors table extraction
+    "PyMuPDF",            # _pdf_content_extractors fitz backend (image/metadata)
+    "scikit-learn",       # optuna visualization (importances plot)
+    "piexif",             # JPEG metadata sidecar in _image_csv_handler
+    "markdown",           # md handler
+    "html2text",          # html2md handler
+    "ruamel.yaml",        # YAML round-trip tests
+    "kaleido",            # plotly static image export (png/jpeg/svg/pdf)
+    "python-docx",        # .docx loader tests
+    "optuna",             # tested via _load_modules/_optuna + _save_modules/_optuna_study
 ]
 docs = [
     "sphinx>=7.0",
@@ -93,7 +120,7 @@ scitex-io = "scitex_io"
 [project.entry-points."scitex_dev.skills"]
 scitex-io = "scitex_io"
 
-[project.entry-points."scitex_linter.plugins"]
+[project.entry-points."scitex_dev.linter.plugins"]
 io = "scitex_io._linter_plugin:get_plugin"
 
 [project.urls]

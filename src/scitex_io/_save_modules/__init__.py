@@ -18,96 +18,85 @@ to that specific format.
 """
 
 # Core deps always available
+from scitex_dev import try_import_optional
+
 from ._csv import _save_csv as save_csv
-from ._numpy import _save_npy as save_npy, _save_npz as save_npz
-from ._pickle import _save_pickle as save_pickle, _save_pickle_gz as save_pickle_compressed
-from ._json import _save_json as save_json
-from ._text import _save_text as save_text
-from ._tex import _save_tex as save_tex
 from ._html import save_html
+from ._json import _save_json as save_json
+from ._numpy import _save_npy as save_npy
+from ._numpy import _save_npz as save_npz
+from ._pickle import (
+    _save_pickle as save_pickle,
+)
+from ._pickle import (
+    _save_pickle_gz as save_pickle_compressed,
+)
+from ._tex import _save_tex as save_tex
+from ._text import _save_text as save_text
+
+_PKG = "scitex-io"
+_HERE = __name__
 
 # Optional: openpyxl / xlrd
-try:
-    from ._excel import save_excel
-except ImportError:
-    save_excel = None
+save_excel = try_import_optional("._excel", "save_excel", package=_HERE)
 
 # Optional: joblib
-try:
-    from ._joblib import _save_joblib as save_joblib
-except ImportError:
-    save_joblib = None
+save_joblib = try_import_optional("._joblib", "_save_joblib", package=_HERE)
 
 # Optional: torch
-try:
-    from ._torch import _save_torch as save_torch
-except ImportError:
-    save_torch = None
+save_torch = try_import_optional("._torch", "_save_torch", package=_HERE)
 
 # Optional: PyYAML
-try:
-    from ._yaml import _save_yaml as save_yaml
-except ImportError:
-    save_yaml = None
+save_yaml = try_import_optional("._yaml", "_save_yaml", package=_HERE)
 
 # Optional: h5py
-try:
-    from ._hdf5 import _save_hdf5 as save_hdf5
-except ImportError:
-    save_hdf5 = None
+save_hdf5 = try_import_optional(
+    "._hdf5", "_save_hdf5", package=_HERE, extra="scientific", pkg=_PKG
+)
 
 # Optional: scipy
-try:
-    from ._matlab import _save_matlab as save_matlab
-except ImportError:
-    save_matlab = None
+save_matlab = try_import_optional(
+    "._matlab", "_save_matlab", package=_HERE, extra="scientific", pkg=_PKG
+)
 
 # Optional: catboost
-try:
-    from ._catboost import _save_catboost as save_catboost
-except ImportError:
-    save_catboost = None
+save_catboost = try_import_optional("._catboost", "_save_catboost", package=_HERE)
 
 # Optional: matplotlib / PIL
-try:
-    from ._image import save_image
-except ImportError:
-    save_image = None
+save_image = try_import_optional(
+    "._image", "save_image", package=_HERE, extra="scientific", pkg=_PKG
+)
 
 # Optional: matplotlib / imageio
-try:
-    from ._mp4 import _mk_mp4 as save_mp4
-except ImportError:
-    save_mp4 = None
+save_mp4 = try_import_optional(
+    "._mp4", "_mk_mp4", package=_HERE, extra="scientific", pkg=_PKG
+)
 
 # Optional: zarr
-try:
-    from ._zarr import _save_zarr as save_zarr
-except ImportError:
-    save_zarr = None
+save_zarr = try_import_optional(
+    "._zarr", "_save_zarr", package=_HERE, extra="scientific", pkg=_PKG
+)
 
 # Optional: bibtexparser
-try:
-    from ._bibtex import save_bibtex
-except ImportError:
-    save_bibtex = None
+save_bibtex = try_import_optional("._bibtex", "save_bibtex", package=_HERE)
 
 # Optional: pandas (listed df utilities)
-try:
-    from ._listed_dfs_as_csv import _save_listed_dfs_as_csv as save_listed_dfs_as_csv
-except ImportError:
-    save_listed_dfs_as_csv = None
+save_listed_dfs_as_csv = try_import_optional(
+    "._listed_dfs_as_csv", "_save_listed_dfs_as_csv", package=_HERE
+)
 
-try:
-    from ._listed_scalars_as_csv import _save_listed_scalars_as_csv as save_listed_scalars_as_csv
-except ImportError:
-    save_listed_scalars_as_csv = None
+save_listed_scalars_as_csv = try_import_optional(
+    "._listed_scalars_as_csv", "_save_listed_scalars_as_csv", package=_HERE
+)
 
 # Optional: optuna
-try:
-    from ._optuna_study_as_csv_and_pngs import save_optuna_study_as_csv_and_pngs
-except ImportError:
-    save_optuna_study_as_csv_and_pngs = None
+save_optuna_study_as_csv_and_pngs = try_import_optional(
+    "._optuna_study_as_csv_and_pngs",
+    "save_optuna_study_as_csv_and_pngs",
+    package=_HERE,
+    extra="optuna",
+    pkg=_PKG,
+)
 
 # Define what gets imported with "from scitex.io._save_modules import *"
 __all__ = [

@@ -21,6 +21,9 @@ class TestMvToTmpBasic:
 
     def test_move_simple_file(self):
         """Test moving a simple file to /tmp."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         # Use a predictable path instead of tempfile (which has random component)
@@ -38,6 +41,9 @@ class TestMvToTmpBasic:
 
     def test_move_with_custom_level(self):
         """Test moving file with custom directory level parameter."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/home/user/documents/project/data/file.csv"
@@ -53,6 +59,9 @@ class TestMvToTmpBasic:
 
     def test_move_nested_path_default_level(self):
         """Test moving file from nested path with default L=2."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/path/to/deep/folder/structure/myfile.txt"
@@ -67,6 +76,9 @@ class TestMvToTmpBasic:
 
     def test_move_short_path(self):
         """Test moving file with path shorter than L parameter."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "file.txt"  # Only 1 component
@@ -85,6 +97,9 @@ class TestMvToTmpErrorHandling:
 
     def test_move_fails_silently(self):
         """Test that move failures are handled silently."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/nonexistent/file.txt"
@@ -97,6 +112,9 @@ class TestMvToTmpErrorHandling:
 
     def test_permission_error_handled(self):
         """Test handling of permission errors."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/root/protected/file.txt"
@@ -110,6 +128,9 @@ class TestMvToTmpErrorHandling:
 
     def test_invalid_path_handled(self):
         """Test handling of invalid paths."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         # Test with None
@@ -123,6 +144,9 @@ class TestMvToTmpErrorHandling:
 
     def test_target_exists_error(self):
         """Test when target file already exists in /tmp."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/home/user/file.txt"
@@ -137,6 +161,9 @@ class TestMvToTmpPathHandling:
 
     def test_windows_style_path(self):
         """Test handling Windows-style paths."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         # Windows path with backslashes
@@ -152,6 +179,9 @@ class TestMvToTmpPathHandling:
 
     def test_path_with_spaces(self):
         """Test paths containing spaces."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/home/user/my documents/important file.txt"
@@ -165,6 +195,9 @@ class TestMvToTmpPathHandling:
 
     def test_path_with_special_characters(self):
         """Test paths with special characters."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/data/files/report_2024-01-01.csv"
@@ -176,8 +209,11 @@ class TestMvToTmpPathHandling:
                 expected_target = "/tmp/files-report_2024-01-01.csv"
                 mock_move.assert_called_once_with(test_path, expected_target)
 
-    def test_relative_path(self):
+    def test_relative_path_smoke_case(self):
         """Test with relative paths."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "./data/file.txt"
@@ -195,6 +231,9 @@ class TestMvToTmpLevelParameter:
 
     def test_various_L_values(self):
         """Test different L values with same path."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/a/b/c/d/e/file.txt"
@@ -215,8 +254,11 @@ class TestMvToTmpLevelParameter:
                     _mv_to_tmp(test_path, L=L)
                     mock_move.assert_called_once_with(test_path, expected_target)
 
-    def test_L_zero(self):
+    def test_L_zero_smoke_case(self):
         """Test with L=0 (edge case)."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/path/to/file.txt"
@@ -230,8 +272,11 @@ class TestMvToTmpLevelParameter:
                 expected_target = "/tmp/-path-to-file.txt"
                 mock_move.assert_called_once_with(test_path, expected_target)
 
-    def test_negative_L(self):
+    def test_negative_L_smoke_case(self):
         """Test with negative L value (edge case)."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/path/to/file.txt"
@@ -248,6 +293,9 @@ class TestMvToTmpIntegration:
 
     def test_actual_file_move(self, tmp_path):
         """Test with actual file operations (not to real /tmp)."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         # Create test file
@@ -278,8 +326,11 @@ class TestMvToTmpIntegration:
             assert not test_file.exists()
             mock_move.assert_called_once()
 
-    def test_unicode_filename(self):
+    def test_unicode_filename_smoke_case(self):
         """Test with Unicode filenames."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._mv_to_tmp import _mv_to_tmp
 
         test_path = "/home/user/文档/ファイル.txt"

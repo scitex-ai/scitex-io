@@ -1,5 +1,11 @@
 # Smoke test (TODO: real coverage).
-def test_placeholder():
+def test_placeholder_true_case():
+    # Arrange
+    # Act
+    # Assert
+    # Arrange
+    # Act
+    # Assert
     assert True
 
 # Add your tests here

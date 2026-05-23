@@ -1,73 +1,126 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder():
-    assert True
+#!/usr/bin/env python3
+"""Tests for embed_metadata_pdf."""
 
-# Add your tests here
+import json
 
-if __name__ == "__main__":
-    import os
+import pytest
 
-    import pytest
+pypdf = pytest.importorskip("pypdf")
 
-    pytest.main([os.path.abspath(__file__)])
+from scitex_io._metadata_modules.embed_metadata_pdf import embed_metadata_pdf
 
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/embed_metadata_pdf.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # File: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/embed_metadata_pdf.py
-#
-# """PDF metadata embedding using PDF Info Dictionary."""
-#
-#
-# def embed_metadata_pdf(image_path: str, metadata_json: str, metadata: dict) -> None:
-#     """
-#     Embed metadata into a PDF file using PDF Info Dictionary.
-#
-#     Args:
-#         image_path: Path to the PDF file.
-#         metadata_json: JSON string of metadata to embed.
-#         metadata: Original metadata dict for extracting title/author.
-#
-#     Raises:
-#         ImportError: If pypdf is not installed.
-#     """
-#     try:
-#         from pypdf import PdfReader, PdfWriter
-#     except ImportError:
-#         raise ImportError(
-#             "pypdf is required for PDF metadata support. "
-#             "Install with: pip install pypdf"
-#         )
-#
-#     # Read existing PDF
-#     reader = PdfReader(image_path)
-#     writer = PdfWriter()
-#
-#     # Copy all pages
-#     for page in reader.pages:
-#         writer.add_page(page)
-#
-#     # Prepare metadata for PDF Info Dictionary
-#     pdf_metadata = {
-#         "/Title": metadata.get("title", ""),
-#         "/Author": metadata.get("author", ""),
-#         "/Subject": metadata_json,  # Store full JSON in Subject field
-#         "/Creator": "SciTeX",
-#         "/Producer": "SciTeX",
-#     }
-#
-#     # Add metadata
-#     writer.add_metadata(pdf_metadata)
-#
-#     # Write back to file
-#     with open(image_path, "wb") as output_file:
-#         writer.write(output_file)
-#
-#
-# # EOF
 
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_metadata_modules/embed_metadata_pdf.py
-# --------------------------------------------------------------------------------
+def test_embed_pdf_round_trip_reader_metadata_title_t(tmp_path):
+    # Arrange
+    # Arrange
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    p = tmp_path / "a.pdf"
+    with open(p, "wb") as f:
+        writer.write(f)
+    payload = json.dumps({"hello": "world"})
+    embed_metadata_pdf(str(p), payload, metadata={"title": "T", "author": "A"})
+    # Act
+    reader = pypdf.PdfReader(str(p))
+    # Act
+    # Assert
+    # Assert
+    assert reader.metadata["/Title"] == "T"
+
+
+def test_embed_pdf_round_trip_reader_metadata_author_a(tmp_path):
+    # Arrange
+    # Arrange
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    p = tmp_path / "a.pdf"
+    with open(p, "wb") as f:
+        writer.write(f)
+    payload = json.dumps({"hello": "world"})
+    embed_metadata_pdf(str(p), payload, metadata={"title": "T", "author": "A"})
+    # Act
+    reader = pypdf.PdfReader(str(p))
+    # Act
+    # Assert
+    # Assert
+    assert reader.metadata["/Author"] == "A"
+
+
+def test_embed_pdf_round_trip_reader_metadata_subject_payload(tmp_path):
+    # Arrange
+    # Arrange
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    p = tmp_path / "a.pdf"
+    with open(p, "wb") as f:
+        writer.write(f)
+    payload = json.dumps({"hello": "world"})
+    embed_metadata_pdf(str(p), payload, metadata={"title": "T", "author": "A"})
+    # Act
+    reader = pypdf.PdfReader(str(p))
+    # Act
+    # Assert
+    # Assert
+    assert reader.metadata["/Subject"] == payload
+
+
+def test_embed_pdf_round_trip_reader_metadata_creator_scitex(tmp_path):
+    # Arrange
+    # Arrange
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    p = tmp_path / "a.pdf"
+    with open(p, "wb") as f:
+        writer.write(f)
+    payload = json.dumps({"hello": "world"})
+    embed_metadata_pdf(str(p), payload, metadata={"title": "T", "author": "A"})
+    # Act
+    reader = pypdf.PdfReader(str(p))
+    # Act
+    # Assert
+    # Assert
+    assert reader.metadata["/Creator"] == "SciTeX"
+
+
+
+
+def test_embed_pdf_empty_metadata_keys_reader_metadata_title(tmp_path):
+    # Arrange
+    # Arrange
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    p = tmp_path / "b.pdf"
+    with open(p, "wb") as f:
+        writer.write(f)
+    embed_metadata_pdf(str(p), "{}", metadata={})
+    # Act
+    reader = pypdf.PdfReader(str(p))
+    # Act
+    # Assert
+    # Assert
+    assert reader.metadata["/Title"] == ""
+
+
+def test_embed_pdf_empty_metadata_keys_reader_metadata_author(tmp_path):
+    # Arrange
+    # Arrange
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    p = tmp_path / "b.pdf"
+    with open(p, "wb") as f:
+        writer.write(f)
+    embed_metadata_pdf(str(p), "{}", metadata={})
+    # Act
+    reader = pypdf.PdfReader(str(p))
+    # Act
+    # Assert
+    # Assert
+    assert reader.metadata["/Author"] == ""
+
+

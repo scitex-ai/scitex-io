@@ -65,13 +65,19 @@ class TestLoadCatBoost:
 
     def test_import_error_when_catboost_unavailable(self, mock_catboost_unavailable):
         """Test ImportError when CatBoost is not installed."""
+        # Arrange
+        # Act
         from scitex_io._load_modules._catboost import _load_catboost
 
+        # Assert
         with pytest.raises(ImportError, match="CatBoost is not installed"):
             _load_catboost("model.cbm")
 
     def test_valid_extension_check(self, mock_catboost_available):
         """Test that function validates .cbm extension."""
+        # Arrange
+        # Act
+        # Assert
         from scitex_io._load_modules._catboost import _load_catboost
 
         invalid_extensions = [
@@ -91,6 +97,9 @@ class TestLoadCatBoost:
 
     def test_classifier_loading_success(self, mock_catboost_available):
         """Test successful CatBoost classifier loading."""
+        # Arrange
+        # Act
+        # Assert
         import scitex_io._load_modules._catboost as catboost_module
 
         # Mock CatBoost classes
@@ -114,6 +123,9 @@ class TestLoadCatBoost:
 
     def test_regressor_loading_fallback(self, mock_catboost_available):
         """Test fallback to regressor when classifier loading fails."""
+        # Arrange
+        # Act
+        # Assert
         import scitex_io._load_modules._catboost as catboost_module
 
         # Mock CatBoost classes
@@ -152,6 +164,9 @@ class TestLoadCatBoost:
 
     def test_kwargs_passed_to_load_model(self, mock_catboost_available):
         """Test that kwargs are passed to load_model method."""
+        # Arrange
+        # Act
+        # Assert
         import scitex_io._load_modules._catboost as catboost_module
 
         # Mock CatBoost classes
@@ -176,6 +191,9 @@ class TestLoadCatBoost:
 
     def test_real_catboost_classifier_loading(self):
         """Test loading real CatBoost classifier if available."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import catboost
 
@@ -221,6 +239,9 @@ class TestLoadCatBoost:
 
     def test_real_catboost_regressor_loading(self):
         """Test loading real CatBoost regressor if available."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import catboost
 
@@ -270,6 +291,9 @@ class TestLoadCatBoost:
 
     def test_model_with_categorical_features(self):
         """Test loading model trained with categorical features."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import catboost
             import pandas as pd
@@ -319,6 +343,9 @@ class TestLoadCatBoost:
 
     def test_model_feature_importance(self):
         """Test that loaded model retains feature importance functionality."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import catboost
 
@@ -354,6 +381,9 @@ class TestLoadCatBoost:
 
     def test_multiclass_classification_model(self):
         """Test loading multiclass classification model."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import catboost
 
@@ -394,6 +424,9 @@ class TestLoadCatBoost:
 
     def test_edge_case_filenames(self, mock_catboost_available):
         """Test edge cases with filenames."""
+        # Arrange
+        # Act
+        # Assert
         import scitex_io._load_modules._catboost as catboost_module
 
         # Mock CatBoost classes
@@ -432,6 +465,9 @@ class TestLoadCatBoost:
 
     def test_both_classifier_and_regressor_fail(self, mock_catboost_available):
         """Test when both classifier and regressor loading fail."""
+        # Arrange
+        # Act
+        # Assert
         import scitex_io._load_modules._catboost as catboost_module
 
         # Mock CatBoost classes
@@ -457,6 +493,9 @@ class TestLoadCatBoost:
 
     def test_integration_with_main_load_function(self):
         """Test integration with scitex_io.load dispatch."""
+        # Arrange
+        # Act
+        # Assert
         try:
             import catboost
 

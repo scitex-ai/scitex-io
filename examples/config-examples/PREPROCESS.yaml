@@ -1,0 +1,12 @@
+# Flat with DEBUG_* overrides — values flip when IS_DEBUG=True.
+# Access (production): CONFIG.PREPROCESS.SAMPLE_RATE  → 1000
+# Access (debug):       CONFIG.PREPROCESS.SAMPLE_RATE  → 100
+SAMPLE_RATE: 1000
+BANDPASS_LOW: 0.5
+BANDPASS_HIGH: 40
+NOTCH_FREQ: 50
+N_CHANNELS: 64
+
+# DEBUG_<KEY> siblings replace <KEY> when IS_DEBUG=True.
+DEBUG_SAMPLE_RATE: 100
+DEBUG_N_CHANNELS: 4
