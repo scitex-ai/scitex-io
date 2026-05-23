@@ -350,16 +350,17 @@ import sys
 import warnings
 
 
-def _reload_with_poisoned(monkeypatch, dotted: str):
-    """Force `import <dotted>` inside _builtin_handlers to raise.
+def _reload_with_poisoned(dotted: str):
+    """Force ``import <dotted>`` inside ``_builtin_handlers`` to raise.
 
-    Returns the freshly-reimported module; restoration of sys.modules
-    happens automatically when monkeypatch tears down.
+    Records ``sys.modules`` mutations and the ``meta_path`` change so
+    the caller can pass them to ``_restore_after_poisoned`` for
+    teardown.
     """
-    # Drop the cached module so the reimport actually re-executes.
-    monkeypatch.delitem(sys.modules, dotted, raising=False)
+    saved_dotted = sys.modules.pop(dotted, None)
+    saved_bh = sys.modules.pop("scitex_io._builtin_handlers", None)
+    saved_meta_path = list(sys.meta_path)
 
-    # Build a meta-path importer that raises for the target dotted name.
     class _Fail:
         def find_spec(self, name, path=None, target=None):
             if name == dotted:
@@ -367,52 +368,74 @@ def _reload_with_poisoned(monkeypatch, dotted: str):
             return None
 
     finder = _Fail()
-    monkeypatch.setattr(sys, "meta_path", [finder] + sys.meta_path)
+    sys.meta_path[:] = [finder] + sys.meta_path
 
-    # Force reload of _builtin_handlers so its try/except blocks run again.
-    monkeypatch.delitem(sys.modules, "scitex_io._builtin_handlers", raising=False)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         importlib.import_module("scitex_io._builtin_handlers")
-    return w
+    state = {
+        "dotted": dotted,
+        "saved_dotted": saved_dotted,
+        "saved_bh": saved_bh,
+        "saved_meta_path": saved_meta_path,
+        "finder": finder,
+    }
+    return w, state
 
 
-def test_saver_missing_optional_emits_warning(monkeypatch):
+def _restore_after_poisoned(state):
+    """Reverse the mutations made by ``_reload_with_poisoned``."""
+    sys.meta_path[:] = state["saved_meta_path"]
+    sys.modules.pop("scitex_io._builtin_handlers", None)
+    if state["saved_bh"] is not None:
+        sys.modules["scitex_io._builtin_handlers"] = state["saved_bh"]
+    sys.modules.pop(state["dotted"], None)
+    if state["saved_dotted"] is not None:
+        sys.modules[state["dotted"]] = state["saved_dotted"]
+
+
+def test_saver_missing_optional_emits_warning():
     """Poison _save_modules._parquet so the saver = None branch + the
     saver-loop ImportWarning both fire."""
     # Arrange
-    captured = _reload_with_poisoned(monkeypatch, "scitex_io._save_modules._parquet")
-    # At least one ImportWarning about a saver-for-extension should fire.
-    msgs = [str(item.message) for item in captured]
-    # Act
-    saver_warns = [m for m in msgs if "saver" in m and "not registered" in m]
-    # Assert
-    assert saver_warns, f"expected ImportWarning about parquet saver; got: {msgs!r}"
+    captured, state = _reload_with_poisoned("scitex_io._save_modules._parquet")
+    try:
+        msgs = [str(item.message) for item in captured]
+        # Act
+        saver_warns = [m for m in msgs if "saver" in m and "not registered" in m]
+        # Assert
+        assert saver_warns, f"expected ImportWarning about parquet saver; got: {msgs!r}"
+    finally:
+        _restore_after_poisoned(state)
+        importlib.reload(sys.modules["scitex_io._builtin_handlers"])
 
 
-def test_loader_missing_optional_emits_warning(monkeypatch):
+def test_loader_missing_optional_emits_warning():
     """Poison the markdown loader module so the loader = None +
     warn-and-skip branches in the loader loop both run."""
     # Arrange
-    captured = _reload_with_poisoned(monkeypatch, "scitex_io._load_modules._markdown")
-    msgs = [str(item.message) for item in captured]
-    # Act
-    loader_warns = [m for m in msgs if "loader" in m and "not registered" in m]
-    # Assert
-    assert loader_warns, f"expected ImportWarning about a loader; got: {msgs!r}"
+    captured, state = _reload_with_poisoned("scitex_io._load_modules._markdown")
+    try:
+        msgs = [str(item.message) for item in captured]
+        # Act
+        loader_warns = [m for m in msgs if "loader" in m and "not registered" in m]
+        # Assert
+        assert loader_warns, f"expected ImportWarning about a loader; got: {msgs!r}"
+    finally:
+        _restore_after_poisoned(state)
+        importlib.reload(sys.modules["scitex_io._builtin_handlers"])
 
 
-def test_recover_after_poisoned_import(monkeypatch):
-    """After the poisoned reload + monkeypatch teardown, a clean
-    reload re-registers everything."""
+def test_recover_after_poisoned_import():
+    """After the poisoned reload + teardown, a clean reload
+    re-registers everything."""
     # Arrange
-    _reload_with_poisoned(monkeypatch, "scitex_io._save_modules._parquet")
-    monkeypatch.undo()  # remove the meta_path finder
+    _captured, state = _reload_with_poisoned("scitex_io._save_modules._parquet")
+    _restore_after_poisoned(state)
     importlib.import_module("scitex_io._builtin_handlers")
     importlib.reload(sys.modules["scitex_io._builtin_handlers"])
     # Act
     from scitex_io._registry import get_saver as _gs
 
-    # After clean re-register, parquet saver should be back.
     # Assert
     assert _gs(".parquet") is not None

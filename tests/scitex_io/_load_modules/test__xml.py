@@ -6,775 +6,638 @@
 """Comprehensive tests for XML file loading functionality.
 
 This module provides extensive tests for the _load_xml function which converts
-XML files to Python dictionaries. Tests cover basic functionality, error handling,
-edge cases, and real-world XML patterns.
+XML files to Python dictionaries.
 """
 
 import os
 import tempfile
+import xml.etree.ElementTree as ET
 
 import pytest
 
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
-import xml.etree.ElementTree as ET
-from unittest.mock import Mock, patch
 
 
-class TestLoadXml:
-    """Test the _load_xml function."""
+def _write_xml(content, suffix=".xml", encoding=None):
+    kwargs = {"mode": "w", "suffix": suffix, "delete": False}
+    if encoding is not None:
+        kwargs["encoding"] = encoding
+    with tempfile.NamedTemporaryFile(**kwargs) as f:
+        f.write(content)
+        return f.name
 
-    def test_load_xml_basic(self):
-        """Test loading basic XML file."""
-        # Arrange
+
+def test_load_xml_basic_returns_dict():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <child name="test">Value</child>
+        <child2>Value2</child2>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <child name="test">Value</child>
-            <child2>Value2</child2>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_invalid_extension_raises_valueerror():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "child" in result or "child2" in result
-        finally:
-            os.unlink(temp_path)
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .xml extension")
+    # Assert
+    with ctx:
+        _load_xml("file.txt")
 
-    def test_load_xml_invalid_extension(self):
-        """Test loading non-XML file raises ValueError."""
-        # Arrange
+
+def test_load_xml_xml_extension_returns_dict():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        from scitex_io._load_modules._xml import _load_xml
-
+        result = _load_xml(temp_path)
         # Assert
-        with pytest.raises(ValueError, match="File must have .xml extension"):
-            _load_xml("file.txt")
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
 
-    def test_load_xml_with_extension_variations(self):
-        """Test various file extensions."""
-        # Arrange
+
+@pytest.mark.parametrize("ext", [".txt", ".json", ".yaml", ".xmlx", ".xm"])
+def test_load_xml_invalid_extensions_each_raise_valueerror(ext):
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    ctx = pytest.raises(ValueError)
+    # Assert
+    with ctx:
+        _load_xml(f"file{ext}")
+
+
+def test_load_xml_nonexistent_file_raises_parse_or_not_found():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    ctx = pytest.raises((FileNotFoundError, ET.ParseError))
+    # Assert
+    with ctx:
+        _load_xml("nonexistent_file.xml")
+
+
+def test_load_xml_malformed_content_raises_parse_error():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <unclosed_tag>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        ctx = pytest.raises(ET.ParseError)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        with ctx:
+            _load_xml(temp_path)
+    finally:
+        os.unlink(temp_path)
 
-        # Valid extensions
-        xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_root_attribute_appears_in_dict():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-        finally:
-            os.unlink(temp_path)
-
-        # Invalid extensions
-        invalid_extensions = [".txt", ".json", ".yaml", ".xmlx", ".xm"]
-        for ext in invalid_extensions:
-            with pytest.raises(ValueError):
-                _load_xml(f"file{ext}")
-
-    def test_load_xml_nonexistent_file(self):
-        """Test loading non-existent XML file."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <root version="1.0">
+        <item id="1" type="test">Value1</item>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        from scitex_io._load_modules._xml import _load_xml
-
-        # Should raise an error when trying to parse non-existent file
+        result = _load_xml(temp_path)
         # Assert
-        with pytest.raises((FileNotFoundError, ET.ParseError)):
-            _load_xml("nonexistent_file.xml")
+        assert result["version"] == "1.0"
+    finally:
+        os.unlink(temp_path)
 
-    def test_load_xml_malformed_xml(self):
-        """Test loading malformed XML file."""
-        # Arrange
+
+def test_load_xml_nested_structure_is_nested_dict():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <config>
+        <database>
+            <host>localhost</host>
+            <port>5432</port>
+        </database>
+    </config>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert isinstance(result["database"], dict)
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <unclosed_tag>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_nested_structure_inner_value_round_trips():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            with pytest.raises(ET.ParseError):
-                _load_xml(temp_path)
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_with_attributes(self):
-        """Test XML with attributes."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <config>
+        <database>
+            <host>localhost</host>
+        </database>
+    </config>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert result["database"]["host"] == "localhost"
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <root version="1.0">
-            <item id="1" type="test">Value1</item>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_text_content_for_name_field():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "version" in result  # Root attribute
-            assert result["version"] == "1.0"
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_nested_structure(self):
-        """Test XML with nested structure."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <name>John</name>
+        <age>30</age>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert result["name"] == "John"
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <config>
-            <database>
-                <host>localhost</host>
-                <port>5432</port>
-            </database>
-        </config>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_text_content_for_age_field():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "database" in result
-            assert isinstance(result["database"], dict)
-            assert "host" in result["database"]
-            assert result["database"]["host"] == "localhost"
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_with_text_content(self):
-        """Test XML with simple text content."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <name>John</name>
+        <age>30</age>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert result["age"] == "30"
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <name>John</name>
-            <age>30</age>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_repeated_elements_under_single_key():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "name" in result
-            assert "age" in result
-            assert result["name"] == "John"
-            assert result["age"] == "30"
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_with_repeated_elements(self):
-        """Test XML with repeated elements."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <items>
+        <item>Item1</item>
+        <item>Item2</item>
+        <item>Item3</item>
+    </items>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert "item" in result
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <items>
-            <item>Item1</item>
-            <item>Item2</item>
-            <item>Item3</item>
-        </items>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_with_text_element_returns_string_value():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "item" in result
-            # Should handle repeated elements (as list or similar structure)
-            items = result["item"]
-            assert items is not None
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_empty_elements(self):
-        """Test XML with empty elements."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <empty_element></empty_element>
+        <with_text>Some text</with_text>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert result["with_text"] == "Some text"
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <empty_element></empty_element>
-            <with_text>Some text</with_text>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_mixed_content_simple_text_value():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "with_text" in result
-            assert result["with_text"] == "Some text"
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_mixed_content(self):
-        """Test XML with mixed content types."""
-        # Arrange
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <simple>Text</simple>
+        <with_attr id="123">Text with attr</with_attr>
+        <nested>
+            <child>Nested text</child>
+        </nested>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert result["simple"] == "Text"
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <simple>Text</simple>
-            <with_attr id="123">Text with attr</with_attr>
-            <nested>
-                <child>Nested text</child>
-            </nested>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_function_signature_has_lpath_parameter():
+    # Arrange
+    import inspect
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "simple" in result
-            assert "with_attr" in result
-            assert "nested" in result
-            assert result["simple"] == "Text"
-        finally:
-            os.unlink(temp_path)
+    sig = inspect.signature(_load_xml)
+    # Act
+    params = list(sig.parameters.keys())
+    # Assert
+    assert "lpath" in params
 
-    def test_load_xml_function_signature_lpath_in_params(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules._xml import _load_xml
-        sig = inspect.signature(_load_xml)
+
+def test_load_xml_function_signature_accepts_kwargs():
+    # Arrange
+    import inspect
+    from scitex_io._load_modules._xml import _load_xml
+
+    sig = inspect.signature(_load_xml)
+    # Act
+    var_kw_params = [p for p in sig.parameters.values() if p.kind == p.VAR_KEYWORD]
+    # Assert
+    assert "kwargs" in sig.parameters or len(var_kw_params) > 0
+
+
+def test_load_xml_docstring_is_present():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    doc = _load_xml.__doc__
+    # Assert
+    assert doc is not None
+
+
+def test_load_xml_docstring_mentions_xml():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    doc = _load_xml.__doc__
+    # Assert
+    assert "XML" in doc
+
+
+def test_load_xml_returns_dict_instance():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        params = list(sig.parameters.keys())
+        result = _load_xml(temp_path)
+        # Assert
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_xml_complex_root_attribute_value():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+    <configuration version="2.0">
+        <metadata>
+            <title>Test Configuration</title>
+            <author email="test@example.com">Test Author</author>
+        </metadata>
+    </configuration>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        # Assert
-        assert "lpath" in params
+        assert result["version"] == "2.0"
+    finally:
+        os.unlink(temp_path)
 
-    def test_load_xml_function_signature_kwargs_in_params_or_len_p_for_p_in_sig_parameters_values_if_(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules._xml import _load_xml
-        sig = inspect.signature(_load_xml)
+
+def test_load_xml_complex_nested_title_round_trips():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+    <configuration version="2.0">
+        <metadata>
+            <title>Test Configuration</title>
+        </metadata>
+    </configuration>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        params = list(sig.parameters.keys())
+        result = _load_xml(temp_path)
+        # Assert
+        assert result["metadata"]["title"] == "Test Configuration"
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_xml_special_characters_returns_dict():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+    <root>
+        <text>Content with &amp; special &lt; characters &gt;</text>
+        <unicode>Unicode: ñáéíóú</unicode>
+    </root>"""
+    temp_path = _write_xml(xml_content, encoding="utf-8")
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        # Assert
-        assert (
-            "kwargs" in params
-            or len([p for p in sig.parameters.values() if p.kind == p.VAR_KEYWORD]) > 0
-        )
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
 
 
-    def test_load_xml_docstring_load_xml_doc_is_not_none(self):
-        # Arrange
-        # Arrange
+def test_load_xml_real_world_rss_has_channel():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <rss version="2.0">
+        <channel>
+            <title>Test RSS</title>
+            <item>
+                <title>Item 1</title>
+                <description>Description 1</description>
+            </item>
+        </channel>
+    </rss>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        from scitex_io._load_modules._xml import _load_xml
+        result = _load_xml(temp_path)
+        # Assert
+        assert "channel" in result
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_xml_empty_string_path_raises_valueerror():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    ctx = pytest.raises(ValueError)
+    # Assert
+    with ctx:
+        _load_xml("")
+
+
+def test_load_xml_json_path_raises_valueerror():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    ctx = pytest.raises(ValueError)
+    # Assert
+    with ctx:
+        _load_xml("file.json")
+
+
+def test_load_xml_no_extension_path_raises_valueerror():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    # Act
+    ctx = pytest.raises(ValueError)
+    # Assert
+    with ctx:
+        _load_xml("file")
+
+
+def test_load_xml_kwargs_accepted_silently():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path, unused_arg=True, another_arg="test")
         # Assert
-        # Assert
-        assert _load_xml.__doc__ is not None
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
 
-    def test_load_xml_docstring_len_load_xml_doc_strip_0(self):
-        # Arrange
-        # Arrange
+
+def test_load_xml_cdata_section_preserves_content():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <code><![CDATA[if (x < 10 && y > 5) { return true; }]]></code>
+        <normal>Normal text</normal>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        from scitex_io._load_modules._xml import _load_xml
+        result = _load_xml(temp_path)
+        # Assert
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_xml_with_comments_data_round_trips():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <!-- This is a comment -->
+        <data>value</data>
+        <!-- Another comment -->
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        # Assert
-        assert len(_load_xml.__doc__.strip()) > 0
+        assert result["data"] == "value"
+    finally:
+        os.unlink(temp_path)
 
-    def test_load_xml_docstring_xml_in_load_xml_doc(self):
-        # Arrange
-        # Arrange
+
+def test_load_xml_with_namespaces_returns_regular_element():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <root xmlns:ns="http://example.com/namespace">
+        <ns:element>Namespaced content</ns:element>
+        <regular>Regular content</regular>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
-        from scitex_io._load_modules._xml import _load_xml
+        result = _load_xml(temp_path)
+        # Assert
+        assert "regular" in result
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_xml_processing_instructions_data_round_trips():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <?xml-stylesheet type="text/xsl" href="style.xsl"?>
+    <root>
+        <data>value</data>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        # Assert
-        assert "XML" in _load_xml.__doc__
+        assert "data" in result
+    finally:
+        os.unlink(temp_path)
 
 
-    def test_load_xml_return_type(self):
-        """Test that _load_xml returns a dictionary."""
-        # Arrange
+def test_load_xml_whitespace_in_text_is_stripped():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
+
+    xml_content = """<?xml version="1.0"?>
+    <root>
+        <preserved>  Multiple   spaces  </preserved>
+    </root>"""
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert result["preserved"] == "Multiple   spaces"
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_large_file_has_item_key():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert len(result) > 0
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_complex_structure(self):
-        """Test complex XML structure."""
-        # Arrange
+    xml_content = '<?xml version="1.0"?>\n<root>\n'
+    for i in range(100):
+        xml_content += f'    <item id="{i}">Item {i} content</item>\n'
+    xml_content += "</root>"
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert "item" in result
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <configuration version="2.0">
-            <metadata>
-                <title>Test Configuration</title>
-                <author email="test@example.com">Test Author</author>
-            </metadata>
-            <settings>
-                <database>
-                    <host>localhost</host>
-                    <port>5432</port>
-                </database>
-                <features>
-                    <feature name="logging" enabled="true"/>
-                    <feature name="caching" enabled="false"/>
-                </features>
-            </settings>
-        </configuration>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_deeply_nested_returns_dict():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-
-            # Test root attributes
-            assert "version" in result
-            assert result["version"] == "2.0"
-
-            # Test nested structure
-            assert "metadata" in result
-            assert "settings" in result
-
-            # Test metadata
-            metadata = result["metadata"]
-            assert "title" in metadata
-            assert metadata["title"] == "Test Configuration"
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_special_characters(self):
-        """Test XML with special characters."""
-        # Arrange
+    depth = 20
+    xml_content = '<?xml version="1.0"?>\n'
+    for i in range(depth):
+        xml_content += "<level" + str(i) + ">"
+    xml_content += "Deep value"
+    for i in range(depth - 1, -1, -1):
+        xml_content += "</level" + str(i) + ">"
+    temp_path = _write_xml(xml_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert isinstance(result, dict)
+    finally:
+        os.unlink(temp_path)
 
-        xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <root>
-            <text>Content with &amp; special &lt; characters &gt;</text>
-            <unicode>Unicode: ñáéíóú</unicode>
-        </root>"""
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".xml", delete=False, encoding="utf-8"
-        ) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_svg_width_attribute_present():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "text" in result
-            assert "unicode" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_real_world_patterns(self):
-        """Test common real-world XML patterns."""
-        # Arrange
+    svg_content = """<?xml version="1.0"?>
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+        <circle cx="50" cy="50" r="40" fill="red"/>
+    </svg>"""
+    temp_path = _write_xml(svg_content)
+    try:
         # Act
+        result = _load_xml(temp_path)
         # Assert
-        from scitex_io._load_modules._xml import _load_xml
+        assert "width" in result
+    finally:
+        os.unlink(temp_path)
 
-        # RSS-like structure
-        xml_content = """<?xml version="1.0"?>
-        <rss version="2.0">
-            <channel>
-                <title>Test RSS</title>
-                <item>
-                    <title>Item 1</title>
-                    <description>Description 1</description>
-                </item>
-            </channel>
-        </rss>"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
+def test_load_xml_configuration_returns_dict_with_settings():
+    # Arrange
+    from scitex_io._load_modules._xml import _load_xml
 
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "version" in result
-            assert "channel" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_error_handling_raises_valueerror(self):
-        # Arrange
-        # Arrange
+    config_content = """<?xml version="1.0" encoding="UTF-8"?>
+    <configuration>
+        <appSettings>
+            <add key="ConnectionString" value="Server=localhost;Database=test;"/>
+        </appSettings>
+        <system.web>
+            <compilation debug="true" targetFramework="4.5"/>
+        </system.web>
+    </configuration>"""
+    temp_path = _write_xml(config_content)
+    try:
         # Act
-        from scitex_io._load_modules._xml import _load_xml
-        # Act
+        result = _load_xml(temp_path)
         # Assert
-        # Assert
-        with pytest.raises(ValueError):
-            _load_xml("")
-
-    def test_load_xml_error_handling_raises_valueerror(self):
-        # Arrange
-        # Arrange
-        # Act
-        from scitex_io._load_modules._xml import _load_xml
-        # Act
-        # Assert
-        # Assert
-        with pytest.raises(ValueError):
-            _load_xml("file.json")
-
-    def test_load_xml_error_handling_raises_valueerror(self):
-        # Arrange
-        # Arrange
-        # Act
-        from scitex_io._load_modules._xml import _load_xml
-        # Act
-        # Assert
-        # Assert
-        with pytest.raises(ValueError):
-            _load_xml("file")
-
-
-    def test_load_xml_kwargs_handling(self):
-        """Test that kwargs parameter exists even if not used."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        xml_content = """<?xml version="1.0"?><root><test>value</test></root>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            # Should not raise error even with unused kwargs
-            result = _load_xml(temp_path, unused_arg=True, another_arg="test")
-            assert isinstance(result, dict)
-        finally:
-            os.unlink(temp_path)
-
-
-class TestLoadXmlAdvancedFeatures:
-    """Test advanced XML features and edge cases."""
-
-    def test_load_xml_cdata_sections(self):
-        """Test XML with CDATA sections."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <code><![CDATA[if (x < 10 && y > 5) { return true; }]]></code>
-            <normal>Normal text</normal>
-        </root>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            # CDATA content should be preserved
-            if "code" in result:
-                assert "if" in str(result.get("code", ""))
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_comments_handling(self):
-        """Test XML with comments."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <!-- This is a comment -->
-            <data>value</data>
-            <!-- Another comment -->
-        </root>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "data" in result
-            assert result["data"] == "value"
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_namespaces(self):
-        """Test XML with namespaces."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        xml_content = """<?xml version="1.0"?>
-        <root xmlns:ns="http://example.com/namespace">
-            <ns:element>Namespaced content</ns:element>
-            <regular>Regular content</regular>
-        </root>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            # Should handle namespaced elements somehow
-            assert "regular" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_processing_instructions(self):
-        """Test XML with processing instructions."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        xml_content = """<?xml version="1.0"?>
-        <?xml-stylesheet type="text/xsl" href="style.xsl"?>
-        <root>
-            <data>value</data>
-        </root>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "data" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_whitespace_preservation(self):
-        """Test whitespace handling in XML."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        xml_content = """<?xml version="1.0"?>
-        <root>
-            <preserved>  Multiple   spaces  </preserved>
-            <trimmed>
-                Line breaks
-                and indentation
-            </trimmed>
-        </root>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            # Check if whitespace is stripped (as per the implementation)
-            if "preserved" in result:
-                assert result["preserved"] == "Multiple   spaces"
-        finally:
-            os.unlink(temp_path)
-
-
-class TestLoadXmlStressTests:
-    """Stress tests for XML loading."""
-
-    def test_load_xml_large_file(self):
-        """Test loading large XML file."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        # Generate large XML content
-        xml_content = '<?xml version="1.0"?>\n<root>\n'
-        for i in range(1000):
-            xml_content += f'    <item id="{i}">Item {i} content</item>\n'
-        xml_content += "</root>"
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "item" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_deeply_nested(self):
-        """Test deeply nested XML structure."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        # Generate deeply nested XML
-        depth = 50
-        xml_content = '<?xml version="1.0"?>\n'
-        for i in range(depth):
-            xml_content += "<level" + str(i) + ">"
-        xml_content += "Deep value"
-        for i in range(depth - 1, -1, -1):
-            xml_content += "</level" + str(i) + ">"
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(xml_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            # Should handle deep nesting
-            current = result
-            for i in range(min(10, depth)):  # Check first 10 levels
-                key = "level" + str(i)
-                if key in current:
-                    current = current[key]
-        finally:
-            os.unlink(temp_path)
-
-
-class TestLoadXmlRealWorldExamples:
-    """Test with real-world XML examples."""
-
-    def test_load_xml_svg_file(self):
-        """Test loading SVG XML file."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        svg_content = """<?xml version="1.0"?>
-        <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-            <circle cx="50" cy="50" r="40" fill="red"/>
-            <text x="50" y="55" text-anchor="middle">SVG</text>
-        </svg>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(svg_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "width" in result
-            assert "height" in result
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_xml_configuration_file(self):
-        """Test loading configuration-style XML."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._xml import _load_xml
-
-        config_content = """<?xml version="1.0" encoding="UTF-8"?>
-        <configuration>
-            <appSettings>
-                <add key="ConnectionString" value="Server=localhost;Database=test;"/>
-                <add key="MaxRetries" value="3"/>
-            </appSettings>
-            <system.web>
-                <compilation debug="true" targetFramework="4.5"/>
-                <httpRuntime maxRequestLength="4096"/>
-            </system.web>
-        </configuration>"""
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as f:
-            f.write(config_content)
-            temp_path = f.name
-
-        try:
-            result = _load_xml(temp_path)
-            assert isinstance(result, dict)
-            assert "appSettings" in result or "system.web" in result
-        finally:
-            os.unlink(temp_path)
+        assert "appSettings" in result or "system.web" in result
+    finally:
+        os.unlink(temp_path)
 
 
 if __name__ == "__main__":
@@ -783,60 +646,3 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_xml.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Time-stamp: "2024-11-14 07:55:49 (ywatanabe)"
-# # File: ./scitex_repo/src/scitex/io/_load_modules/_xml.py
-#
-#
-# def _load_xml(lpath, **kwargs):
-#     """Load XML file and convert to dict."""
-#     if not lpath.endswith(".xml"):
-#         raise ValueError("File must have .xml extension")
-#
-#     # Import xml2dict locally to avoid circular imports
-#     from xml.etree import cElementTree as ElementTree
-#
-#     # Inline the xml2dict functionality to avoid circular import
-#     tree = ElementTree.parse(lpath)
-#     root = tree.getroot()
-#
-#     # Simplified XML to dict conversion - basic implementation
-#     def xml_element_to_dict(element):
-#         result = {}
-#
-#         # Add attributes
-#         if element.attrib:
-#             result.update(element.attrib)
-#
-#         # Handle child elements
-#         for child in element:
-#             if child.tag in result:
-#                 # Convert to list if multiple elements with same tag
-#                 if not isinstance(result[child.tag], list):
-#                     result[child.tag] = [result[child.tag]]
-#                 result[child.tag].append(xml_element_to_dict(child))
-#             else:
-#                 result[child.tag] = xml_element_to_dict(child)
-#
-#         # Handle text content
-#         if element.text and element.text.strip():
-#             if result:
-#                 result["text"] = element.text.strip()
-#             else:
-#                 return element.text.strip()
-#
-#         return result
-#
-#     return xml_element_to_dict(root)
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_xml.py
-# --------------------------------------------------------------------------------

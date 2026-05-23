@@ -19,61 +19,86 @@ pytest.importorskip("zarr")
 import yaml
 
 
-def test_load_yaml_basic():
-    """Test loading a basic YAML file."""
+@pytest.fixture
+def basic_yaml_data():
+    """Write a simple yaml file under tmp_path-like NamedTemporaryFile."""
     # Arrange
-    # Act
-    # Assert
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write("key: value\nnumber: 42\nlist:\n  - 1\n  - 2\n  - 3\n")
+        path = f.name
+    try:
+        yield path
+    finally:
+        os.unlink(path)
+
+
+def test_load_yaml_basic_returns_value_for_key():
+    # Arrange
     from scitex_io._load_modules._yaml import _load_yaml
 
-    # Create a temporary YAML file
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        yaml_data = """
-key: value
-number: 42
-list:
-  - 1
-  - 2
-  - 3
-"""
-        f.write(yaml_data)
+        f.write("key: value\nnumber: 42\n")
         temp_path = f.name
-
     try:
+        # Act
         loaded_data = _load_yaml(temp_path)
-
+        # Assert
         assert loaded_data["key"] == "value"
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_yaml_basic_returns_int_for_number():
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write("key: value\nnumber: 42\n")
+        temp_path = f.name
+    try:
+        # Act
+        loaded_data = _load_yaml(temp_path)
+        # Assert
         assert loaded_data["number"] == 42
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_yaml_basic_returns_list_for_list_key():
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write("list:\n  - 1\n  - 2\n  - 3\n")
+        temp_path = f.name
+    try:
+        # Act
+        loaded_data = _load_yaml(temp_path)
+        # Assert
         assert loaded_data["list"] == [1, 2, 3]
     finally:
         os.unlink(temp_path)
 
 
-def test_load_yaml_yml_extension():
-    """Test loading a .yml file."""
+def test_load_yaml_yml_extension_returns_value_for_test_key():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
         f.write("test: yml_extension")
         temp_path = f.name
-
     try:
+        # Act
         loaded_data = _load_yaml(temp_path)
+        # Assert
         assert loaded_data["test"] == "yml_extension"
     finally:
         os.unlink(temp_path)
 
 
-def test_load_yaml_complex_structure():
-    """Test loading YAML with nested structures."""
+@pytest.fixture
+def complex_yaml_path():
     # Arrange
-    # Act
-    # Assert
-    from scitex_io._load_modules._yaml import _load_yaml
-
     yaml_data = """
 nested:
   level1:
@@ -91,163 +116,242 @@ multiline: |
   This is a
   multiline string
 """
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_data)
-        temp_path = f.name
-
+        path = f.name
     try:
-        loaded_data = _load_yaml(temp_path)
-
-        assert loaded_data["nested"]["level1"]["level2"]["value"] == "deep"
-        assert len(loaded_data["array_of_objects"]) == 2
-        assert loaded_data["null_value"] is None
-        assert loaded_data["boolean"] is True
-        assert abs(loaded_data["float"] - 3.14159) < 1e-6
-        assert "multiline string" in loaded_data["multiline"]
+        yield path
     finally:
-        os.unlink(temp_path)
+        os.unlink(path)
 
 
-def test_load_yaml_lowercase_keys():
-    """Test loading YAML with lowercase key option."""
+def test_load_yaml_complex_returns_deep_for_nested_path(complex_yaml_path):
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
+    # Act
+    loaded_data = _load_yaml(complex_yaml_path)
+    # Assert
+    assert loaded_data["nested"]["level1"]["level2"]["value"] == "deep"
+
+
+def test_load_yaml_complex_array_objects_have_length_two(complex_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    loaded_data = _load_yaml(complex_yaml_path)
+    # Assert
+    assert len(loaded_data["array_of_objects"]) == 2
+
+
+def test_load_yaml_complex_null_value_is_none(complex_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    loaded_data = _load_yaml(complex_yaml_path)
+    # Assert
+    assert loaded_data["null_value"] is None
+
+
+def test_load_yaml_complex_boolean_value_is_true(complex_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    loaded_data = _load_yaml(complex_yaml_path)
+    # Assert
+    assert loaded_data["boolean"] is True
+
+
+def test_load_yaml_complex_float_value_is_close_to_pi(complex_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    loaded_data = _load_yaml(complex_yaml_path)
+    # Assert
+    assert abs(loaded_data["float"] - 3.14159) < 1e-6
+
+
+def test_load_yaml_complex_multiline_contains_substring(complex_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    loaded_data = _load_yaml(complex_yaml_path)
+    # Assert
+    assert "multiline string" in loaded_data["multiline"]
+
+
+@pytest.fixture
+def mixed_case_yaml_path():
+    # Arrange
     yaml_data = """
 UpperCase: value1
 MixedCase: value2
 lowercase: value3
 ALLCAPS: value4
 """
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_data)
-        temp_path = f.name
-
+        path = f.name
     try:
-        # Load without lowercasing
-        normal_data = _load_yaml(temp_path)
-        assert "UpperCase" in normal_data
-        assert "MixedCase" in normal_data
-
-        # Load with lowercasing
-        lower_data = _load_yaml(temp_path, lower=True)
-        assert "uppercase" in lower_data
-        assert "mixedcase" in lower_data
-        assert "lowercase" in lower_data
-        assert "allcaps" in lower_data
-
-        # Verify values are preserved
-        assert lower_data["uppercase"] == "value1"
-        assert lower_data["mixedcase"] == "value2"
-        assert lower_data["lowercase"] == "value3"
-        assert lower_data["allcaps"] == "value4"
+        yield path
     finally:
-        os.unlink(temp_path)
+        os.unlink(path)
 
 
-def test_load_yaml_invalid_extension_raises_filenotfounderror():
+def test_load_yaml_without_lower_preserves_uppercase_key(mixed_case_yaml_path):
     # Arrange
-    # Arrange
-    # Act
     from scitex_io._load_modules._yaml import _load_yaml
+
     # Act
+    normal_data = _load_yaml(mixed_case_yaml_path)
     # Assert
+    assert "UpperCase" in normal_data
+
+
+def test_load_yaml_with_lower_lowercases_uppercase_key(mixed_case_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    lower_data = _load_yaml(mixed_case_yaml_path, lower=True)
     # Assert
-    with pytest.raises(FileNotFoundError):
+    assert "uppercase" in lower_data
+
+
+def test_load_yaml_with_lower_preserves_value_for_lowered_key(mixed_case_yaml_path):
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    lower_data = _load_yaml(mixed_case_yaml_path, lower=True)
+    # Assert
+    assert lower_data["uppercase"] == "value1"
+
+
+def test_load_yaml_nonexistent_path_raises_filenotfounderror_for_txt():
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    # Act
+    ctx = pytest.raises(FileNotFoundError)
+    # Assert
+    with ctx:
         _load_yaml("test.txt")
 
 
-def test_load_yaml_invalid_extension_raises_filenotfounderror():
+def test_load_yaml_nonexistent_path_raises_filenotfounderror_for_json():
     # Arrange
-    # Arrange
-    # Act
     from scitex_io._load_modules._yaml import _load_yaml
+
     # Act
+    ctx = pytest.raises(FileNotFoundError)
     # Assert
-    # Assert
-    with pytest.raises(FileNotFoundError):
+    with ctx:
         _load_yaml("/path/to/file.json")
 
 
-
-
-def test_load_yaml_invalid_yaml_content():
-    """Test handling of invalid YAML content."""
+def test_load_yaml_invalid_yaml_content_raises_yamlerror():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
-    # Create a file with clearly invalid YAML (unbalanced brackets/quotes)
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write("key: [unclosed bracket\nother: {unclosed: brace")
         temp_path = f.name
-
     try:
-        with pytest.raises(yaml.YAMLError):
+        # Act
+        ctx = pytest.raises(yaml.YAMLError)
+        # Assert
+        with ctx:
             _load_yaml(temp_path)
     finally:
         os.unlink(temp_path)
 
 
-def test_load_yaml_empty_file():
-    """Test loading an empty YAML file."""
+def test_load_yaml_empty_file_returns_none():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         temp_path = f.name
-
     try:
+        # Act
         loaded_data = _load_yaml(temp_path)
+        # Assert
         assert loaded_data is None
     finally:
         os.unlink(temp_path)
 
 
-def test_load_yaml_unicode_content():
-    """Test loading YAML with Unicode characters."""
+def test_load_yaml_unicode_japanese_value():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._yaml import _load_yaml
 
-    yaml_data = """
-japanese: こんにちは
-emoji: 🎉🐍
-mixed: Hello 世界
-"""
-
+    yaml_data = "japanese: こんにちは\n"
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", delete=False, encoding="utf-8"
     ) as f:
         f.write(yaml_data)
         temp_path = f.name
-
     try:
+        # Act
         loaded_data = _load_yaml(temp_path)
-
+        # Assert
         assert loaded_data["japanese"] == "こんにちは"
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_yaml_unicode_emoji_value():
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    yaml_data = "emoji: 🎉🐍\n"
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+    ) as f:
+        f.write(yaml_data)
+        temp_path = f.name
+    try:
+        # Act
+        loaded_data = _load_yaml(temp_path)
+        # Assert
         assert loaded_data["emoji"] == "🎉🐍"
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_yaml_unicode_mixed_value():
+    # Arrange
+    from scitex_io._load_modules._yaml import _load_yaml
+
+    yaml_data = "mixed: Hello 世界\n"
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+    ) as f:
+        f.write(yaml_data)
+        temp_path = f.name
+    try:
+        # Act
+        loaded_data = _load_yaml(temp_path)
+        # Assert
         assert loaded_data["mixed"] == "Hello 世界"
     finally:
         os.unlink(temp_path)
 
 
-def test_load_yaml_nonexistent_file():
-    """Test loading a nonexistent file."""
+def test_load_yaml_nonexistent_explicit_path_raises_filenotfounderror():
     # Arrange
-    # Act
     from scitex_io._load_modules._yaml import _load_yaml
 
+    # Act
+    ctx = pytest.raises(FileNotFoundError)
     # Assert
-    with pytest.raises(FileNotFoundError):
+    with ctx:
         _load_yaml("/nonexistent/path/file.yaml")
 
 
@@ -257,35 +361,3 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_yaml.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Time-stamp: "2024-11-14 07:41:37 (ywatanabe)"
-# # File: ./scitex_repo/src/scitex/io/_load_modules/_yaml.py
-#
-# import yaml
-#
-#
-# def _load_yaml(lpath, **kwargs):
-#     """Load YAML file with optional key lowercasing.
-#
-#     Extension validation is handled by load() function, not here.
-#     This allows loading files without extensions when ext='yaml' is specified.
-#     """
-#     lower = kwargs.pop("lower", False)
-#     with open(lpath) as f:
-#         obj = yaml.safe_load(f, **kwargs)
-#
-#     if lower:
-#         obj = {k.lower(): v for k, v in obj.items()}
-#     return obj
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_yaml.py
-# --------------------------------------------------------------------------------

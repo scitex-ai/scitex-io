@@ -117,7 +117,9 @@ class TestAbsolutePathBypass:
 
 
 class TestInteractiveRouting:
-    def test_repl_env_routes_to_scitex_cache(self, tmp_path, monkeypatch):
+    def test_repl_env_routes_to_scitex_cache(
+        self, tmp_path, env_save_restore, attr_restore
+    ):
         """When detect_environment() returns 'ipython', save() routes to
         $SCITEX_DIR/io/runtime/cache. The helper is imported lazily
         inside the save() body — patch on the _utils module."""
@@ -125,10 +127,10 @@ class TestInteractiveRouting:
         import scitex_io as sio
         from scitex_io import _utils
 
-        monkeypatch.setenv("SCITEX_DIR", str(tmp_path))
-        monkeypatch.setattr(_utils, "detect_environment", lambda: "ipython")
-        sio.save({"x": 1}, "result.json", verbose=False)
+        env_save_restore.set("SCITEX_DIR", str(tmp_path))
+        attr_restore.set(_utils, "detect_environment", lambda: "ipython")
         # Act
+        sio.save({"x": 1}, "result.json", verbose=False)
         out = tmp_path / "io" / "runtime" / "cache" / "result.json"
         # Assert
         assert out.is_file(), f"expected {out} to exist"

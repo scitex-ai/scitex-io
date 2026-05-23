@@ -58,18 +58,15 @@ def test_is_statistical_results_false_without_pval_col():
     assert _is_statistical_results(df) is False
 
 
-def test_save_excel_dataframe_round_trip(tmp_path):
+def test_save_excel_dataframe_round_trips_equal(tmp_path):
     # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
     spath = str(tmp_path / "a.xlsx")
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
     save_excel(df, spath)
+    # Act
     out = pd.read_excel(spath)
-    pd.testing.assert_frame_equal(out, df)
+    # Assert
+    assert out.equals(df)
 
 
 def test_save_excel_dict_round_trip_list_out_columns_a_b(tmp_path):
@@ -165,8 +162,7 @@ def test_save_excel_with_styling_applied_red_cell_fill_start_color_rgb_in_00ff6b
     assert red_cell.fill.start_color.rgb in ("00FF6B6B", "FF6B6B", "FFFF6B6B")
 
 
-def test_save_excel_with_styling_applied_e8e8e8_in_str_gray_cell_fill_start_color_rgb(tmp_path):
-    # Arrange
+def test_save_excel_with_styling_applies_gray_fill_to_nonsignificant(tmp_path):
     # Arrange
     spath = str(tmp_path / "f.xlsx")
     df = pd.DataFrame(
@@ -182,20 +178,14 @@ def test_save_excel_with_styling_applied_e8e8e8_in_str_gray_cell_fill_start_colo
     # Find pvalue column
     headers = {ws.cell(row=1, column=c).value: c for c in range(1, ws.max_column + 1)}
     pcol = headers["pvalue"]
-    # Row 2 (p=0.0001) should have a red fill
     # Act
-    red_cell = ws.cell(row=2, column=pcol)
-    # Assert
-    assert red_cell.fill.start_color.rgb in ("00FF6B6B", "FF6B6B", "FFFF6B6B")
     # Row 5 (p=0.5) should be gray
     gray_cell = ws.cell(row=5, column=pcol)
-    # Act
     # Assert
     assert "E8E8E8" in str(gray_cell.fill.start_color.rgb)
 
 
-def test_save_excel_with_styling_applied_ws_freeze_panes_equals_a2(tmp_path):
-    # Arrange
+def test_save_excel_with_styling_sets_freeze_panes(tmp_path):
     # Arrange
     spath = str(tmp_path / "f.xlsx")
     df = pd.DataFrame(
@@ -205,20 +195,9 @@ def test_save_excel_with_styling_applied_ws_freeze_panes_equals_a2(tmp_path):
         }
     )
     save_excel(df, spath, style=True)
+    # Act
     wb = load_workbook(spath)
     ws = wb.active
-    # Header row 1 + 4 data rows
-    # Find pvalue column
-    headers = {ws.cell(row=1, column=c).value: c for c in range(1, ws.max_column + 1)}
-    pcol = headers["pvalue"]
-    # Row 2 (p=0.0001) should have a red fill
-    # Act
-    red_cell = ws.cell(row=2, column=pcol)
-    # Assert
-    assert red_cell.fill.start_color.rgb in ("00FF6B6B", "FF6B6B", "FFFF6B6B")
-    # Row 5 (p=0.5) should be gray
-    gray_cell = ws.cell(row=5, column=pcol)
-    # Act
     # Assert
     assert ws.freeze_panes == "A2"
 

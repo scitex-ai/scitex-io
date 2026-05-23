@@ -17,107 +17,59 @@ def _ids(issues):
 
 def test_get_plugin_shape_set_p_keys_rules_call_rules_axes_hints_checkers():
     # Arrange
-    # Arrange
     # Act
     p = get_plugin()
-    # Act
-    # Assert
     # Assert
     assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
 
 
 def test_get_plugin_shape_expected_rule_ids():
     # Arrange
-    # Arrange
-    # Act
-    p = get_plugin()
-    # Assert
-    assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
-    rule_ids = {r.id for r in p["rules"]}
     expected = {f"STX-IO{n:03d}" for n in range(1, 15)} | {
         f"STX-PA{n:03d}" for n in range(1, 6)
     }
     # Act
+    rule_ids = {r.id for r in get_plugin()["rules"]}
     # Assert
     assert expected <= rule_ids
 
 
 def test_get_plugin_shape_any_c_is_unknownextchecker_for_c_in_p_checkers():
     # Arrange
-    # Arrange
     # Act
     p = get_plugin()
-    # Assert
-    assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
-    rule_ids = {r.id for r in p["rules"]}
-    expected = {f"STX-IO{n:03d}" for n in range(1, 15)} | {
-        f"STX-PA{n:03d}" for n in range(1, 6)
-    }
-    # Act
     # Assert
     assert any(c is _UnknownExtChecker for c in p["checkers"])
 
 
 def test_get_plugin_shape_p_axes_hints():
     # Arrange
-    # Arrange
     # Act
     p = get_plugin()
-    # Assert
-    assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
-    rule_ids = {r.id for r in p["rules"]}
-    expected = {f"STX-IO{n:03d}" for n in range(1, 15)} | {
-        f"STX-PA{n:03d}" for n in range(1, 6)
-    }
-    # Act
     # Assert
     assert p["axes_hints"] == {}
 
 
 def test_get_plugin_shape_np_save_in_p_call_rules():
     # Arrange
-    # Arrange
     # Act
     p = get_plugin()
-    # Assert
-    assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
-    rule_ids = {r.id for r in p["rules"]}
-    expected = {f"STX-IO{n:03d}" for n in range(1, 15)} | {
-        f"STX-PA{n:03d}" for n in range(1, 6)
-    }
-    # Act
     # Assert
     assert ("np", "save") in p["call_rules"]
 
 
 def test_get_plugin_shape_pickle_dump_in_p_call_rules():
     # Arrange
-    # Arrange
     # Act
     p = get_plugin()
-    # Assert
-    assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
-    rule_ids = {r.id for r in p["rules"]}
-    expected = {f"STX-IO{n:03d}" for n in range(1, 15)} | {
-        f"STX-PA{n:03d}" for n in range(1, 6)
-    }
-    # Act
     # Assert
     assert ("pickle", "dump") in p["call_rules"]
 
 
 def test_get_plugin_shape_os_chdir_in_p_call_rules():
     # Arrange
-    # Arrange
     # Act
     p = get_plugin()
-    # Assert
-    assert set(p.keys()) >= {"rules", "call_rules", "axes_hints", "checkers"}
-    rule_ids = {r.id for r in p["rules"]}
-    expected = {f"STX-IO{n:03d}" for n in range(1, 15)} | {
-        f"STX-PA{n:03d}" for n in range(1, 6)
-    }
-    # Act
     # Assert
     assert ("os", "chdir") in p["call_rules"]
 
@@ -351,14 +303,10 @@ def test_io014_unknown_extension_stx_io_save_stx_io014_in_ids_issues():
 
 def test_io014_unknown_extension_stx_io_save_weirdext_in_msg():
     # Arrange
-    # Arrange
     src = "import scitex as stx\nstx.io.save(obj, 'out.weirdext')\n"
     # Act
     issues = lint_source(src)
-    # Assert
-    assert "STX-IO014" in _ids(issues)
     msg = next(i for i in issues if i.rule.id == "STX-IO014").rule.message
-    # Act
     # Assert
     assert ".weirdext" in msg
 
@@ -516,7 +464,6 @@ def test_unknownextchecker_direct_len_chk_issues_is_1():
 
 def test_unknownextchecker_direct_issue_rule_id_stx_io014():
     # Arrange
-    # Arrange
     import ast
     src = "import scitex as stx\nstx.io.save(obj, 'x.bogusext')\n"
     tree = ast.parse(src)
@@ -524,16 +471,11 @@ def test_unknownextchecker_direct_issue_rule_id_stx_io014():
     # Act
     chk.visit(tree)
     # Assert
-    assert len(chk.issues) == 1
-    issue = chk.issues[0]
-    # Act
-    # Assert
-    assert issue.rule.id == "STX-IO014"
+    assert chk.issues[0].rule.id == "STX-IO014"
 
 
 def test_unknownextchecker_direct_issue_line_equals_n_2():
     # Arrange
-    # Arrange
     import ast
     src = "import scitex as stx\nstx.io.save(obj, 'x.bogusext')\n"
     tree = ast.parse(src)
@@ -541,33 +483,23 @@ def test_unknownextchecker_direct_issue_line_equals_n_2():
     # Act
     chk.visit(tree)
     # Assert
-    assert len(chk.issues) == 1
-    issue = chk.issues[0]
-    # Act
-    # Assert
-    assert issue.line == 2
+    assert chk.issues[0].line == 2
 
 
 def test_unknownextchecker_direct_chk_source_999():
     # Arrange
-    # Arrange
     import ast
     src = "import scitex as stx\nstx.io.save(obj, 'x.bogusext')\n"
     tree = ast.parse(src)
     chk = _UnknownExtChecker(src.splitlines())
     # Act
     chk.visit(tree)
-    # Assert
-    assert len(chk.issues) == 1
-    issue = chk.issues[0]
-    # Act
     # Assert
     assert chk._source(999) == ""
 
 
 def test_unknownextchecker_direct_chk_source_1_import_scitex_as_stx():
     # Arrange
-    # Arrange
     import ast
     src = "import scitex as stx\nstx.io.save(obj, 'x.bogusext')\n"
     tree = ast.parse(src)
@@ -575,71 +507,52 @@ def test_unknownextchecker_direct_chk_source_1_import_scitex_as_stx():
     # Act
     chk.visit(tree)
     # Assert
-    assert len(chk.issues) == 1
-    issue = chk.issues[0]
-    # Act
-    # Assert
     assert chk._source(1) == "import scitex as stx"
 
 
 
 
-def test_builtin_extensions_fallback_csv_in_exts(monkeypatch):
-    # Arrange
+def test_builtin_extensions_fallback_csv_in_exts(attr_restore):
     # Arrange
     import scitex_io._linter_plugin as mod
     import scitex_io._registry as reg
     # Clobber the registry tier attrs so the function raises and hits except
-    monkeypatch.setattr(reg, "_builtin_savers", None)
+    attr_restore.set(reg, "_builtin_savers", None)
     # Act
     exts = mod._builtin_extensions()
-    # Act
-    # Assert
     # Assert
     assert ".csv" in exts
 
 
-def test_builtin_extensions_fallback_h5_in_exts(monkeypatch):
-    # Arrange
+def test_builtin_extensions_fallback_h5_in_exts(attr_restore):
     # Arrange
     import scitex_io._linter_plugin as mod
     import scitex_io._registry as reg
-    # Clobber the registry tier attrs so the function raises and hits except
-    monkeypatch.setattr(reg, "_builtin_savers", None)
+    attr_restore.set(reg, "_builtin_savers", None)
     # Act
     exts = mod._builtin_extensions()
-    # Act
-    # Assert
     # Assert
     assert ".h5" in exts
 
 
-def test_builtin_extensions_fallback_exts_is_set(monkeypatch):
-    # Arrange
+def test_builtin_extensions_fallback_exts_is_set(attr_restore):
     # Arrange
     import scitex_io._linter_plugin as mod
     import scitex_io._registry as reg
-    # Clobber the registry tier attrs so the function raises and hits except
-    monkeypatch.setattr(reg, "_builtin_savers", None)
+    attr_restore.set(reg, "_builtin_savers", None)
     # Act
     exts = mod._builtin_extensions()
-    # Act
-    # Assert
     # Assert
     assert isinstance(exts, set)
 
 
-def test_builtin_extensions_fallback_png_in_exts(monkeypatch):
-    # Arrange
+def test_builtin_extensions_fallback_png_in_exts(attr_restore):
     # Arrange
     import scitex_io._linter_plugin as mod
     import scitex_io._registry as reg
-    # Clobber the registry tier attrs so the function raises and hits except
-    monkeypatch.setattr(reg, "_builtin_savers", None)
+    attr_restore.set(reg, "_builtin_savers", None)
     # Act
     exts = mod._builtin_extensions()
-    # Act
-    # Assert
     # Assert
     assert ".png" in exts
 

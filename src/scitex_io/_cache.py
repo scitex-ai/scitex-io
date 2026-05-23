@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def cache(id, *args):
+def cache(id, *args, cache_root=None):
     """
     Store or fetch data using a pickle file.
 
@@ -55,7 +55,9 @@ def cache(id, *args):
     >>> var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
     >>> print(var1, var2, var3)
     """
-    cache_dir = Path.home() / ".cache" / "your_app_name"
+    if cache_root is None:
+        cache_root = Path.home()
+    cache_dir = Path(cache_root) / ".cache" / "your_app_name"
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"{id}.pkl"
 

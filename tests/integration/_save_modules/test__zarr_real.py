@@ -57,8 +57,7 @@ class TestSaveZarrDirectoryStore:
         # Assert
         assert int(root["scalar"][()]) == 42
 
-    def test_dict_top_level_s_equals_experiment_01(self, tmp_path):
-        # Arrange
+    def test_dict_top_level_string_round_trips(self, tmp_path):
         # Arrange
         d = {
             "arr": np.array([1, 2, 3, 4]),
@@ -68,21 +67,16 @@ class TestSaveZarrDirectoryStore:
         }
         out = str(tmp_path / "data.zarr")
         _save_zarr(d, out)
-        root = zarr.open(out, mode="r")
         # Act
-        np.testing.assert_array_equal(root["arr"][:], np.array([1, 2, 3, 4]))
-        # Assert
-        assert int(root["scalar"][()]) == 42
+        root = zarr.open(out, mode="r")
         # Strings get stored as numpy arrays — read back as bytes/str.
         s = root["name"][()]
         if isinstance(s, bytes):
             s = s.decode()
-        # Act
         # Assert
         assert s == "experiment-01"
 
-    def test_dict_top_level_bool_root_flag_is_true(self, tmp_path):
-        # Arrange
+    def test_dict_top_level_bool_round_trips_true(self, tmp_path):
         # Arrange
         d = {
             "arr": np.array([1, 2, 3, 4]),
@@ -92,16 +86,8 @@ class TestSaveZarrDirectoryStore:
         }
         out = str(tmp_path / "data.zarr")
         _save_zarr(d, out)
+        # Act
         root = zarr.open(out, mode="r")
-        # Act
-        np.testing.assert_array_equal(root["arr"][:], np.array([1, 2, 3, 4]))
-        # Assert
-        assert int(root["scalar"][()]) == 42
-        # Strings get stored as numpy arrays — read back as bytes/str.
-        s = root["name"][()]
-        if isinstance(s, bytes):
-            s = s.decode()
-        # Act
         # Assert
         assert bool(root["flag"][()]) is True
 
@@ -203,36 +189,35 @@ class TestSaveZarrDirectoryStore:
 
 
 class TestSaveZarrZipStore:
-    def test_zip_store_round_trip(self, tmp_path):
+    def test_zip_store_round_trip_preserves_array(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         out = str(tmp_path / "data.zarr.zip")
         _save_zarr({"x": np.arange(16, dtype=np.int64)}, out)
+        # Act
         # Open the zip store directly to verify.
         store = zarr.storage.ZipStore(out, mode="r")
         try:
             root = zarr.open(store, mode="r")
-            np.testing.assert_array_equal(root["x"][:], np.arange(16))
+            result = root["x"][:]
         finally:
             store.close()
+        # Assert
+        assert np.array_equal(result, np.arange(16))
 
-    def test_zip_store_extension_zip(self, tmp_path):
+    def test_zip_store_with_zip_extension_round_trips(self, tmp_path):
         """A bare .zip path also routes to the ZipStore code path."""
         # Arrange
-        # Act
-        # Assert
         out = str(tmp_path / "data.zip")
         _save_zarr({"y": np.arange(5)}, out)
+        # Act
         store = zarr.storage.ZipStore(out, mode="r")
         try:
             root = zarr.open(store, mode="r")
-            np.testing.assert_array_equal(root["y"][:], np.arange(5))
+            result = root["y"][:]
         finally:
             store.close()
+        # Assert
+        assert np.array_equal(result, np.arange(5))
 
 
 class TestSaveZarrEdgeCases:
@@ -261,20 +246,18 @@ class TestSaveZarrEdgeCases:
         # Assert
         assert np.array_equal(root["x"][:], np.arange(3))
 
-    def test_explicit_zip_store_type(self, tmp_path):
+    def test_explicit_zip_store_type_routes_to_zipstore(self, tmp_path):
+        # Arrange
         # When store_type=zip is forced, even non-.zip extensions
         # should route to ZipStore.
-        # Arrange
-        # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         out = str(tmp_path / "data.bin")
         _save_zarr({"x": np.arange(3)}, out, store_type="zip")
+        # Act
         store = zarr.storage.ZipStore(out, mode="r")
         try:
             root = zarr.open(store, mode="r")
-            np.testing.assert_array_equal(root["x"][:], np.arange(3))
+            result = root["x"][:]
         finally:
             store.close()
+        # Assert
+        assert np.array_equal(result, np.arange(3))

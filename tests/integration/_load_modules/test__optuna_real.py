@@ -23,25 +23,24 @@ def test_optuna_available_flag():
     assert OPTUNA_AVAILABLE is True
 
 
-def test_load_yaml_categorical(tmp_path):
-    # Arrange
+def test_load_yaml_categorical_suggests_listed_values(tmp_path):
     # Arrange
     cfg = {"opt": {"distribution": "categorical", "values": ["adam", "sgd"]}}
     p = tmp_path / "h.yaml"
     p.write_text(yaml.safe_dump(cfg))
 
+    suggested = []
+
     def objective(trial):
         d = load_yaml_as_an_optuna_dict(str(p), trial)
-        assert d["opt"] in ("adam", "sgd")
+        suggested.append(d["opt"])
         return 1.0
 
     s = optuna.create_study()
     # Act
-    # Act
     s.optimize(objective, n_trials=3)
     # Assert
-    # Assert
-    assert len(s.trials) == 3
+    assert all(v in ("adam", "sgd") for v in suggested) and len(suggested) == 3
 
 
 def test_load_yaml_uniform_log_intlog(tmp_path):
@@ -106,20 +105,15 @@ def test_load_study_rdb_len_loaded_trials_is_3(tmp_path, capsys):
     assert len(loaded.trials) == 3
 
 
-def test_load_study_rdb_loaded_in_out(tmp_path, capsys):
-    # Arrange
+def test_load_study_rdb_prints_loaded_message(tmp_path, capsys):
     # Arrange
     db_path = tmp_path / "x.db"
     url = f"sqlite:///{db_path}"
     s = optuna.create_study(study_name="t", storage=url)
     s.optimize(lambda t: t.suggest_float("x", -1, 1) ** 2, n_trials=3)
     # Act
-    loaded = load_study_rdb("t", url)
-    # Assert
-    assert loaded.study_name == "t"
-    assert len(loaded.trials) == 3
+    load_study_rdb("t", url)
     out = capsys.readouterr().out
-    # Act
     # Assert
     assert "Loaded" in out
 

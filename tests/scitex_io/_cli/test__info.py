@@ -14,196 +14,150 @@ def runner():
 
 
 class TestShowInfo:
-    def test_default_res_exit_code_equals_n_0(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(show_info, [])
-        # Act
-        # Assert
-        # Assert
-        assert res.exit_code == 0, res.output
+    @pytest.fixture
+    def default_res(self, runner):
+        return runner.invoke(show_info, [])
 
-    def test_default_format_registry_in_res_output(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(show_info, [])
-        # Act
-        # Assert
-        # Assert
-        assert "Format Registry" in res.output
+    @pytest.fixture
+    def help_res(self, runner):
+        return runner.invoke(show_info, ["--help"])
 
-    def test_default_save_in_res_output(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(show_info, [])
-        # Act
-        # Assert
-        # Assert
-        assert "Save:" in res.output
+    @pytest.fixture
+    def verbose_v_res(self, runner):
+        return runner.invoke(show_info, ["-v"])
 
-    def test_default_load_in_res_output(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(show_info, [])
-        # Act
-        # Assert
-        # Assert
-        assert "Load:" in res.output
+    @pytest.fixture
+    def verbose_vv_res(self, runner):
+        return runner.invoke(show_info, ["-vv"])
 
+    @pytest.fixture
+    def json_res(self, runner):
+        return runner.invoke(show_info, ["--json"])
 
-    def test_help_res_exit_code_equals_n_0(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(show_info, ["--help"])
-        # Act
-        # Assert
-        # Assert
-        assert res.exit_code == 0
+    @pytest.fixture
+    def json_payload(self, json_res):
+        return json.loads(json_res.output)
 
-    def test_help_usage_in_res_output(self, runner):
-        # Arrange
+    def test_default_run_exits_with_zero_status(self, default_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["--help"])
-        # Act
         # Assert
-        # Assert
-        assert "Usage:" in res.output
+        assert default_res.exit_code == 0, default_res.output
 
-    def test_help_registered_i_o_formats_in_res_output(self, runner):
-        # Arrange
+    def test_default_run_shows_format_registry_header(self, default_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["--help"])
-        # Act
         # Assert
-        # Assert
-        assert "registered I/O formats" in res.output
+        assert "Format Registry" in default_res.output
 
+    def test_default_run_shows_save_section(self, default_res):
+        # Arrange
+        # Act
+        # Assert
+        assert "Save:" in default_res.output
 
-    def test_verbose_v_res_exit_code_equals_n_0(self, runner):
-        # Arrange
+    def test_default_run_shows_load_section(self, default_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["-v"])
-        # Act
         # Assert
-        # Assert
-        assert res.exit_code == 0
+        assert "Load:" in default_res.output
 
-    def test_verbose_v_built_in_in_res_output(self, runner):
-        # Arrange
+    def test_help_flag_exits_with_zero_status(self, help_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["-v"])
-        # Act
         # Assert
-        # Assert
-        assert "Built-in:" in res.output
+        assert help_res.exit_code == 0
 
+    def test_help_output_contains_usage_line(self, help_res):
+        # Arrange
+        # Act
+        # Assert
+        assert "Usage:" in help_res.output
 
-    def test_verbose_vv_res_exit_code_equals_n_0(self, runner):
-        # Arrange
+    def test_help_output_describes_io_formats(self, help_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["-vv"])
-        # Act
         # Assert
-        # Assert
-        assert res.exit_code == 0
+        assert "registered I/O formats" in help_res.output
 
-    def test_verbose_vv_built_in_in_res_output(self, runner):
-        # Arrange
+    def test_verbose_v_exits_with_zero_status(self, verbose_v_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["-vv"])
-        # Act
         # Assert
-        # Assert
-        assert "Built-in:" in res.output
+        assert verbose_v_res.exit_code == 0
 
+    def test_verbose_v_shows_builtin_section(self, verbose_v_res):
+        # Arrange
+        # Act
+        # Assert
+        assert "Built-in:" in verbose_v_res.output
 
-    def test_json_res_exit_code_equals_n_0(self, runner):
-        # Arrange
+    def test_verbose_vv_exits_with_zero_status(self, verbose_vv_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["--json"])
-        # Act
         # Assert
-        # Assert
-        assert res.exit_code == 0
+        assert verbose_vv_res.exit_code == 0
 
-    def test_json_save_in_payload_and_load_in_payload(self, runner):
-        # Arrange
+    def test_verbose_vv_shows_builtin_section(self, verbose_vv_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["--json"])
         # Assert
-        assert res.exit_code == 0
-        payload = json.loads(res.output)
-        # Act
-        # Assert
-        assert "save" in payload and "load" in payload
+        assert "Built-in:" in verbose_vv_res.output
 
-    def test_json_builtin_in_payload_save(self, runner):
-        # Arrange
+    def test_json_flag_exits_with_zero_status(self, json_res):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["--json"])
         # Assert
-        assert res.exit_code == 0
-        payload = json.loads(res.output)
-        # Act
-        # Assert
-        assert "builtin" in payload["save"]
+        assert json_res.exit_code == 0
 
-    def test_json_isinstance_payload_save_builtin_list(self, runner):
-        # Arrange
+    def test_json_payload_has_save_key(self, json_payload):
         # Arrange
         # Act
-        res = runner.invoke(show_info, ["--json"])
         # Assert
-        assert res.exit_code == 0
-        payload = json.loads(res.output)
-        # Act
-        # Assert
-        assert isinstance(payload["save"]["builtin"], list)
+        assert "save" in json_payload
 
+    def test_json_payload_has_load_key(self, json_payload):
+        # Arrange
+        # Act
+        # Assert
+        assert "load" in json_payload
+
+    def test_json_payload_save_has_builtin_key(self, json_payload):
+        # Arrange
+        # Act
+        # Assert
+        assert "builtin" in json_payload["save"]
+
+    def test_json_payload_save_builtin_is_list(self, json_payload):
+        # Arrange
+        # Act
+        # Assert
+        assert isinstance(json_payload["save"]["builtin"], list)
 
 
 class TestInfoDeprecated:
-    def test_exit_2_with_message_res_exit_code_equals_n_2(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(info_deprecated, [])
-        # Act
-        # Assert
-        # Assert
-        assert res.exit_code == 2
+    @pytest.fixture
+    def default_res(self, runner):
+        return runner.invoke(info_deprecated, [])
 
-    def test_exit_2_with_message_show_info_in_res_output(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(info_deprecated, [])
-        # Act
-        # Assert
-        # Assert
-        assert "show-info" in res.output
+    @pytest.fixture
+    def bogus_args_res(self, runner):
+        return runner.invoke(info_deprecated, ["--bogus", "arg"])
 
+    def test_default_invoke_exits_with_status_2(self, default_res):
+        # Arrange
+        # Act
+        # Assert
+        assert default_res.exit_code == 2
 
-    def test_ignores_unknown_options(self, runner):
+    def test_default_invoke_mentions_show_info_replacement(self, default_res):
         # Arrange
         # Act
+        # Assert
+        assert "show-info" in default_res.output
+
+    def test_unknown_options_still_exits_with_status_2(self, bogus_args_res):
         # Arrange
         # Act
-        res = runner.invoke(info_deprecated, ["--bogus", "arg"])
         # Assert
-        # Assert
-        assert res.exit_code == 2
+        assert bogus_args_res.exit_code == 2

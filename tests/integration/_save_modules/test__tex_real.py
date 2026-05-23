@@ -325,84 +325,94 @@ def test_wrap_in_document_contains_packages_x_in_out():
 
 
 
-def test_save_tex_dict_with_convert_results_available_tabular_in_out(tmp_path, monkeypatch):
-    # Arrange
-    # Arrange
+def _install_fake_scitex_stats(convert_results):
+    """Install a hand-rolled fake scitex_stats into sys.modules.
+
+    Returns a (snapshot, fake_modules) tuple; pass them to
+    ``_restore_scitex_stats`` to roll back.
+    """
     import sys
     import types
+
     fake_pkg = types.ModuleType("scitex_stats")
     fake_utils = types.ModuleType("scitex_stats._utils")
     fake_norm = types.ModuleType("scitex_stats._utils._normalizers")
-    def convert_results(obj, return_as="latex", **kw):
-        return r"\begin{tabular}{ll}a & 1\end{tabular}"
     fake_norm.convert_results = convert_results
     fake_utils._normalizers = fake_norm
     fake_pkg._utils = fake_utils
-    monkeypatch.setitem(sys.modules, "scitex_stats", fake_pkg)
-    monkeypatch.setitem(sys.modules, "scitex_stats._utils", fake_utils)
-    monkeypatch.setitem(sys.modules, "scitex_stats._utils._normalizers", fake_norm)
-    p = str(tmp_path / "dict.tex")
-    save_tex({"a": 1}, p, caption="Cap", label="Lab")
-    # Act
-    out = _read(p)
-    # Act
-    # Assert
+
+    keys = (
+        "scitex_stats",
+        "scitex_stats._utils",
+        "scitex_stats._utils._normalizers",
+    )
+    snapshot = {k: sys.modules.get(k) for k in keys}
+    sys.modules["scitex_stats"] = fake_pkg
+    sys.modules["scitex_stats._utils"] = fake_utils
+    sys.modules["scitex_stats._utils._normalizers"] = fake_norm
+    return snapshot
+
+
+def _restore_scitex_stats(snapshot):
+    import sys
+
+    for k, v in snapshot.items():
+        if v is None:
+            sys.modules.pop(k, None)
+        else:
+            sys.modules[k] = v
+
+
+def test_save_tex_dict_with_convert_results_emits_tabular(tmp_path):
+    # Arrange
+    def convert_results(obj, return_as="latex", **kw):
+        return r"\begin{tabular}{ll}a & 1\end{tabular}"
+
+    snapshot = _install_fake_scitex_stats(convert_results)
+    try:
+        p = str(tmp_path / "dict.tex")
+        save_tex({"a": 1}, p, caption="Cap", label="Lab")
+        # Act
+        out = _read(p)
+    finally:
+        _restore_scitex_stats(snapshot)
     # Assert
     assert "tabular" in out
 
 
-def test_save_tex_dict_with_convert_results_available_cap_in_out_and_lab_in_out(tmp_path, monkeypatch):
+def test_save_tex_dict_with_convert_results_includes_caption_and_label(tmp_path):
     # Arrange
-    # Arrange
-    import sys
-    import types
-    fake_pkg = types.ModuleType("scitex_stats")
-    fake_utils = types.ModuleType("scitex_stats._utils")
-    fake_norm = types.ModuleType("scitex_stats._utils._normalizers")
     def convert_results(obj, return_as="latex", **kw):
         return r"\begin{tabular}{ll}a & 1\end{tabular}"
-    fake_norm.convert_results = convert_results
-    fake_utils._normalizers = fake_norm
-    fake_pkg._utils = fake_utils
-    monkeypatch.setitem(sys.modules, "scitex_stats", fake_pkg)
-    monkeypatch.setitem(sys.modules, "scitex_stats._utils", fake_utils)
-    monkeypatch.setitem(sys.modules, "scitex_stats._utils._normalizers", fake_norm)
-    p = str(tmp_path / "dict.tex")
-    save_tex({"a": 1}, p, caption="Cap", label="Lab")
-    # Act
-    out = _read(p)
-    # Act
-    # Assert
+
+    snapshot = _install_fake_scitex_stats(convert_results)
+    try:
+        p = str(tmp_path / "dict.tex")
+        save_tex({"a": 1}, p, caption="Cap", label="Lab")
+        # Act
+        out = _read(p)
+    finally:
+        _restore_scitex_stats(snapshot)
     # Assert
     assert "Cap" in out and "Lab" in out
 
 
 
 
-def test_save_tex_dict_convert_results_failure_falls_back(tmp_path, monkeypatch):
+def test_save_tex_dict_convert_results_failure_falls_back_to_str(tmp_path):
     """convert_results raising a non-ImportError → fallback to str()."""
     # Arrange
-    import sys
-    import types
-
-    fake_pkg = types.ModuleType("scitex_stats")
-    fake_utils = types.ModuleType("scitex_stats._utils")
-    fake_norm = types.ModuleType("scitex_stats._utils._normalizers")
-
     def convert_results(obj, return_as="latex", **kw):
         raise RuntimeError("simulated failure")
 
-    fake_norm.convert_results = convert_results
-    fake_utils._normalizers = fake_norm
-    fake_pkg._utils = fake_utils
-    monkeypatch.setitem(sys.modules, "scitex_stats", fake_pkg)
-    monkeypatch.setitem(sys.modules, "scitex_stats._utils", fake_utils)
-    monkeypatch.setitem(sys.modules, "scitex_stats._utils._normalizers", fake_norm)
-
-    p = str(tmp_path / "fb.tex")
-    save_tex({"a": 1}, p)
-    # Act
-    out = _read(p)
+    snapshot = _install_fake_scitex_stats(convert_results)
+    try:
+        p = str(tmp_path / "fb.tex")
+        save_tex({"a": 1}, p)
+        # Act
+        out = _read(p)
+    finally:
+        _restore_scitex_stats(snapshot)
     # Fallback writes str(obj) — contains the dict repr.
     # Assert
     assert "'a'" in out or "a" in out

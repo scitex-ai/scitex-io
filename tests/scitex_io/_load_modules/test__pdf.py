@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Real-PDF tests for the PDF load pipeline.
 
-from __future__ import annotations
 We use real PDFs (built with matplotlib + pypdf) and avoid mocks so that
 the actual source code paths in ``_pdf``, ``_pdf_text_extractors`` and
 ``_pdf_content_extractors`` are exercised end-to-end.
@@ -11,6 +10,7 @@ Note: fitz (PyMuPDF) and pdfplumber are intentionally not installed in
 this venv. The pypdf-backed paths are the ones meant to be reachable
 here. We do NOT use ``pytest.importorskip`` to dodge code paths.
 """
+from __future__ import annotations
 
 import os
 from pathlib import Path
@@ -106,23 +106,17 @@ def malformed_pdf(tmp_path):
 # load_pdf alias / public entry
 # ---------------------------------------------------------------------------
 class TestLoadPdfAlias:
-    def test_alias_dispatches_to_load_pdf_out_is_str(self, single_page_pdf):
-        # Arrange
+    def test_alias_dispatches_to_load_pdf_returns_string(self, single_page_pdf):
         # Arrange
         # Act
         out = load_pdf(str(single_page_pdf), mode="text", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert isinstance(out, str)
 
-    def test_alias_dispatches_to_load_pdf_hello_in_out(self, single_page_pdf):
-        # Arrange
+    def test_alias_dispatches_to_load_pdf_contains_hello(self, single_page_pdf):
         # Arrange
         # Act
         out = load_pdf(str(single_page_pdf), mode="text", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert "Hello" in out
 
@@ -131,277 +125,191 @@ class TestLoadPdfAlias:
 # _load_pdf: dispatch + validation
 # ---------------------------------------------------------------------------
 class TestLoadPdfDispatch:
-    def test_missing_file_raises(self, tmp_path):
+    def test_missing_file_raises_filenotfounderror(self, tmp_path):
         # Arrange
         # Act
+        ctx = pytest.raises(FileNotFoundError, match="PDF file not found")
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        with pytest.raises(FileNotFoundError, match="PDF file not found"):
+        with ctx:
             _load_pdf(str(tmp_path / "missing.pdf"))
 
-    def test_invalid_mode_raises(self, single_page_pdf):
+    def test_invalid_mode_raises_valueerror(self, single_page_pdf):
         # Arrange
         # Act
+        ctx = pytest.raises(ValueError, match="Unknown extraction mode")
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        with pytest.raises(ValueError, match="Unknown extraction mode"):
+        with ctx:
             _load_pdf(str(single_page_pdf), mode="bogus", backend="pypdf2")
 
-    def test_mode_text_out_is_str(self, single_page_pdf):
-        # Arrange
-        # Act
+    def test_mode_text_returns_string(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="text", backend="pypdf2")
         # Assert
-        # Assert
-        assert isinstance(out, str) and "Hello" in out
+        assert isinstance(out, str)
 
-    def test_mode_sections_out_is_dict(self, scientific_pdf):
+    def test_mode_text_contains_hello(self, single_page_pdf):
         # Arrange
+        # Act
+        out = _load_pdf(str(single_page_pdf), mode="text", backend="pypdf2")
+        # Assert
+        assert "Hello" in out
+
+    def test_mode_sections_returns_dict(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="sections", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert isinstance(out, dict)
 
-    def test_mode_sections_frontpage_in_out(self, scientific_pdf):
-        # Arrange
+    def test_mode_sections_has_frontpage(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="sections", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert "frontpage" in out
 
-    def test_mode_metadata_out_is_dict(self, single_page_pdf):
-        # Arrange
+    def test_mode_metadata_returns_dict(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="metadata", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert isinstance(out, dict)
 
-    def test_mode_metadata_out_file_name_single_pdf(self, single_page_pdf):
-        # Arrange
+    def test_mode_metadata_file_name_is_single_pdf(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="metadata", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["file_name"] == "single.pdf"
 
-    def test_mode_metadata_out_pages_1(self, single_page_pdf):
-        # Arrange
+    def test_mode_metadata_pages_is_1(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="metadata", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["pages"] == 1
 
-    def test_mode_metadata_md5_hash_in_out_and_len_out_md5_hash_32(
-        self, single_page_pdf
-    ):
-        # Arrange
+    def test_mode_metadata_md5_hash_length_is_32(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="metadata", backend="pypdf2")
-        # Act
         # Assert
-        # Assert
-        assert "md5_hash" in out and len(out["md5_hash"]) == 32
+        assert len(out["md5_hash"]) == 32
 
-    def test_mode_metadata_out_backend_pypdf2(self, single_page_pdf):
-        # Arrange
+    def test_mode_metadata_backend_is_pypdf2(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="metadata", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["backend"] == "pypdf2"
 
-    def test_mode_pages_out_is_list(self, scientific_pdf):
-        # Arrange
+    def test_mode_pages_returns_list(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="pages", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert isinstance(out, list)
 
-    def test_mode_pages_len_out_is_5(self, scientific_pdf):
-        # Arrange
+    def test_mode_pages_returns_5_items(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="pages", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert len(out) == 5
 
-    def test_mode_full_pypdf2_out_filename_paper_pdf(self, scientific_pdf):
-        # Arrange
+    def test_mode_full_filename_is_paper_pdf(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["filename"] == "paper.pdf"
 
-    def test_mode_full_pypdf2_out_backend_pypdf2(self, scientific_pdf):
-        # Arrange
+    def test_mode_full_backend_is_pypdf2(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["backend"] == "pypdf2"
 
-    def test_mode_full_pypdf2_full_text_in_out(self, scientific_pdf):
-        # Arrange
+    def test_mode_full_has_full_text_key(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert "full_text" in out
 
-    def test_mode_full_pypdf2_pages_in_out_and_len_out_pages_5(self, scientific_pdf):
-        # Arrange
+    def test_mode_full_pages_length_is_5(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # Act
         # Assert
-        # Assert
-        assert "pages" in out and len(out["pages"]) == 5
+        assert len(out["pages"]) == 5
 
-    def test_mode_full_pypdf2_stats_in_out(self, scientific_pdf):
-        # Arrange
+    def test_mode_full_has_stats_key(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert "stats" in out
 
-    def test_mode_full_pypdf2_stats_total_pages_5(self, scientific_pdf):
-        # Arrange
-        # Arrange
-        # Act
-        out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # DotDict allows dict-style access
-        # Assert
-        assert out["filename"] == "paper.pdf"
-        assert out["backend"] == "pypdf2"
-        assert "full_text" in out
-        assert "pages" in out and len(out["pages"]) == 5
-        assert "stats" in out
-        stats = out["stats"]
-        # Act
-        # Assert
-        assert stats["total_pages"] == 5
-
-    def test_mode_full_pypdf2_stats_avg_words_per_page_0(self, scientific_pdf):
-        # Arrange
+    def test_mode_full_stats_total_pages_is_5(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # DotDict allows dict-style access
         # Assert
-        assert out["filename"] == "paper.pdf"
-        assert out["backend"] == "pypdf2"
-        assert "full_text" in out
-        assert "pages" in out and len(out["pages"]) == 5
-        assert "stats" in out
-        stats = out["stats"]
-        # Act
-        # Assert
-        assert stats["avg_words_per_page"] >= 0
+        assert out["stats"]["total_pages"] == 5
 
-    def test_mode_scientific_out_extraction_mode_scientific(self, scientific_pdf):
+    def test_mode_full_stats_avg_words_per_page_non_negative(self, scientific_pdf):
         # Arrange
+        # Act
+        out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
+        # Assert
+        assert out["stats"]["avg_words_per_page"] >= 0
+
+    def test_mode_scientific_extraction_mode_is_scientific(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["extraction_mode"] == "scientific"
 
-    def test_mode_scientific_text_in_out_and_sections_in_out_and_metadata_in_out(
-        self, scientific_pdf
-    ):
-        # Arrange
+    def test_mode_scientific_has_text_key(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific", backend="pypdf2")
-        # Act
         # Assert
-        # Assert
-        assert "text" in out and "sections" in out and "metadata" in out
+        assert "text" in out
 
-    def test_mode_scientific_out_tables(self, scientific_pdf):
-        # Arrange
+    def test_mode_scientific_tables_is_empty_dict(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["tables"] == {}
 
-    def test_mode_scientific_out_images(self, scientific_pdf):
-        # Arrange
+    def test_mode_scientific_images_is_empty_list(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert out["images"] == []
 
-    def test_mode_scientific_stats_in_out(self, scientific_pdf):
-        # Arrange
+    def test_mode_scientific_has_stats_key(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific", backend="pypdf2")
-        # Act
-        # Assert
         # Assert
         assert "stats" in out
 
-    def test_mode_tables_out_is_dict(self, single_page_pdf):
-        # Arrange
-        # Act
+    def test_mode_tables_returns_dict(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), mode="tables")
         # Assert
-        # Assert
         assert isinstance(out, dict)
 
-    def test_mode_images_out_is_list(self, single_page_pdf, tmp_path):
-        # Arrange
-        # Act
+    def test_mode_images_returns_list(self, single_page_pdf, tmp_path):
         # Arrange
         # Act
         out = _load_pdf(
@@ -410,39 +318,37 @@ class TestLoadPdfDispatch:
             output_dir=str(tmp_path / "imgs"),
         )
         # Assert
-        # Assert
         assert isinstance(out, list)
 
-    def test_mode_tables_no_pdfplumber_raises(self, single_page_pdf, monkeypatch):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import _pdf_content_extractors as ce
-
-        # Act
-        # Act
-        monkeypatch.setattr(ce, "PDFPLUMBER_AVAILABLE", False)
-        # Assert
-        # Assert
-        with pytest.raises(ImportError, match="pdfplumber"):
-            _load_pdf(str(single_page_pdf), mode="tables")
-
-    def test_mode_images_no_fitz_raises(self, single_page_pdf, monkeypatch):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import _pdf_content_extractors as ce
-
-        # Act
-        # Act
-        monkeypatch.setattr(ce, "FITZ_AVAILABLE", False)
-        # Assert
-        # Assert
-        with pytest.raises(ImportError, match="PyMuPDF"):
-            _load_pdf(str(single_page_pdf), mode="images")
-
-    def test_mode_full_with_fitz_extract_images_full_text_in_out(
-        self, scientific_pdf, tmp_path
+    def test_mode_tables_without_pdfplumber_raises_importerror(
+        self, single_page_pdf, attr_restore
     ):
         # Arrange
+        from scitex_io._load_modules import _pdf_content_extractors as ce
+
+        attr_restore.set(ce, "PDFPLUMBER_AVAILABLE", False)
+        # Act
+        ctx = pytest.raises(ImportError, match="pdfplumber")
+        # Assert
+        with ctx:
+            _load_pdf(str(single_page_pdf), mode="tables")
+
+    def test_mode_images_without_fitz_raises_importerror(
+        self, single_page_pdf, attr_restore
+    ):
+        # Arrange
+        from scitex_io._load_modules import _pdf_content_extractors as ce
+
+        attr_restore.set(ce, "FITZ_AVAILABLE", False)
+        # Act
+        ctx = pytest.raises(ImportError, match="PyMuPDF")
+        # Assert
+        with ctx:
+            _load_pdf(str(single_page_pdf), mode="images")
+
+    def test_mode_full_with_fitz_extract_images_has_full_text(
+        self, scientific_pdf, tmp_path
+    ):
         # Arrange
         # Act
         out = _load_pdf(
@@ -452,15 +358,12 @@ class TestLoadPdfDispatch:
             extract_images=True,
             output_dir=str(tmp_path / "fimg"),
         )
-        # Act
-        # Assert
         # Assert
         assert "full_text" in out
 
-    def test_mode_full_with_fitz_extract_images_images_in_out(
+    def test_mode_full_with_fitz_extract_images_has_images_key(
         self, scientific_pdf, tmp_path
     ):
-        # Arrange
         # Arrange
         # Act
         out = _load_pdf(
@@ -470,24 +373,19 @@ class TestLoadPdfDispatch:
             extract_images=True,
             output_dir=str(tmp_path / "fimg"),
         )
-        # Act
-        # Assert
         # Assert
         assert "images" in out
 
-    def test_full_extract_images_error_branch(
-        self, scientific_pdf, tmp_path, monkeypatch
+    def test_full_extract_images_error_returns_empty_image_list(
+        self, scientific_pdf, tmp_path, attr_restore
     ):
-        # Make _extract_images raise to exercise the inner except-clause.
-        # Arrange
         # Arrange
         from scitex_io._load_modules import _pdf as pmod
 
         def boom(*a, **k):
             raise RuntimeError("forced")
 
-        monkeypatch.setattr(pmod, "_extract_images", boom)
-        # Act
+        attr_restore.set(pmod, "_extract_images", boom)
         # Act
         out = _load_pdf(
             str(scientific_pdf),
@@ -496,109 +394,95 @@ class TestLoadPdfDispatch:
             extract_images=True,
             output_dir=str(tmp_path / "fimg2"),
         )
-        # The inner except in _extract_full assigns result["images"] = []
-        # Assert
         # Assert
         assert out.get("images") == []
 
-    def test_full_tables_error_branch(self, scientific_pdf, monkeypatch):
-        # Arrange
+    def test_full_tables_error_returns_empty_tables_dict(
+        self, scientific_pdf, attr_restore
+    ):
         # Arrange
         from scitex_io._load_modules import _pdf as pmod
 
         def boom(*a, **k):
             raise RuntimeError("forced")
 
-        monkeypatch.setattr(pmod, "_extract_tables", boom)
-        # Act
+        attr_restore.set(pmod, "_extract_tables", boom)
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="fitz")
         # Assert
-        # Assert
         assert out.get("tables") == {}
 
-    def test_scientific_tables_error_branch(self, scientific_pdf, monkeypatch):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import _pdf as pmod
-
-        def boom(*a, **k):
-            raise RuntimeError("forced")
-
-        monkeypatch.setattr(pmod, "_extract_tables", boom)
-        # Act
-        # Act
-        out = _load_pdf(str(scientific_pdf), mode="scientific")
-        # Assert
-        # Assert
-        assert out["tables"] == {}
-
-    def test_scientific_images_error_branch(self, scientific_pdf, monkeypatch):
-        # Arrange
+    def test_scientific_tables_error_returns_empty_tables_dict(
+        self, scientific_pdf, attr_restore
+    ):
         # Arrange
         from scitex_io._load_modules import _pdf as pmod
 
         def boom(*a, **k):
             raise RuntimeError("forced")
 
-        monkeypatch.setattr(pmod, "_extract_images", boom)
-        # Act
-        # Act
-        out = _load_pdf(str(scientific_pdf), mode="scientific")
-        # Assert
-        # Assert
-        assert out["images"] == []
-
-    def test_scientific_tables_unavailable_branch(self, scientific_pdf, monkeypatch):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import _pdf as pmod
-
-        monkeypatch.setattr(pmod, "PDFPLUMBER_AVAILABLE", False)
-        # Act
+        attr_restore.set(pmod, "_extract_tables", boom)
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific")
-        # Assert
         # Assert
         assert out["tables"] == {}
 
-    def test_scientific_images_unavailable_branch(self, scientific_pdf, monkeypatch):
-        # Arrange
+    def test_scientific_images_error_returns_empty_images_list(
+        self, scientific_pdf, attr_restore
+    ):
         # Arrange
         from scitex_io._load_modules import _pdf as pmod
 
-        monkeypatch.setattr(pmod, "FITZ_AVAILABLE", False)
-        # Act
+        def boom(*a, **k):
+            raise RuntimeError("forced")
+
+        attr_restore.set(pmod, "_extract_images", boom)
         # Act
         out = _load_pdf(str(scientific_pdf), mode="scientific")
         # Assert
+        assert out["images"] == []
+
+    def test_scientific_tables_unavailable_returns_empty_dict(
+        self, scientific_pdf, attr_restore
+    ):
+        # Arrange
+        from scitex_io._load_modules import _pdf as pmod
+
+        attr_restore.set(pmod, "PDFPLUMBER_AVAILABLE", False)
+        # Act
+        out = _load_pdf(str(scientific_pdf), mode="scientific")
+        # Assert
+        assert out["tables"] == {}
+
+    def test_scientific_images_unavailable_returns_empty_list(
+        self, scientific_pdf, attr_restore
+    ):
+        # Arrange
+        from scitex_io._load_modules import _pdf as pmod
+
+        attr_restore.set(pmod, "FITZ_AVAILABLE", False)
+        # Act
+        out = _load_pdf(str(scientific_pdf), mode="scientific")
         # Assert
         assert out["images"] == []
 
-    def test_kwargs_mode_override(self, single_page_pdf):
-        """Passing mode as a kwarg also works."""
+    def test_kwargs_mode_override_returns_string(self, single_page_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(single_page_pdf), backend="pypdf2", mode="text")
         # Assert
         assert isinstance(out, str)
 
-    def test_output_dir_autocreated_for_full(self, scientific_pdf):
-        # Arrange
-        # Act
+    def test_output_dir_autocreated_for_full_returns_full_text(self, scientific_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(scientific_pdf), mode="full", backend="pypdf2")
-        # No explicit error and we have results
-        # Assert
         # Assert
         assert "full_text" in out
 
-    def test_explicit_output_dir(self, scientific_pdf, tmp_path):
-        # Arrange
+    def test_explicit_output_dir_returns_full_text(self, scientific_pdf, tmp_path):
         # Arrange
         odir = tmp_path / "imgs"
-        # Act
         # Act
         out = _load_pdf(
             str(scientific_pdf),
@@ -606,7 +490,6 @@ class TestLoadPdfDispatch:
             backend="pypdf2",
             output_dir=str(odir),
         )
-        # Assert
         # Assert
         assert "full_text" in out
 
@@ -616,46 +499,37 @@ class TestLoadPdfDispatch:
 # extractor exception handling.
 # ---------------------------------------------------------------------------
 class TestErrorPaths:
-    def test_encrypted_pdf_text_extraction_raises(self, encrypted_pdf):
+    def test_encrypted_pdf_text_extraction_raises_decryption_error(
+        self, encrypted_pdf
+    ):
         # Arrange
-        # Act
-        # Arrange
-        # Act
         from pypdf.errors import FileNotDecryptedError
 
+        # Act
+        ctx = pytest.raises(FileNotDecryptedError)
         # Assert
-        # Assert
-        with pytest.raises(FileNotDecryptedError):
+        with ctx:
             _load_pdf(str(encrypted_pdf), mode="text", backend="pypdf2")
 
-    def test_malformed_pdf_text_extraction_raises(self, malformed_pdf):
+    def test_malformed_pdf_text_extraction_raises_exception(self, malformed_pdf):
         # Arrange
         # Act
+        ctx = pytest.raises(Exception)
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        with pytest.raises(Exception):
+        with ctx:
             _load_pdf(str(malformed_pdf), mode="text", backend="pypdf2")
 
-    def test_scientific_catches_error_branch(self, malformed_pdf):
-        # Scientific mode swallows the inner error and writes it to result["error"].
-        # Arrange
-        # Act
+    def test_scientific_catches_error_branch_returns_error_key(self, malformed_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(malformed_pdf), mode="scientific", backend="pypdf2")
         # Assert
-        # Assert
         assert "error" in out
 
-    def test_full_catches_error_branch(self, malformed_pdf):
-        # Arrange
-        # Act
+    def test_full_catches_error_branch_returns_error_key(self, malformed_pdf):
         # Arrange
         # Act
         out = _load_pdf(str(malformed_pdf), mode="full", backend="pypdf2")
-        # Assert
         # Assert
         assert "error" in out
 
@@ -664,36 +538,35 @@ class TestErrorPaths:
 # Docstring / signature sanity (cheap)
 # ---------------------------------------------------------------------------
 class TestSignature:
-    def test_has_docstring_load_pdf_doc_and_pdf_in_load_pdf_doc(self):
+    def test_load_pdf_has_docstring(self):
         # Arrange
         # Act
+        doc = _load_pdf.__doc__
         # Assert
-        # Arrange
-        # Act
-        # Assert
-        assert _load_pdf.__doc__ and "PDF" in _load_pdf.__doc__
+        assert doc is not None
 
-    def test_signature_params_lpath_in_sig_parameters(self):
+    def test_load_pdf_docstring_mentions_pdf(self):
         # Arrange
+        # Act
+        doc = _load_pdf.__doc__
+        # Assert
+        assert "PDF" in doc
+
+    def test_signature_has_lpath_parameter(self):
         # Arrange
         import inspect
 
         # Act
         sig = inspect.signature(_load_pdf)
-        # Act
-        # Assert
         # Assert
         assert "lpath" in sig.parameters
 
-    def test_signature_params_sig_parameters_mode_default_full(self):
-        # Arrange
+    def test_signature_mode_default_is_full(self):
         # Arrange
         import inspect
 
         # Act
         sig = inspect.signature(_load_pdf)
-        # Act
-        # Assert
         # Assert
         assert sig.parameters["mode"].default == "full"
 

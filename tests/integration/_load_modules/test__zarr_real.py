@@ -38,17 +38,12 @@ def test_load_zarr_directory_store_out_is_dict(tmp_path):
     assert isinstance(out, dict)
 
 
-def test_load_zarr_directory_store_out_attr_title_demo(tmp_path):
-    # Arrange
+def test_load_zarr_directory_store_includes_attribute_keys(tmp_path):
     # Arrange
     p = tmp_path / "a.zarr"
     _create_directory_store(p)
     # Act
     out = _load_zarr(str(p))
-    # Assert
-    assert isinstance(out, dict)
-    np.testing.assert_array_equal(out["x"], np.arange(5))
-    # Act
     # Assert
     assert out["_attr_title"] == "demo"
 
@@ -156,8 +151,7 @@ def test_load_zarr_nested_group_recurses_inner_in_out_outer(tmp_path):
     assert "inner" in out["outer"]
 
 
-def test_load_zarr_nested_group_recurses_out_outer_attr_k_7(tmp_path):
-    # Arrange
+def test_load_zarr_nested_group_preserves_outer_attribute(tmp_path):
     # Arrange
     p = tmp_path / "e.zarr"
     root = zarr.open(str(p), mode="w")
@@ -168,11 +162,6 @@ def test_load_zarr_nested_group_recurses_out_outer_attr_k_7(tmp_path):
     a[:] = np.array([100, 200])
     # Act
     out = _load_zarr(str(p))
-    # Assert
-    assert "outer" in out
-    assert "inner" in out["outer"]
-    np.testing.assert_array_equal(out["outer"]["inner"]["leaf"], [100, 200])
-    # Act
     # Assert
     assert out["outer"]["_attr_k"] == 7
 

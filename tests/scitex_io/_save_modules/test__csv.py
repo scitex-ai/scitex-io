@@ -2,6 +2,8 @@
 """Real-coverage tests for scitex_io._save_modules._csv._save_csv."""
 
 from __future__ import annotations
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -184,45 +186,39 @@ def test_kwargs_index_default(tmp_path):
     assert not txt.startswith(",")
 
 
-def test_hash_skip_when_identical(tmp_path):
+def test_hash_skip_when_identical_keeps_file_contents(tmp_path):
     # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
     p = str(tmp_path / "skip.csv")
     df = pd.DataFrame({"a": [1, 2]})
     _save_csv(df, p)
-    mtime1 = (tmp_path / "skip.csv").stat().st_mtime_ns
-    # Save again with identical content → hash matches → return without rewrite
-    _save_csv(df, p)
-    # No exception is the main check; second call exercises hash-match path
+    # Act
+    _save_csv(df, p)  # identical content → hash matches → no rewrite path
+    # Assert
+    back = pd.read_csv(p)
+    assert list(back["a"]) == [1, 2]
 
 
-def test_hash_skip_ndarray(tmp_path):
+def test_hash_skip_ndarray_keeps_file_contents(tmp_path):
     # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
     p = str(tmp_path / "arr.csv")
     arr = np.array([[1, 2], [3, 4]])
     _save_csv(arr, p)
+    # Act
     _save_csv(arr, p)  # second call hits the hash-skip branch
+    # Assert
+    back = pd.read_csv(p)
+    assert back.shape == (2, 2)
 
 
-def test_hash_skip_other(tmp_path):
+def test_hash_skip_other_keeps_file_contents(tmp_path):
     # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
     p = str(tmp_path / "other.csv")
     _save_csv(42, p)
+    # Act
     _save_csv(42, p)  # exercise non-(df/ndarray) hash path
+    # Assert
+    back = pd.read_csv(p)
+    assert back.iloc[0, 0] == 42
 
 
 def test_existing_corrupt_proceeds(tmp_path):
@@ -238,12 +234,10 @@ def test_existing_corrupt_proceeds(tmp_path):
     assert list(back["a"]) == [1, 2]
 
 
-def test_hash_unhashable_obj(tmp_path):
+def test_hash_unhashable_obj_does_not_corrupt_file(tmp_path):
     """Existing file + obj whose str(obj) raises → exception swallowed."""
 
     # Arrange
-    # Act
-    # Assert
     class Boom:
         def __str__(self):
             raise RuntimeError("unstringable")
@@ -254,12 +248,15 @@ def test_hash_unhashable_obj(tmp_path):
     p = str(tmp_path / "u.csv")
     # Pre-create file so existence check runs
     open(p, "w").write("a\n1\n")
-    # Should NOT raise — exception in hash path is swallowed
+    # Act
     try:
         _save_csv(Boom(), p)
     except ValueError:
         # Acceptable: Boom doesn't fit any branch and final fallback fails
         pass
+    # Assert
+    # File must still exist (hash-path failure is swallowed, not catastrophic).
+    assert os.path.exists(p)
 
 
 # === merged from test__small_handlers.py ===
@@ -291,18 +288,15 @@ from scitex_io._save_modules._yaml import _convert_paths_to_strings, _save_yaml
 
 
 class TestSaveCsv:
-    def test_dataframe_calls_dataframe(self, tmp_path):
+    def test_dataframe_roundtrip_preserves_values(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         out = tmp_path / "df.csv"
         df = pd.DataFrame({"x": [1, 2, 3], "y": [0.5, 1.5, 2.5]})
         _save_csv(df, str(out))
+        # Act
         back = pd.read_csv(out)
-        pd.testing.assert_frame_equal(back, df)
+        # Assert
+        assert back.equals(df)
 
     def test_dict_of_lists_list_back_columns_a_b(self, tmp_path):
         # Arrange

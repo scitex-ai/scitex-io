@@ -138,15 +138,11 @@ def test_touch_creates_file_not_p_exists(tmp_path):
     assert not p.exists()
 
 
-def test_touch_creates_file_p_exists(tmp_path):
+def test_touch_creates_file_p_exists_after_call(tmp_path):
     # Arrange
-    # Arrange
-    # Act
     p = tmp_path / "new.txt"
-    # Assert
-    assert not p.exists()
-    touch(str(p))
     # Act
+    touch(str(p))
     # Assert
     assert p.exists()
 
@@ -328,57 +324,60 @@ def _git_available():
         return False
 
 
-def test_find_the_git_root_dir_returns_a_path_root_is_not_none(tmp_path, monkeypatch):
+_GIT_AVAILABLE = _git_available()
+
+
+@pytest.mark.skipif(not _GIT_AVAILABLE, reason="GitPython not installed")
+def test_find_the_git_root_dir_returns_non_none_path():
     # Arrange
-    # Arrange
-    if not _git_available():
-        # Function imports `git` lazily — raises ModuleNotFoundError when missing.
-        with pytest.raises(ModuleNotFoundError):
-            find_the_git_root_dir()
-        return
-    monkeypatch.chdir(Path(__file__).parent)
-    # Act
-    root = find_the_git_root_dir()
-    # Act
-    # Assert
+    old = os.getcwd()
+    os.chdir(Path(__file__).parent)
+    try:
+        # Act
+        root = find_the_git_root_dir()
+    finally:
+        os.chdir(old)
     # Assert
     assert root is not None
 
 
-def test_find_the_git_root_dir_returns_a_path_os_path_isdir_root(tmp_path, monkeypatch):
+@pytest.mark.skipif(not _GIT_AVAILABLE, reason="GitPython not installed")
+def test_find_the_git_root_dir_returns_existing_directory():
     # Arrange
-    # Arrange
-    if not _git_available():
-        # Function imports `git` lazily — raises ModuleNotFoundError when missing.
-        with pytest.raises(ModuleNotFoundError):
-            find_the_git_root_dir()
-        return
-    monkeypatch.chdir(Path(__file__).parent)
-    # Act
-    root = find_the_git_root_dir()
-    # Act
-    # Assert
+    old = os.getcwd()
+    os.chdir(Path(__file__).parent)
+    try:
+        # Act
+        root = find_the_git_root_dir()
+    finally:
+        os.chdir(old)
     # Assert
     assert os.path.isdir(root)
 
 
+@pytest.mark.skipif(_GIT_AVAILABLE, reason="Requires GitPython to be missing")
+def test_find_the_git_root_dir_without_git_raises_modulenotfound():
+    # Arrange
+    # Function imports `git` lazily — raises ModuleNotFoundError when missing.
+    # Act
+    ctx = pytest.raises(ModuleNotFoundError)
+    # Assert
+    with ctx:
+        find_the_git_root_dir()
 
 
-def test_find_the_git_root_dir_raises_outside_repo(tmp_path, monkeypatch):
+@pytest.mark.skipif(not _GIT_AVAILABLE, reason="GitPython not installed")
+def test_find_the_git_root_dir_outside_repo_raises_invalid_repo(tmp_path):
     # Arrange
-    # Arrange
-    if not _git_available():
-        # Same: import failure is the observable error.
-        monkeypatch.chdir(tmp_path)
-        with pytest.raises(ModuleNotFoundError):
-            find_the_git_root_dir()
-        return
     import git
 
+    old = os.getcwd()
+    os.chdir(tmp_path)
     # Act
-    # Act
-    monkeypatch.chdir(tmp_path)
-    # Assert
-    # Assert
-    with pytest.raises(git.exc.InvalidGitRepositoryError):
-        find_the_git_root_dir()
+    ctx = pytest.raises(git.exc.InvalidGitRepositoryError)
+    try:
+        # Assert
+        with ctx:
+            find_the_git_root_dir()
+    finally:
+        os.chdir(old)

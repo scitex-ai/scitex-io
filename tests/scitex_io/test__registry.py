@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tests for the format registry system."""
 
+import pytest
+
 from scitex_io import _builtin_handlers  # noqa: F401 — registers builtin formats
 from scitex_io._registry import (
     _normalize_ext,
@@ -10,6 +12,18 @@ from scitex_io._registry import (
     register_saver,
     unregister_saver,
 )
+
+
+@pytest.fixture
+def restore_json_saver():
+    """Snapshot the .json saver before the test and restore on teardown."""
+    original = get_saver(".json")
+    try:
+        yield
+    finally:
+        unregister_saver(".json")
+        if original is not None:
+            register_saver(".json", original)
 
 
 class TestNormalizeExt:
@@ -114,15 +128,11 @@ class TestRegistry:
 
     def test_user_override_get_saver_test_ov_is_none(self):
         # Arrange
-        # Arrange
         def my_saver(obj, path, **kw):
             pass
-        # Act
         register_saver(".test_ov", my_saver)
-        # Assert
-        assert get_saver(".test_ov") is my_saver
-        unregister_saver(".test_ov")
         # Act
+        unregister_saver(".test_ov")
         # Assert
         assert get_saver(".test_ov") is None
 
@@ -141,31 +151,27 @@ class TestRegistry:
         assert get_saver(".test_deco") is save_deco
         unregister_saver(".test_deco")
 
-    def test_user_overrides_builtin_get_saver_json_is_custom_json(self):
+    def test_user_overrides_builtin_get_saver_json_is_custom_json(
+        self, restore_json_saver
+    ):
         # Arrange
-        # Arrange
-        original = get_saver(".json")
         def custom_json(obj, path, **kw):
             pass
         # Act
         register_saver(".json", custom_json)
-        # Act
-        # Assert
         # Assert
         assert get_saver(".json") is custom_json
 
-    def test_user_overrides_builtin_get_saver_json_is_original(self):
-        # Arrange
+    def test_user_overrides_builtin_get_saver_json_is_original(
+        self, restore_json_saver
+    ):
         # Arrange
         original = get_saver(".json")
         def custom_json(obj, path, **kw):
             pass
-        # Act
         register_saver(".json", custom_json)
-        # Assert
-        assert get_saver(".json") is custom_json
-        unregister_saver(".json")
         # Act
+        unregister_saver(".json")
         # Assert
         assert get_saver(".json") is original
 

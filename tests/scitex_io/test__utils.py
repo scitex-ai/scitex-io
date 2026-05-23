@@ -440,32 +440,26 @@ class TestDotDictMappingMethods:
 
     def test_setdefault_d_b_equals_n_7(self):
         # Arrange
-        # Arrange
-        # Act
         d = DotDict({"a": 1})
         # Act
-        # Assert
+        d.setdefault("b", 7)
         # Assert
         assert d.b == 7
 
 
     def test_pop_d_pop_a_1(self):
         # Arrange
-        # Arrange
-        # Act
         d = DotDict({"a": 1})
         # Act
+        d.pop("a")
         # Assert
-        # Assert
-        assert d.pop("a") == 1
+        assert d.pop("a", "missing") == "missing"
 
     def test_pop_a_not_in_d(self):
         # Arrange
-        # Arrange
-        # Act
         d = DotDict({"a": 1})
         # Act
-        # Assert
+        d.pop("a")
         # Assert
         assert "a" not in d
 
@@ -851,82 +845,76 @@ class TestEnvironmentDetect:
         # Assert
         assert detect_environment() == "python"
 
-    def test_notebook_path_explicit_env_var_name_equals_demo_ipynb(self, tmp_path, monkeypatch):
-        # Arrange
+    def test_notebook_path_explicit_env_var_name_equals_demo_ipynb(
+        self, tmp_path, env_save_restore
+    ):
         # Arrange
         nb = tmp_path / "demo.ipynb"
         nb.write_text("{}")
-        monkeypatch.setenv("SCITEX_NOTEBOOK_PATH", str(nb))
+        env_save_restore.set("SCITEX_NOTEBOOK_PATH", str(nb))
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        name, _dir = get_notebook_info_simple()
         # Assert
         assert name == "demo.ipynb"
 
-    def test_notebook_path_explicit_env_var_dir_equals_str_tmp_path(self, tmp_path, monkeypatch):
-        # Arrange
+    def test_notebook_path_explicit_env_var_dir_equals_str_tmp_path(
+        self, tmp_path, env_save_restore
+    ):
         # Arrange
         nb = tmp_path / "demo.ipynb"
         nb.write_text("{}")
-        monkeypatch.setenv("SCITEX_NOTEBOOK_PATH", str(nb))
+        env_save_restore.set("SCITEX_NOTEBOOK_PATH", str(nb))
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        _name, dir_ = get_notebook_info_simple()
         # Assert
         assert dir_ == str(tmp_path)
 
 
-    def test_notebook_path_argv_fallback_name_equals_via_argv_ipynb(self, tmp_path, monkeypatch):
-        # Arrange
+    def test_notebook_path_argv_fallback_name_equals_via_argv_ipynb(
+        self, tmp_path, env_save_restore, argv_restore
+    ):
         # Arrange
         nb = tmp_path / "via_argv.ipynb"
         nb.write_text("{}")
-        monkeypatch.delenv("SCITEX_NOTEBOOK_PATH", raising=False)
-        monkeypatch.setattr(sys, "argv", ["jupyter", str(nb)])
+        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        sys.argv[:] = ["jupyter", str(nb)]
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        name, _dir = get_notebook_info_simple()
         # Assert
         assert name == "via_argv.ipynb"
 
-    def test_notebook_path_argv_fallback_dir_equals_str_tmp_path(self, tmp_path, monkeypatch):
-        # Arrange
+    def test_notebook_path_argv_fallback_dir_equals_str_tmp_path(
+        self, tmp_path, env_save_restore, argv_restore
+    ):
         # Arrange
         nb = tmp_path / "via_argv.ipynb"
         nb.write_text("{}")
-        monkeypatch.delenv("SCITEX_NOTEBOOK_PATH", raising=False)
-        monkeypatch.setattr(sys, "argv", ["jupyter", str(nb)])
+        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        sys.argv[:] = ["jupyter", str(nb)]
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        _name, dir_ = get_notebook_info_simple()
         # Assert
         assert dir_ == str(tmp_path)
 
 
-    def test_notebook_path_none_when_no_signal(self, monkeypatch):
+    def test_notebook_path_none_when_no_signal(self, env_save_restore, argv_restore):
         # Arrange
-        # Arrange
-        monkeypatch.delenv("SCITEX_NOTEBOOK_PATH", raising=False)
+        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        sys.argv[:] = ["pytest"]
         # Act
-        # Act
-        monkeypatch.setattr(sys, "argv", ["pytest"])
-        # No IPython kernel running → both layers fail → (None, None).
+        result = get_notebook_info_simple()
         # Assert
-        # Assert
-        assert get_notebook_info_simple() == (None, None)
+        assert result == (None, None)
 
-    def test_notebook_path_env_var_missing_file(self, tmp_path, monkeypatch):
-        # Env var points at a non-existent path → fall through.
-        # Arrange
-        # Arrange
-        monkeypatch.setenv("SCITEX_NOTEBOOK_PATH", str(tmp_path / "missing.ipynb"))
+    def test_notebook_path_env_var_missing_file(
+        self, tmp_path, env_save_restore, argv_restore
+    ):
+        # Arrange — env var points at a non-existent path → fall through
+        env_save_restore.set(
+            "SCITEX_NOTEBOOK_PATH", str(tmp_path / "missing.ipynb")
+        )
+        sys.argv[:] = ["pytest"]
         # Act
-        # Act
-        monkeypatch.setattr(sys, "argv", ["pytest"])
+        result = get_notebook_info_simple()
         # Assert
-        # Assert
-        assert get_notebook_info_simple() == (None, None)
+        assert result == (None, None)
