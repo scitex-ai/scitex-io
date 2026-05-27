@@ -268,6 +268,36 @@
     <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_MPL_SAVEFIG_KEYS</span><span class="p">}</span>
 
 
+<span class="c1"># Recipe-save kwargs accepted by figrecipe&#39;s RecordingFigure.savefig() (NOT by</span>
+<span class="c1"># matplotlib&#39;s savefig). Forwarded only when the object is a RecordingFigure, so</span>
+<span class="c1"># callers can control the recipe/CSV layout (e.g. csv_format=&quot;single&quot;) through</span>
+<span class="c1"># stx.io.save without crashing plain matplotlib figures.</span>
+<span class="n">_FIGRECIPE_SAVEFIG_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;save_recipe&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;include_data&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data_format&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;csv_format&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;validate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;validate_mse_threshold&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;validate_error_level&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;save_hitmap&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;image_format&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_recording_figure</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True for a figrecipe RecordingFigure (its savefig takes recipe kwargs).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;save_recipe&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;savefig&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_figrecipe_savefig_kwargs</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_recording_figure</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_FIGRECIPE_SAVEFIG_KEYS</span><span class="p">}</span>
+
+
 <div class="viewcode-block" id="save_image">
 <a class="viewcode-back" href="../../../api/scitex_io.html#scitex_io.save_image">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_image</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">spath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -282,6 +312,7 @@
         <span class="c1"># matplotlib</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">savefig_kwargs</span> <span class="o">=</span> <span class="n">_mpl_savefig_kwargs</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">savefig_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_figrecipe_savefig_kwargs</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">obj</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">spath</span><span class="p">,</span> <span class="o">**</span><span class="n">savefig_kwargs</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
