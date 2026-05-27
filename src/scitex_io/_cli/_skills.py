@@ -7,11 +7,48 @@ Self-contained. No scitex-dev runtime dep — walks the package's own
 from __future__ import annotations
 
 import os as _os
+import sys as _sys
 from pathlib import Path
 
 import click
 
 PKG = "scitex-io"
+
+# ---------------------------------------------------------------------------
+# Plugin port: SCITEX_IO_SKILLS_DEST
+#
+# The default destination for `skills install` is the canonical skills
+# directory managed by scitex-dev (~/.scitex/dev/skills/).  Per the
+# local-state-directories rule (§9.5), scitex-io must not hardcode
+# another package's namespace, so consumers set this env var from their
+# own tree:
+#
+#     export SCITEX_IO_SKILLS_DEST=~/.scitex/dev/skills
+#
+# The hardcoded fallback is retained for one minor version (backward
+# compat, §8) and will be removed in the next release.
+# ---------------------------------------------------------------------------
+_ENV_SKILLS_DEST = "SCITEX_IO_SKILLS_DEST"
+
+
+def _default_skills_dest() -> Path:
+    """Return the skills installation target directory.
+
+    Precedence (highest first):
+      1. ``SCITEX_IO_SKILLS_DEST`` env var
+      2. ``~/.scitex/dev/skills/`` (legacy — deprecated, one-version back-compat)
+    """
+    env = _os.environ.get(_ENV_SKILLS_DEST)
+    if env:
+        return Path(env).expanduser()
+
+    # Deprecation: hardcoded fallback to dev's namespace (§9.5, §8).
+    _sys.stderr.write(
+        "scitex-io: WARNING ~/.scitex/dev/skills/ fallback is deprecated.\n"
+        f"  Set {_ENV_SKILLS_DEST}=<dest> to suppress this warning.\n"
+        "  This fallback will be removed in the next release.\n"
+    )
+    return Path.home() / ".scitex" / "dev" / "skills"
 
 
 def _skills_root() -> Path:
@@ -116,7 +153,7 @@ def skills_get(name: str, as_json: bool) -> None:
     "--dest",
     type=click.Path(),
     default=None,
-    help="Destination dir (default: ~/.scitex/dev/skills/scitex-io/).",
+    help="Destination dir (default: $SCITEX_IO_SKILLS_DEST or ~/.scitex/dev/skills/scitex-io/).",
 )
 @click.option(
     "--no-link",
@@ -141,9 +178,13 @@ def skills_install(
     """Install this package's skills into a target directory.
 
     \b
-    Default: symlink the entire `_skills/scitex-io/` dir to
-    ~/.scitex/dev/skills/scitex-io/ so add/rename/delete in
-    source propagates immediately.
+    Default destination (precedence order):
+      1. --dest <path>
+      2. $SCITEX_IO_SKILLS_DEST env var
+      3. ~/.scitex/dev/skills/  (deprecated, one-version back-compat)
+
+    Default action: symlink the entire `_skills/scitex-io/` dir so
+    add/rename/delete in source propagates immediately.
 
     \b
     Example:
@@ -157,9 +198,7 @@ def skills_install(
         click.echo(f"no skills directory at {src}", err=True)
         raise SystemExit(1)
 
-    base = (
-        Path(dest).expanduser() if dest else Path.home() / ".scitex" / "dev" / "skills"
-    )
+    base = Path(dest).expanduser() if dest else _default_skills_dest()
     target = base / PKG
 
     if dry_run:
