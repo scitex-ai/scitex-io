@@ -65,6 +65,36 @@ def _mpl_savefig_kwargs(kwargs):
     return {k: v for k, v in kwargs.items() if k in _MPL_SAVEFIG_KEYS}
 
 
+# Recipe-save kwargs accepted by figrecipe's RecordingFigure.savefig() (NOT by
+# matplotlib's savefig). Forwarded only when the object is a RecordingFigure, so
+# callers can control the recipe/CSV layout (e.g. csv_format="single") through
+# stx.io.save without crashing plain matplotlib figures.
+_FIGRECIPE_SAVEFIG_KEYS = frozenset(
+    {
+        "save_recipe",
+        "include_data",
+        "data_format",
+        "csv_format",
+        "validate",
+        "validate_mse_threshold",
+        "validate_error_level",
+        "save_hitmap",
+        "image_format",
+    }
+)
+
+
+def _is_recording_figure(obj) -> bool:
+    """True for a figrecipe RecordingFigure (its savefig takes recipe kwargs)."""
+    return hasattr(obj, "save_recipe") and hasattr(obj, "savefig")
+
+
+def _figrecipe_savefig_kwargs(obj, kwargs):
+    if not _is_recording_figure(obj):
+        return {}
+    return {k: v for k, v in kwargs.items() if k in _FIGRECIPE_SAVEFIG_KEYS}
+
+
 def save_image(obj, spath, **kwargs):
     # png
     if spath.endswith(".png"):
@@ -77,6 +107,7 @@ def save_image(obj, spath, **kwargs):
         # matplotlib
         else:
             savefig_kwargs = _mpl_savefig_kwargs(kwargs)
+            savefig_kwargs.update(_figrecipe_savefig_kwargs(obj, kwargs))
             try:
                 obj.savefig(spath, **savefig_kwargs)
             except Exception:
