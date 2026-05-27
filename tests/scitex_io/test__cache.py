@@ -21,7 +21,6 @@ pytest.importorskip("zarr")
 
 from scitex_io import cache
 
-
 # ---------------------------------------------------------------------------
 # Save (all vars defined) → returns the values
 # ---------------------------------------------------------------------------
@@ -33,9 +32,7 @@ def test_cache_save_returns_values_as_tuple(tmp_path):
     var2 = 42
     var3 = [1, 2, 3, 4, 5]
     # Act
-    result = cache(
-        "test_id", "var1", "var2", "var3", cache_root=tmp_path
-    )
+    result = cache("test_id", "var1", "var2", "var3", cache_root=tmp_path)
     # Assert
     assert result == ("test_string", 42, [1, 2, 3, 4, 5])
 
@@ -46,17 +43,17 @@ def test_cache_save_writes_pickle_file(tmp_path):
     # Act
     cache("test_id", "var1", cache_root=tmp_path)
     # Assert
-    assert (tmp_path / ".cache" / "your_app_name" / "test_id.pkl").exists()
+    assert (tmp_path / "test_id.pkl").exists()
 
 
 def test_cache_creates_intermediate_directories(tmp_path):
     # Arrange
-    cache_dir = tmp_path / ".cache" / "your_app_name"
+    nested = tmp_path / "nested" / "dirs"
     var1 = "x"
     # Act
-    cache("dir_test", "var1", cache_root=tmp_path)
+    cache("dir_test", "var1", cache_root=nested)
     # Assert
-    assert cache_dir.is_dir()
+    assert (nested / "dir_test.pkl").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -255,9 +252,7 @@ def test_cache_reads_caller_frame_locals(tmp_path):
     def inner():
         inner_var1 = "inner"
         inner_var2 = 123
-        return cache(
-            "frame_test", "inner_var1", "inner_var2", cache_root=tmp_path
-        )
+        return cache("frame_test", "inner_var1", "inner_var2", cache_root=tmp_path)
 
     # Act
     result = inner()
