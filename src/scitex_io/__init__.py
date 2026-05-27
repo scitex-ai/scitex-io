@@ -171,6 +171,11 @@ def _ensure_builtin_handlers_registered() -> None:
     from importlib import import_module
 
     import_module("._builtin_handlers", __name__)
+    # Optional ecosystem providers (e.g. figrecipe) contribute extra
+    # formats when their package is installed — a no-op otherwise.
+    from ._optional_providers import register_optional_providers
+
+    register_optional_providers()
     globals()["_BUILTINS_REGISTERED"] = True
 
 

@@ -364,6 +364,17 @@ def _save(
     if spath.endswith(".pkl.gz"):
         ext = ".pkl.gz"
 
+    # Compound extensions contributed by optional providers (e.g.
+    # figrecipe's .fig.zip / .plt.zip) — match the full suffix so they
+    # dispatch on their own handler instead of the bare ".zip".
+    from ._optional_providers import OPTIONAL_COMPOUND_EXTS
+
+    _spath_lower = spath.lower()
+    for _compound in OPTIONAL_COMPOUND_EXTS:
+        if _spath_lower.endswith(_compound):
+            ext = _compound
+            break
+
     if ext in _IMAGE_EXTS:
         handle_image_with_csv(
             obj,

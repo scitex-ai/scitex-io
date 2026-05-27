@@ -68,6 +68,13 @@ scientific = [
 optuna = [
     "optuna",
 ]
+# Optional synergy: when figrecipe is installed, scitex_io.save()/load()
+# gain figrecipe's reproducible figure-bundle formats (.fig.zip / .plt.zip)
+# via the registry. Absent figrecipe, those extensions simply stay
+# unregistered — import scitex_io never hard-depends on figrecipe.
+figrecipe = [
+    "figrecipe>=0.28",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov",
@@ -98,6 +105,7 @@ dev = [
     "kaleido",            # plotly static image export (png/jpeg/svg/pdf)
     "python-docx",        # .docx loader tests
     "optuna",             # tested via _load_modules/_optuna + _save_modules/_optuna_study
+    "figrecipe>=0.28",    # optional synergy: .fig.zip/.plt.zip bundle dispatch
 ]
 docs = [
     "sphinx>=7.0",
@@ -109,6 +117,7 @@ docs = [
 all = [
     "scitex-io[mcp]",
     "scitex-io[scientific]",
+    "scitex-io[figrecipe]",
 ]
 
 [project.scripts]

@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Optional format providers from sibling scitex ecosystem packages.
+
+scitex-io stays useful on its own, but when a companion package is
+installed it can contribute extra formats through the same registry the
+built-in handlers use. This keeps the synergy *opt-in*: ``import
+scitex_io`` never hard-depends on the companion, and a missing companion
+degrades to the normal "no handler registered" error rather than an
+``ImportError`` at import time.
+
+Each provider is gated by ``scitex_dev.try_import_optional`` so a missing
+package is a no-op (the companion's formats simply stay unregistered).
+
+Currently wired:
+
+- **figrecipe** (``[figrecipe]`` extra) → ``.fig.zip`` / ``.plt.zip``
+  multi-panel and single-plot figure bundles. ``scitex_io.save(fig,
+  "panel.plt.zip")`` / ``scitex_io.load("panel.plt.zip")`` round-trip a
+  reproducible figure recipe + data.
+"""
+
+from __future__ import annotations
+
+from scitex_dev import try_import_optional
+
+from ._registry import register_loader, register_saver
+
+# Compound extensions contributed by optional providers. ``_save`` /
+# ``_load`` consult this so a path like ``foo.plt.zip`` dispatches on the
+# full ``.plt.zip`` key rather than the bare ``.zip`` ``splitext`` yields.
+OPTIONAL_COMPOUND_EXTS: tuple[str, ...] = (".fig.zip", ".plt.zip")
+
+
+def _import_figrecipe():
+    """Return the figrecipe module, or ``None`` when it is not installed."""
+    return try_import_optional("figrecipe", extra="figrecipe", pkg="scitex-io")
+
+
+def _register_figrecipe(importer=_import_figrecipe) -> bool:
+    """Register figrecipe bundle formats if figrecipe is installed.
+
+    Parameters
+    ----------
+    importer : callable, optional
+        Returns the figrecipe module or ``None``. Injectable so callers
+        can substitute a real-but-absent importer in tests without
+        patching production internals. Defaults to the gated
+        ``try_import_optional`` import.
+
+    Returns
+    -------
+    bool
+        ``True`` when handlers were registered, ``False`` when figrecipe
+        is absent (graceful no-op).
+    """
+    figrecipe = importer()
+    if figrecipe is None:
+        return False
+
+    def _save_fig_bundle(obj, path, **kwargs):
+        # figrecipe.save_bundle handles both .fig.zip (multi-panel) and
+        # .plt.zip (single-plot) by inspecting the figure/path.
+        verbose = kwargs.pop("verbose", False)
+        return figrecipe.save_bundle(obj, path, verbose=verbose, **kwargs)
+
+    def _load_fig_bundle(path, **kwargs):
+        # figrecipe.load reproduces a Figure/axes from a bundle or recipe.
+        return figrecipe.load(path, **kwargs)
+
+    for _ext in (".fig.zip", ".plt.zip"):
+        register_saver(_ext, _save_fig_bundle, builtin=True)
+        register_loader(_ext, _load_fig_bundle, builtin=True)
+
+    return True
+
+
+# Provider registry: name → callable returning bool(registered?). Add new
+# ecosystem providers here; each must be independently gated.
+_PROVIDERS = (_register_figrecipe,)
+
+
+def register_optional_providers() -> None:
+    """Run every optional provider once. Idempotent and failure-tolerant."""
+    for _provider in _PROVIDERS:
+        try:
+            _provider()
+        except Exception:
+            # A misbehaving optional provider must never break import or
+            # core I/O — skip it silently, like a missing dependency.
+            pass
