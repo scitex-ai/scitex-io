@@ -18,6 +18,10 @@ Currently wired:
   multi-panel and single-plot figure bundles. ``scitex_io.save(fig,
   "panel.plt.zip")`` / ``scitex_io.load("panel.plt.zip")`` round-trip a
   reproducible figure recipe + data.
+- **scitex_stats** (``[stats]`` extra) → ``.stats.zip`` statistics
+  bundles (spec + supplementary data + optional markdown report).
+  ``scitex_io.save(stats_dict, "results.stats.zip")`` /
+  ``scitex_io.load("results.stats.zip")``.
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ from ._registry import register_loader, register_saver
 # Compound extensions contributed by optional providers. ``_save`` /
 # ``_load`` consult this so a path like ``foo.plt.zip`` dispatches on the
 # full ``.plt.zip`` key rather than the bare ``.zip`` ``splitext`` yields.
-OPTIONAL_COMPOUND_EXTS: tuple[str, ...] = (".fig.zip", ".plt.zip")
+OPTIONAL_COMPOUND_EXTS: tuple[str, ...] = (".fig.zip", ".plt.zip", ".stats.zip")
 
 
 def _import_figrecipe():
@@ -75,9 +79,55 @@ def _register_figrecipe(importer=_import_figrecipe) -> bool:
     return True
 
 
+def _import_scitex_stats():
+    """Return the scitex_stats module, or ``None`` when it is not installed."""
+    return try_import_optional("scitex_stats", extra="stats", pkg="scitex-io")
+
+
+def _register_scitex_stats(importer=_import_scitex_stats) -> bool:
+    """Register scitex_stats ``.stats.zip`` bundles if scitex_stats is installed.
+
+    Parameters
+    ----------
+    importer : callable, optional
+        Returns the scitex_stats module or ``None``. Injectable so callers
+        can substitute a real-but-absent importer in tests without
+        patching production internals.
+
+    Returns
+    -------
+    bool
+        ``True`` when handlers were registered, ``False`` when scitex_stats
+        is absent (graceful no-op).
+    """
+    scitex_stats = importer()
+    if scitex_stats is None:
+        return False
+
+    # ``scitex_stats.__init__`` does not auto-import the ``io`` subpackage;
+    # bind the bundle entry points eagerly here so the registry callbacks
+    # never have to do attribute walks on every call.
+    from scitex_stats.io import (  # type: ignore[import-not-found]
+        load_stats_bundle,
+        save_stats_bundle,
+    )
+
+    def _save_stats_bundle(obj, path, **kwargs):
+        # scitex_stats.io.save_stats_bundle takes (data: dict, path).
+        return save_stats_bundle(obj, path)
+
+    def _load_stats_bundle(path, **kwargs):
+        return load_stats_bundle(path)
+
+    register_saver(".stats.zip", _save_stats_bundle, builtin=True)
+    register_loader(".stats.zip", _load_stats_bundle, builtin=True)
+
+    return True
+
+
 # Provider registry: name → callable returning bool(registered?). Add new
 # ecosystem providers here; each must be independently gated.
-_PROVIDERS = (_register_figrecipe,)
+_PROVIDERS = (_register_figrecipe, _register_scitex_stats)
 
 
 def register_optional_providers() -> None:
