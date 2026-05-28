@@ -49,7 +49,7 @@ class BundleType:
     """Bundle type constants.
 
     Usage:
-        from scitex.io.bundle import BundleType
+        from scitex_io.bundle import BundleType
 
         if bundle_type == BundleType.FIGURE:
             ...

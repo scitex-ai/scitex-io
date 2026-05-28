@@ -28,8 +28,10 @@ CROSS_PACKAGE_IMPORTS = [
     "scitex_dev.linter.checker",
     "scitex_logging",
     "scitex_stats._utils._normalizers",
+    "scitex_stats._dataclasses",
     "scitex_stats.io",
     "scitex.io.bundle",
+    "scitex.io._metadata",
 ]
 # ===== END AUTO-GENERATED =====
 

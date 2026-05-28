@@ -1,20 +1,34 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""``scitex_io.bundle`` — generic bundle plumbing.
+"""``scitex_io.bundle`` — the multi-kind bundle dispatcher.
 
-Format-agnostic bundle primitives: types (``BundleType``, extensions,
-error classes) and shared dataclasses (``Spec``, ``DataInfo``, ``SizeMM``,
-``BBox``, …). Each domain package (figrecipe for figures/plots,
-scitex_stats for statistics) layers its own kind handlers on top via
-``scitex_io._optional_providers``.
+This package owns the bundle plumbing (types, dataclasses, manifest,
+storage, zip, validation) AND the dispatcher (Bundle class, load/save/
+validate, kind handlers). Domain-coupled kinds (figure, plot, stats)
+keep their handlers here but import their domain dataclasses (figrecipe,
+scitex_stats) lazily — installing each ecosystem package opens up its
+kind; without the package, only pure-I/O kinds (image, text, shape,
+table) are available.
 
-This is the new home for what historically lived under
-``scitex.io.bundle._types`` and ``scitex.io.bundle._dataclasses`` in the
-umbrella. The umbrella now thin-re-exposes ``scitex_io.bundle.*`` so
-``scitex.io.bundle.{BundleType, Spec, …}`` keeps working for any
-external caller.
+The umbrella ``scitex.io.bundle`` is now a thin re-export of this
+package.
 """
 
+from . import _nested as nested  # noqa: F401
+from ._Bundle import Bundle, create_bundle, from_matplotlib, load_bundle  # noqa: F401
+from ._core import (  # noqa: F401
+    copy,
+    dir_to_zip_path,
+    get_type,
+    is_bundle,
+    load,
+    pack,
+    save,
+    unpack,
+    validate,
+    validate_spec,
+    zip_to_dir_path,
+)
 from ._dataclasses import (  # noqa: F401
     DATA_INFO_VERSION,
     Axes,
@@ -59,26 +73,44 @@ from ._validation import (  # noqa: F401
     SCHEMA_VERSION,
     ValidationResult,
     load_schema,
-    validate,
     validate_bundle,
     validate_data_info,
     validate_encoding,
     validate_schema,
     validate_semantic,
-    validate_spec,
     validate_stats,
     validate_strict,
     validate_theme,
 )
 from ._zip import (  # noqa: F401
     ZipBundle,
-    create,
-    open,
     zip_directory,
+)
+from ._zip import (
+    create as create_zip,
+)
+from ._zip import (
+    open as open_zip,
 )
 
 __all__ = [
-    # Types
+    # Bundle dispatcher / class.
+    "Bundle",
+    "load_bundle",
+    "create_bundle",
+    "from_matplotlib",
+    "load",
+    "save",
+    "copy",
+    "pack",
+    "unpack",
+    "validate",
+    "validate_spec",
+    "is_bundle",
+    "get_type",
+    "dir_to_zip_path",
+    "zip_to_dir_path",
+    # Types.
     "BundleType",
     "BundleError",
     "BundleValidationError",
@@ -89,7 +121,7 @@ __all__ = [
     "FIGURE",
     "PLOT",
     "STATS",
-    # Dataclasses
+    # Dataclasses.
     "BBox",
     "SizeMM",
     "Axes",
@@ -102,35 +134,35 @@ __all__ = [
     "DataFormat",
     "DataInfo",
     "ColumnDef",
-    # Manifest
+    # Manifest.
     "MANIFEST_FILENAME",
     "create_manifest",
     "get_type_from_manifest",
     "read_manifest",
     "write_manifest",
-    # Storage
+    # Storage.
     "Storage",
     "ZipStorage",
     "DirStorage",
     "get_storage",
-    # Zip
+    # Zip.
     "ZipBundle",
-    "create",
-    "open",
+    "open_zip",
+    "create_zip",
     "zip_directory",
-    # Validation
+    # Validation.
     "SCHEMA_DIR",
     "SCHEMA_VERSION",
     "ValidationResult",
     "load_schema",
-    "validate",
     "validate_bundle",
     "validate_data_info",
     "validate_encoding",
     "validate_schema",
     "validate_semantic",
-    "validate_spec",
     "validate_stats",
     "validate_strict",
     "validate_theme",
+    # Nested namespace.
+    "nested",
 ]
