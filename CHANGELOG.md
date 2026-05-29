@@ -7,6 +7,11 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.16]
+
+- feat(bundle): host the `scitex_io.bundle` subpackage incl. scitex-stats bundle integration (SOC R5 / Task 8) — makes `scitex_io.bundle` available on PyPI (previously only on develop), unblocking the umbrella to pin `scitex-io==0.2.16` instead of a git+https dev ref.
+- feat(hooks): neutral post-save / post-load hook registry (`register_post_save_hook` / `register_post_load_hook`) for observer packages (SOC R6); scitex-clew self-registers.
+
 ## [0.2.15] — 2026-05-23
 
 ### Added
