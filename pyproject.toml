@@ -106,7 +106,7 @@ dev = [
     "python-docx",        # .docx loader tests
     "optuna",             # tested via _load_modules/_optuna + _save_modules/_optuna_study
     "figrecipe>=0.28",    # optional synergy: .fig.zip/.plt.zip bundle dispatch
-    "scitex-stats>=0.2.21",  # optional synergy: .stats.zip + Stats schema (scitex_stats._dataclasses.Stats, stable since 0.2.21)
+    "scitex-stats>=0.2.22",  # optional synergy: .stats.zip + Stats schema (scitex_stats._dataclasses.Stats, published in 0.2.22)
 ]
 docs = [
     "sphinx>=7.0",
