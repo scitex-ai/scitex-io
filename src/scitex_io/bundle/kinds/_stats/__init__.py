@@ -60,6 +60,13 @@ except ImportError:  # noqa: PERF203
     SymbolStyle = _stub  # type: ignore[assignment]
     UnitType = _stub  # type: ignore[assignment]
 
+from ._integration import (  # noqa: E402, F401
+    BUNDLE_AVAILABLE,
+    load_stats,
+    save_stats,
+    test_result_to_stats,
+)
+
 __all__ = [
     "STATS_VERSION",
     "Stats",
@@ -75,4 +82,9 @@ __all__ = [
     "StatResult",
     "StatDisplay",
     "Analysis",
+    # Integration helpers (require optional scitex_stats at call time)
+    "BUNDLE_AVAILABLE",
+    "test_result_to_stats",
+    "save_stats",
+    "load_stats",
 ]
