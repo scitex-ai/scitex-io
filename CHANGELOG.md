@@ -7,6 +7,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.17]
+
+- perf: accessing `register_post_save_hook`/`register_post_load_hook` no longer eager-registers the built-in format handlers (catboost/zarr/pandas/…). The observer hook registry is registry-independent, so `__getattr__` now skips `_ensure_builtin_handlers_registered()` for `._observers` attrs. Cuts the hot path for observer packages (e.g. scitex-clew registers hooks at import): `import scitex_clew` dropped ~3700ms → ~100ms.
+
 ## [0.2.16]
 
 - feat(bundle): host the `scitex_io.bundle` subpackage incl. scitex-stats bundle integration (SOC R5 / Task 8) — makes `scitex_io.bundle` available on PyPI (previously only on develop), unblocking the umbrella to pin `scitex-io==0.2.16` instead of a git+https dev ref.

@@ -185,8 +185,16 @@ def _ensure_builtin_handlers_registered() -> None:
 
 def __getattr__(name: str):
     """PEP 562 lazy-loader: import on first access, cache, return."""
-    # Built-in handlers must be registered before any registry-facing call.
-    if name in _LAZY_ATTRS or name in _OPTIONAL_ATTRS:
+    # Built-in handlers must be registered before any registry-facing call
+    # (save/load/list_formats/get_saver/…). The observer hook-registry
+    # functions (mapped to ``._observers``) are registry-INDEPENDENT, so
+    # skip the eager handler registration for them — otherwise merely
+    # accessing ``register_post_save_hook`` pulls in every format handler
+    # (catboost/zarr/pandas/…), adding ~3s. This is the hot path for
+    # observer packages like scitex-clew that register hooks at import.
+    if (name in _LAZY_ATTRS or name in _OPTIONAL_ATTRS) and _LAZY_ATTRS.get(
+        name
+    ) != "._observers":
         _ensure_builtin_handlers_registered()
     if name in _LAZY_ATTRS:
         return _load_lazy_attr(name)
