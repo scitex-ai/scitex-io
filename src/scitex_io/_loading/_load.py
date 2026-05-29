@@ -31,6 +31,33 @@ def load(
     cache: bool = True,
     **kwargs,
 ) -> Any:
+    """Public wrapper around :func:`_load_impl` that fires post-load hooks.
+
+    Glob expansion is handled inside ``_load_impl``; the inner
+    per-file recursion already routes through ``load`` so each match
+    fires its own hook. Only the outer non-glob path fires once here.
+    """
+    result = _load_impl(
+        lpath, ext=ext, show=show, verbose=verbose, cache=cache, **kwargs
+    )
+    # Notify observers (clew, audit, …) for non-glob loads. Glob calls
+    # recurse through load() and fire per-file. See _hooks.
+    is_glob = isinstance(lpath, str) and ("*" in lpath or "?" in lpath or "[" in lpath)
+    if not is_glob:
+        from .._hooks import fire_post_load
+
+        fire_post_load(Path(lpath), result)
+    return result
+
+
+def _load_impl(
+    lpath: Union[str, Path],
+    ext: str = None,
+    show: bool = False,
+    verbose: bool = False,
+    cache: bool = True,
+    **kwargs,
+) -> Any:
     """
     Load data from various file formats.
 

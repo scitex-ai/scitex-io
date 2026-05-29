@@ -91,6 +91,10 @@ _LAZY_ATTRS: dict[str, str] = {
     "clear_load_cache": "._loading",  # aliased below
     # Dict utilities
     "DotDict": "._utils",
+    # Observer hook registry (R6 — observers self-register here;
+    # scitex_io itself never names them). See _hooks.py.
+    "register_post_save_hook": "._hooks",
+    "register_post_load_hook": "._hooks",
 }
 
 # Optional public names that may not be importable. Resolve once, lazily.

@@ -308,7 +308,14 @@ def save(
 
         _symlink(spath, spath_cwd, symlink_from_cwd, verbose)
         _symlink_to(spath_final, symlink_to, verbose)
-        return Path(spath)
+        saved_path = Path(spath)
+        # Notify any registered observers (clew, audit, …). See _hooks.
+        # Observers SELF-REGISTER on their own import — scitex_io never
+        # names them. Hooks never raise (best-effort fan-out).
+        from ._hooks import fire_post_save
+
+        fire_post_save(saved_path, obj, kwargs)
+        return saved_path
 
     except Exception as e:
         logger.error(
