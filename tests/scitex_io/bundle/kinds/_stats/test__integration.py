@@ -9,7 +9,11 @@ skip when absent.
 
 import pytest
 
-pytest.importorskip("scitex_stats")
+# Gate on the actual capability: the Stats schema lives in
+# scitex_stats._dataclasses, which is present on scitex-stats develop but
+# NOT in the published 0.2.21. importorskip("scitex_stats") alone is too
+# shallow — the package installs but the schema submodule may be absent.
+pytest.importorskip("scitex_stats._dataclasses")
 
 
 def test_integration_module_imports():
