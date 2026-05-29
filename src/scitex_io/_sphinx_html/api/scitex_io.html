@@ -158,6 +158,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#scitex_io.DotDict.copy"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -406,53 +408,15 @@ caller — needed when <code class="docutils literal notranslate"><span class="p
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.load">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.load" title="Link to this definition"></a></dt>
-<dd><p>Load data from various file formats.</p>
-<p>This function supports loading data from multiple file formats with optional caching.</p>
+<dd><p>Public wrapper around <code class="xref py py-func docutils literal notranslate"><span class="pre">_load_impl()</span></code> that fires post-load hooks.</p>
+<p>Glob expansion is handled inside <code class="docutils literal notranslate"><span class="pre">_load_impl</span></code>; the inner
+per-file recursion already routes through <code class="docutils literal notranslate"><span class="pre">load</span></code> so each match
+fires its own hook. Only the outer non-glob path fires once here.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>lpath</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The path to the file to be loaded. Can be a string or pathlib.Path object.</p></li>
-<li><p><strong>ext</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – File extension to use for loading. If None, automatically detects from filename.
-Useful for files without extensions (e.g., UUID-named files).
-Examples: ‘pdf’, ‘json’, ‘csv’</p></li>
-<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, display additional information during loading. Default is False.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, print verbose output during loading. Default is False.</p></li>
-<li><p><strong>cache</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, enable caching for faster repeated loads. Default is True.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional keyword arguments to be passed to the specific loading function.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The loaded data object, which can be of various types depending on the input file format.</p>
-</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)">object</a></p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If the file extension is not supported.</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If the specified file does not exist.</p></li>
-<li><p><strong>Supported Extensions</strong> – </p></li>
-<li><p><strong>-------------------</strong> – </p></li>
-<li><p><strong>- Data formats</strong> – .csv, .tsv, .xls, .xlsx, .xlsm, .xlsb, .json, .yaml, .yml:</p></li>
-<li><p><strong>- Scientific</strong> – .npy, .npz, .mat, .hdf5, .con:</p></li>
-<li><p><strong>- ML/DL</strong> – .pth, .pt, .cbm, .joblib, .pkl:</p></li>
-<li><p><strong>- Documents</strong> – .txt, .log, .event, .md, .docx, .pdf, .xml:</p></li>
-<li><p><strong>- Images</strong> – .jpg, .png, .tiff, .tif:</p></li>
-<li><p><strong>- EEG data</strong> – .vhdr, .vmrk, .edf, .bdf, .gdf, .cnt, .egi, .eeg, .set:</p></li>
-<li><p><strong>- Database</strong> – .db:</p></li>
-</ul>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
 </dd>
 </dl>
-<div class="admonition-examples admonition">
-<p class="admonition-title">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;image.png&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;model.pth&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load file without extension (e.g., UUID PDF)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pdf</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;f2694ccb-1b6f-4994-add8-5111fd4d52f1&#39;</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
 </dd></dl>
 
 <dl class="py function">
@@ -840,6 +804,31 @@ nothing matches, so callers see the key they actually asked for.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="scitex_io.register_post_save_hook">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_post_save_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_observers.html#register_post_save_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.register_post_save_hook" title="Link to this definition"></a></dt>
+<dd><p>Register a function to run after every successful <code class="docutils literal notranslate"><span class="pre">scitex_io.save</span></code>.</p>
+<p>Hooks fire in registration order. They MUST NOT raise — exceptions
+are swallowed with <code class="docutils literal notranslate"><span class="pre">logger.debug</span></code>. A misbehaving observer must
+never break the host’s I/O.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scitex_io.register_post_load_hook">
+<span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">register_post_load_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_observers.html#register_post_load_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.register_post_load_hook" title="Link to this definition"></a></dt>
+<dd><p>Register a function to run after every successful <code class="docutils literal notranslate"><span class="pre">scitex_io.load</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="scitex_io.save_image">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">save_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spath</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_save_modules/_image.html#save_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_io.save_image" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -1054,53 +1043,15 @@ caller — needed when <code class="docutils literal notranslate"><span class="p
 <dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">scitex_io.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_io/_loading/_load.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><p>Load data from various file formats.</p>
-<p>This function supports loading data from multiple file formats with optional caching.</p>
+<dd><p>Public wrapper around <code class="xref py py-func docutils literal notranslate"><span class="pre">_load_impl()</span></code> that fires post-load hooks.</p>
+<p>Glob expansion is handled inside <code class="docutils literal notranslate"><span class="pre">_load_impl</span></code>; the inner
+per-file recursion already routes through <code class="docutils literal notranslate"><span class="pre">load</span></code> so each match
+fires its own hook. Only the outer non-glob path fires once here.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>lpath</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>]</em>) – The path to the file to be loaded. Can be a string or pathlib.Path object.</p></li>
-<li><p><strong>ext</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – File extension to use for loading. If None, automatically detects from filename.
-Useful for files without extensions (e.g., UUID-named files).
-Examples: ‘pdf’, ‘json’, ‘csv’</p></li>
-<li><p><strong>show</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, display additional information during loading. Default is False.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, print verbose output during loading. Default is False.</p></li>
-<li><p><strong>cache</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, enable caching for faster repeated loads. Default is True.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional keyword arguments to be passed to the specific loading function.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The loaded data object, which can be of various types depending on the input file format.</p>
-</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)">object</a></p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If the file extension is not supported.</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If the specified file does not exist.</p></li>
-<li><p><strong>Supported Extensions</strong> – </p></li>
-<li><p><strong>-------------------</strong> – </p></li>
-<li><p><strong>- Data formats</strong> – .csv, .tsv, .xls, .xlsx, .xlsm, .xlsb, .json, .yaml, .yml:</p></li>
-<li><p><strong>- Scientific</strong> – .npy, .npz, .mat, .hdf5, .con:</p></li>
-<li><p><strong>- ML/DL</strong> – .pth, .pt, .cbm, .joblib, .pkl:</p></li>
-<li><p><strong>- Documents</strong> – .txt, .log, .event, .md, .docx, .pdf, .xml:</p></li>
-<li><p><strong>- Images</strong> – .jpg, .png, .tiff, .tif:</p></li>
-<li><p><strong>- EEG data</strong> – .vhdr, .vmrk, .edf, .bdf, .gdf, .cnt, .egi, .eeg, .set:</p></li>
-<li><p><strong>- Database</strong> – .db:</p></li>
-</ul>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
 </dd>
 </dl>
-<div class="admonition-examples admonition">
-<p class="admonition-title">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;image.png&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;model.pth&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load file without extension (e.g., UUID PDF)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pdf</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s1">&#39;f2694ccb-1b6f-4994-add8-5111fd4d52f1&#39;</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;pdf&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
 </dd></dl>
 
 <dl class="py function">

@@ -156,6 +156,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.copy"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -229,6 +231,34 @@
 <div class="viewcode-block" id="load">
 <a class="viewcode-back" href="../../../api/scitex_io.html#scitex_io.load">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span>
+    <span class="n">lpath</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">ext</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Public wrapper around :func:`_load_impl` that fires post-load hooks.</span>
+
+<span class="sd">    Glob expansion is handled inside ``_load_impl``; the inner</span>
+<span class="sd">    per-file recursion already routes through ``load`` so each match</span>
+<span class="sd">    fires its own hook. Only the outer non-glob path fires once here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">_load_impl</span><span class="p">(</span>
+        <span class="n">lpath</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="n">ext</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+    <span class="c1"># Notify observers (clew, audit, …) for non-glob loads. Glob calls</span>
+    <span class="c1"># recurse through load() and fire per-file. See _hooks.</span>
+    <span class="n">is_glob</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lpath</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">&quot;?&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">&quot;[&quot;</span> <span class="ow">in</span> <span class="n">lpath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_glob</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">fire_post_load</span>
+
+        <span class="n">fire_post_load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">lpath</span><span class="p">),</span> <span class="n">result</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_impl</span><span class="p">(</span>
     <span class="n">lpath</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">ext</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -385,8 +415,7 @@
 
         <span class="k">return</span> <span class="n">result</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">FileNotFoundError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading file </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
-
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading file </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
 <span class="c1"># EOF</span>

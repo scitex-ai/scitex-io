@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._glob &mdash; SciTeX IO v0.2.15</title>
+  <title>scitex_io._observers &mdash; SciTeX IO v0.2.15</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -193,7 +193,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">scitex_io._glob</li>
+      <li class="breadcrumb-item active">scitex_io._observers</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -202,124 +202,96 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for scitex_io._glob</h1><div class="highlight"><pre>
+  <h1>Source code for scitex_io._observers</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="c1"># Time-stamp: &quot;2024-11-25 00:31:08 (ywatanabe)&quot;</span>
-<span class="c1"># File: ./scitex_repo/src/scitex/io/_glob.py</span>
+<span class="sd">&quot;&quot;&quot;Neutral post-save / post-load hook registry for scitex-io.</span>
 
-<span class="n">THIS_FILE</span> <span class="o">=</span> <span class="s2">&quot;/home/ywatanabe/proj/scitex_repo/src/scitex/io/_glob.py&quot;</span>
+<span class="sd">Public extension API. Observer packages (scitex-clew, future</span>
+<span class="sd">notification or audit observers) register callbacks here on their own</span>
+<span class="sd">import; scitex-io itself never names any observer.</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">re</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_re</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">glob</span><span class="w"> </span><span class="kn">import</span> <span class="n">glob</span> <span class="k">as</span> <span class="n">_glob</span>
+<span class="sd">Per SOC.md R6: producer packages don&#39;t know observer packages. The</span>
+<span class="sd">arrow runs observer → producer. scitex-io owns this registry; observers</span>
+<span class="sd">self-register.</span>
+
+<span class="sd">Usage from an observer</span>
+<span class="sd">----------------------</span>
+
+<span class="sd">&gt;&gt;&gt; from scitex_io import register_post_save_hook</span>
+<span class="sd">&gt;&gt;&gt; def on_save(path, obj, kwargs):</span>
+<span class="sd">...     # never raise; hooks fail silently</span>
+<span class="sd">...     ...</span>
+<span class="sd">&gt;&gt;&gt; register_post_save_hook(on_save)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">_parse</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">natsort</span><span class="w"> </span><span class="kn">import</span> <span class="n">natsorted</span> <span class="k">as</span> <span class="n">_natsorted</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">_natsorted</span> <span class="o">=</span> <span class="nb">sorted</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="glob">
-<a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.glob">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">glob</span><span class="p">(</span><span class="n">expression</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">parse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ensure_one</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform a glob operation with natural sorting and extended pattern support.</span>
+<span class="n">PostSaveHook</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Path</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+<span class="sd">&quot;&quot;&quot;Signature: ``(saved_path, obj, kwargs) -&gt; None``.&quot;&quot;&quot;</span>
 
-<span class="sd">    This function extends the standard glob functionality by adding natural sorting</span>
-<span class="sd">    and support for curly brace expansion in the glob pattern.</span>
+<span class="n">PostLoadHook</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Path</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+<span class="sd">&quot;&quot;&quot;Signature: ``(loaded_path, result) -&gt; None``.&quot;&quot;&quot;</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    expression : str or Path</span>
-<span class="sd">        The glob pattern. Supports standard glob and ``{a,b}`` expansion.</span>
-<span class="sd">    parse : bool, optional</span>
-<span class="sd">        Whether to parse the matched paths. Default is False.</span>
-<span class="sd">    ensure_one : bool, optional</span>
-<span class="sd">        Ensure exactly one match is found. Default is False.</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    list or tuple</span>
-<span class="sd">        If ``parse=False``: naturally sorted file paths.</span>
-<span class="sd">        If ``parse=True``: tuple of ``(paths, parsed_results)``.</span>
+<span class="n">_post_save_hooks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PostSaveHook</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">_post_load_hooks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PostLoadHook</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; glob(&#39;data/*.txt&#39;)</span>
-<span class="sd">    [&#39;data/file1.txt&#39;, &#39;data/file2.txt&#39;, &#39;data/file10.txt&#39;]</span>
 
-<span class="sd">    &gt;&gt;&gt; glob(&#39;data/{a,b}/*.txt&#39;)</span>
-<span class="sd">    [&#39;data/a/file1.txt&#39;, &#39;data/a/file2.txt&#39;, &#39;data/b/file1.txt&#39;]</span>
+<div class="viewcode-block" id="register_post_save_hook">
+<a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.register_post_save_hook">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_post_save_hook</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">PostSaveHook</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register a function to run after every successful ``scitex_io.save``.</span>
 
-<span class="sd">    &gt;&gt;&gt; paths, parsed = glob(&#39;data/subj_{id}/run_{run}.txt&#39;, parse=True)</span>
-<span class="sd">    &gt;&gt;&gt; paths</span>
-<span class="sd">    [&#39;data/subj_001/run_01.txt&#39;, &#39;data/subj_001/run_02.txt&#39;]</span>
-<span class="sd">    &gt;&gt;&gt; parsed</span>
-<span class="sd">    [{&#39;id&#39;: &#39;001&#39;, &#39;run&#39;: &#39;01&#39;}, {&#39;id&#39;: &#39;001&#39;, &#39;run&#39;: &#39;02&#39;}]</span>
-
-<span class="sd">    &gt;&gt;&gt; paths, parsed = glob(&#39;data/subj_{id}/run_{run}.txt&#39;, parse=True, ensure_one=True)</span>
-<span class="sd">    AssertionError  # if more than one file matches</span>
+<span class="sd">    Hooks fire in registration order. They MUST NOT raise — exceptions</span>
+<span class="sd">    are swallowed with ``logger.debug``. A misbehaving observer must</span>
+<span class="sd">    never break the host&#39;s I/O.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Convert Path objects to strings for consistency</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
-        <span class="n">expression</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span>
-
-    <span class="n">glob_pattern</span> <span class="o">=</span> <span class="n">_re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;{[^}]*}&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">expression</span><span class="p">)</span>
-    <span class="c1"># Enable recursive globbing for ** patterns</span>
-    <span class="n">recursive</span> <span class="o">=</span> <span class="s2">&quot;**&quot;</span> <span class="ow">in</span> <span class="n">glob_pattern</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">found_paths</span> <span class="o">=</span> <span class="n">_natsorted</span><span class="p">(</span><span class="n">_glob</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="n">glob_pattern</span><span class="p">),</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">))</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="n">found_paths</span> <span class="o">=</span> <span class="n">_natsorted</span><span class="p">(</span><span class="n">_glob</span><span class="p">(</span><span class="n">glob_pattern</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="n">ensure_one</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">found_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-
-    <span class="k">if</span> <span class="n">parse</span><span class="p">:</span>
-        <span class="n">parsed</span> <span class="o">=</span> <span class="p">[</span><span class="n">_parse</span><span class="p">(</span><span class="n">found_path</span><span class="p">,</span> <span class="n">expression</span><span class="p">)</span> <span class="k">for</span> <span class="n">found_path</span> <span class="ow">in</span> <span class="n">found_paths</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">found_paths</span><span class="p">,</span> <span class="n">parsed</span>
-
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">found_paths</span></div>
+    <span class="n">_post_save_hooks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span></div>
 
 
 
-<div class="viewcode-block" id="parse_glob">
-<a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.parse_glob">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_glob</span><span class="p">(</span><span class="n">expression</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">ensure_one</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convenience function for glob with parsing enabled.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    expression : str or Path</span>
-<span class="sd">        The glob pattern.</span>
-<span class="sd">    ensure_one : bool, optional</span>
-<span class="sd">        Ensure exactly one match is found. Default is False.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    tuple</span>
-<span class="sd">        Matched paths and parsed results.</span>
-
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; paths, parsed = pglob(&#39;data/subj_{id}/run_{run}.txt&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; paths</span>
-<span class="sd">    [&#39;data/subj_001/run_01.txt&#39;, &#39;data/subj_001/run_02.txt&#39;]</span>
-<span class="sd">    &gt;&gt;&gt; parsed</span>
-<span class="sd">    [{&#39;id&#39;: &#39;001&#39;, &#39;run&#39;: &#39;01&#39;}, {&#39;id&#39;: &#39;001&#39;, &#39;run&#39;: &#39;02&#39;}]</span>
-
-<span class="sd">    &gt;&gt;&gt; paths, parsed = pglob(&#39;data/subj_{id}/run_{run}.txt&#39;, ensure_one=True)</span>
-<span class="sd">    AssertionError  # if more than one file matches</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">glob</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">parse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ensure_one</span><span class="o">=</span><span class="n">ensure_one</span><span class="p">)</span></div>
+<div class="viewcode-block" id="register_post_load_hook">
+<a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.register_post_load_hook">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_post_load_hook</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">PostLoadHook</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register a function to run after every successful ``scitex_io.load``.&quot;&quot;&quot;</span>
+    <span class="n">_post_load_hooks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span></div>
 
 
 
-<span class="c1"># EOF</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fire_post_save</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal: invoke registered post-save hooks. Never raises.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">_post_save_hooks</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fn</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;post-save hook </span><span class="si">%r</span><span class="s2"> failed for </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fire_post_load</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal: invoke registered post-load hooks. Never raises.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">_post_load_hooks</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fn</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;post-load hook </span><span class="si">%r</span><span class="s2"> failed for </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;PostSaveHook&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PostLoadHook&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;register_post_save_hook&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;register_post_load_hook&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fire_post_save&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fire_post_load&quot;</span><span class="p">,</span>
+<span class="p">]</span>
 </pre></div>
 
            </div>
