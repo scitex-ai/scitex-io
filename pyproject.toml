@@ -106,7 +106,7 @@ dev = [
     "python-docx",        # .docx loader tests
     "optuna",             # tested via _load_modules/_optuna + _save_modules/_optuna_study
     "figrecipe>=0.28",    # optional synergy: .fig.zip/.plt.zip bundle dispatch
-    "scitex-stats @ git+https://github.com/ywatanabe1989/scitex-stats.git@develop",  # optional synergy: .stats.zip + Stats schema (pinned to develop until next PyPI release)
+    "scitex-stats>=0.2.21",  # optional synergy: .stats.zip + Stats schema (scitex_stats._dataclasses.Stats, stable since 0.2.21)
 ]
 docs = [
     "sphinx>=7.0",
@@ -138,11 +138,6 @@ Homepage = "https://github.com/ywatanabe1989/scitex-io"
 Documentation = "https://scitex-io.readthedocs.io/"
 Repository = "https://github.com/ywatanabe1989/scitex-io.git"
 Issues = "https://github.com/ywatanabe1989/scitex-io/issues"
-
-[tool.hatch.metadata]
-# Allow the scitex-stats git+https direct ref in [dev] extras until
-# the PyPI 0.2.22+ release includes the .stats.zip bundle support.
-allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/scitex_io"]
