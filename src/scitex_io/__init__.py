@@ -117,6 +117,9 @@ _OPTIONAL_ATTRS: dict[str, tuple[str, str]] = {
     ),
     "path": ("._path", "path"),
     "mv_to_tmp": ("._mv_to_tmp", "mv_to_tmp"),
+    # HDF5 gzip re-compression (needs optional h5py). Migrated from the
+    # scitex umbrella; h5py is imported lazily inside the function.
+    "compress_hdf5": ("._compress_hdf5", "compress_hdf5"),
     "json2md": ("._json2md", "json2md"),
     "migrate_h5_to_zarr": ("utils", "migrate_h5_to_zarr"),
     "migrate_h5_to_zarr_batch": ("utils", "migrate_h5_to_zarr_batch"),
