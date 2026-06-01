@@ -396,27 +396,41 @@ def _restore_after_poisoned(state):
         sys.modules[state["dotted"]] = state["saved_dotted"]
 
 
-def test_saver_missing_optional_emits_warning():
-    """Poison _save_modules._parquet and verify the lazy ``get_saver``
-    lookup emits an ``ImportWarning`` and returns ``None``."""
+def test_saver_missing_optional_returns_none():
+    """Poison ``_save_modules._parquet`` and verify the lazy
+    ``get_saver`` lookup returns ``None``. (Sibling test owns the
+    warning assertion.)"""
     # Arrange
     state = _reload_with_poisoned("scitex_io._save_modules._parquet")
     try:
         from scitex_io._registry import get_saver as _gs
+        # Act
+        result = _gs(".parquet")
+        # Assert
+        assert result is None
+    finally:
+        _restore_after_poisoned(state)
+        importlib.reload(sys.modules["scitex_io._builtin_handlers"])
 
+
+def test_saver_missing_optional_emits_warning():
+    """Poison ``_save_modules._parquet`` and verify the lazy
+    ``get_saver`` lookup emits an ``ImportWarning`` mentioning the
+    saver registration. (Sibling test owns the ``None`` return.)"""
+    # Arrange
+    state = _reload_with_poisoned("scitex_io._save_modules._parquet")
+    try:
+        from scitex_io._registry import get_saver as _gs
         with warnings.catch_warnings(record=True) as captured:
             warnings.simplefilter("always")
             # Act
-            result = _gs(".parquet")
+            _gs(".parquet")
         msgs = [str(item.message) for item in captured]
         saver_warns = [
             m for m in msgs if "saver" in m and "not registered" in m
         ]
         # Assert
-        assert result is None
-        assert saver_warns, (
-            f"expected ImportWarning about parquet saver; got: {msgs!r}"
-        )
+        assert saver_warns
     finally:
         _restore_after_poisoned(state)
         importlib.reload(sys.modules["scitex_io._builtin_handlers"])
@@ -433,16 +447,30 @@ def test_loader_missing_optional_emits_warning():
         with warnings.catch_warnings(record=True) as captured:
             warnings.simplefilter("always")
             # Act
-            result = _gl(".md")
+            _gl(".md")
         msgs = [str(item.message) for item in captured]
         loader_warns = [
             m for m in msgs if "loader" in m and "not registered" in m
         ]
         # Assert
+        assert loader_warns
+    finally:
+        _restore_after_poisoned(state)
+        importlib.reload(sys.modules["scitex_io._builtin_handlers"])
+
+
+def test_loader_missing_optional_returns_none():
+    """Poison the markdown loader module and verify the lazy
+    ``get_loader`` lookup returns ``None``. (Sibling test owns the
+    warning.)"""
+    # Arrange
+    state = _reload_with_poisoned("scitex_io._load_modules._markdown")
+    try:
+        from scitex_io._registry import get_loader as _gl
+        # Act
+        result = _gl(".md")
+        # Assert
         assert result is None
-        assert loader_warns, (
-            f"expected ImportWarning about a loader; got: {msgs!r}"
-        )
     finally:
         _restore_after_poisoned(state)
         importlib.reload(sys.modules["scitex_io._builtin_handlers"])
