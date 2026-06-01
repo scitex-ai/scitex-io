@@ -7,6 +7,25 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.20]
+
+- fix(sqlite3): `stx.io.load("*.db")` now soft-imports `scitex_db.SQLite3`
+  when available, restoring the rich SQLite API (`get_rows`,
+  `load_arrays`, `insert_many`, …) at the `stx.io.load(*.db)` entry
+  point. Falls back to the previous minimal `sqlite3.Connection`
+  context-manager wrapper when `scitex-db` is not installed, so
+  `scitex-io` keeps working in environments that don't need the rich
+  API. No hard dependency on `scitex-db` is added — the import is
+  guarded.
+  - Unblocks downstream code that calls `db_.get_rows(...)` /
+    `db_.load_arrays(...)` inside a `with stx.io.load(path) as db_:`
+    block (e.g. `neurovista/scripts/io/load_pac.py`), which
+    previously raised
+    `AttributeError: 'sqlite3.Connection' object has no attribute 'get_rows'`
+    against scitex-io ≥ 0.2.x.
+  - Added structural tests for both code paths (rich + fallback) and
+    a runtime smoke that round-trips a tiny in-memory SQLite DB.
+
 ## [0.2.17]
 
 - perf: accessing `register_post_save_hook`/`register_post_load_hook` no longer eager-registers the built-in format handlers (catboost/zarr/pandas/…). The observer hook registry is registry-independent, so `__getattr__` now skips `_ensure_builtin_handlers_registered()` for `._observers` attrs. Cuts the hot path for observer packages (e.g. scitex-clew registers hooks at import): `import scitex_clew` dropped ~3700ms → ~100ms.
