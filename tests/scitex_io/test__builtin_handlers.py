@@ -337,13 +337,13 @@ def test_reimport_idempotent_get_loader_json_is_not_none():
 # ---------------------------------------------------------------------------
 # Missing-dependency fallback coverage.
 #
-# `_builtin_handlers` wraps every optional-loader/saver import in a
-# `try/except Exception: <fn> = None` block, then warns + skips the
-# registration when the helper is None. In [dev,all] every dep is
-# installed so those branches never fire. To exercise them honestly,
-# we reload the module with the underlying helper-module poisoned in
-# `sys.modules` so the import raises, then assert the warn-and-skip
-# path took effect.
+# With the per-extension lazy registry, optional-handler resolution is
+# deferred until ``get_saver(ext)`` / ``get_loader(ext)`` is actually
+# called. Failed lazy imports emit a one-shot ``ImportWarning`` and
+# memoise ``None`` so the failure is silent on subsequent calls. To
+# exercise that branch honestly we poison the underlying helper module
+# in ``sys.modules``, force ``_builtin_handlers`` to re-register its
+# lazy specs, then trigger the lookup that resolves them.
 # ---------------------------------------------------------------------------
 
 import sys
@@ -351,11 +351,12 @@ import warnings
 
 
 def _reload_with_poisoned(dotted: str):
-    """Force ``import <dotted>`` inside ``_builtin_handlers`` to raise.
+    """Re-import ``_builtin_handlers`` with ``dotted`` poisoned.
 
-    Records ``sys.modules`` mutations and the ``meta_path`` change so
-    the caller can pass them to ``_restore_after_poisoned`` for
-    teardown.
+    ``dotted``'s ``find_spec`` raises ``ImportError`` so the lazy
+    resolve in ``_registry`` will see a missing dependency. Records
+    ``sys.modules`` mutations so the caller can pass them to
+    ``_restore_after_poisoned`` for teardown.
     """
     saved_dotted = sys.modules.pop(dotted, None)
     saved_bh = sys.modules.pop("scitex_io._builtin_handlers", None)
@@ -370,9 +371,10 @@ def _reload_with_poisoned(dotted: str):
     finder = _Fail()
     sys.meta_path[:] = [finder] + sys.meta_path
 
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        importlib.import_module("scitex_io._builtin_handlers")
+    # Re-import builtin handlers so the lazy specs are reset (and
+    # any previously memoised callable for the poisoned extension is
+    # replaced with its tuple form).
+    importlib.import_module("scitex_io._builtin_handlers")
     state = {
         "dotted": dotted,
         "saved_dotted": saved_dotted,
@@ -380,7 +382,7 @@ def _reload_with_poisoned(dotted: str):
         "saved_meta_path": saved_meta_path,
         "finder": finder,
     }
-    return w, state
+    return state
 
 
 def _restore_after_poisoned(state):
@@ -394,33 +396,81 @@ def _restore_after_poisoned(state):
         sys.modules[state["dotted"]] = state["saved_dotted"]
 
 
-def test_saver_missing_optional_emits_warning():
-    """Poison _save_modules._parquet so the saver = None branch + the
-    saver-loop ImportWarning both fire."""
+def test_saver_missing_optional_returns_none():
+    """Poison ``_save_modules._parquet`` and verify the lazy
+    ``get_saver`` lookup returns ``None``. (Sibling test owns the
+    warning assertion.)"""
     # Arrange
-    captured, state = _reload_with_poisoned("scitex_io._save_modules._parquet")
+    state = _reload_with_poisoned("scitex_io._save_modules._parquet")
     try:
-        msgs = [str(item.message) for item in captured]
+        from scitex_io._registry import get_saver as _gs
         # Act
-        saver_warns = [m for m in msgs if "saver" in m and "not registered" in m]
+        result = _gs(".parquet")
         # Assert
-        assert saver_warns, f"expected ImportWarning about parquet saver; got: {msgs!r}"
+        assert result is None
+    finally:
+        _restore_after_poisoned(state)
+        importlib.reload(sys.modules["scitex_io._builtin_handlers"])
+
+
+def test_saver_missing_optional_emits_warning():
+    """Poison ``_save_modules._parquet`` and verify the lazy
+    ``get_saver`` lookup emits an ``ImportWarning`` mentioning the
+    saver registration. (Sibling test owns the ``None`` return.)"""
+    # Arrange
+    state = _reload_with_poisoned("scitex_io._save_modules._parquet")
+    try:
+        from scitex_io._registry import get_saver as _gs
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            # Act
+            _gs(".parquet")
+        msgs = [str(item.message) for item in captured]
+        saver_warns = [
+            m for m in msgs if "saver" in m and "not registered" in m
+        ]
+        # Assert
+        assert saver_warns
     finally:
         _restore_after_poisoned(state)
         importlib.reload(sys.modules["scitex_io._builtin_handlers"])
 
 
 def test_loader_missing_optional_emits_warning():
-    """Poison the markdown loader module so the loader = None +
-    warn-and-skip branches in the loader loop both run."""
+    """Poison the markdown loader module and verify the lazy
+    ``get_loader`` lookup emits an ``ImportWarning`` and returns ``None``."""
     # Arrange
-    captured, state = _reload_with_poisoned("scitex_io._load_modules._markdown")
+    state = _reload_with_poisoned("scitex_io._load_modules._markdown")
     try:
+        from scitex_io._registry import get_loader as _gl
+
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            # Act
+            _gl(".md")
         msgs = [str(item.message) for item in captured]
-        # Act
-        loader_warns = [m for m in msgs if "loader" in m and "not registered" in m]
+        loader_warns = [
+            m for m in msgs if "loader" in m and "not registered" in m
+        ]
         # Assert
-        assert loader_warns, f"expected ImportWarning about a loader; got: {msgs!r}"
+        assert loader_warns
+    finally:
+        _restore_after_poisoned(state)
+        importlib.reload(sys.modules["scitex_io._builtin_handlers"])
+
+
+def test_loader_missing_optional_returns_none():
+    """Poison the markdown loader module and verify the lazy
+    ``get_loader`` lookup returns ``None``. (Sibling test owns the
+    warning.)"""
+    # Arrange
+    state = _reload_with_poisoned("scitex_io._load_modules._markdown")
+    try:
+        from scitex_io._registry import get_loader as _gl
+        # Act
+        result = _gl(".md")
+        # Assert
+        assert result is None
     finally:
         _restore_after_poisoned(state)
         importlib.reload(sys.modules["scitex_io._builtin_handlers"])
@@ -430,7 +480,7 @@ def test_recover_after_poisoned_import():
     """After the poisoned reload + teardown, a clean reload
     re-registers everything."""
     # Arrange
-    _captured, state = _reload_with_poisoned("scitex_io._save_modules._parquet")
+    state = _reload_with_poisoned("scitex_io._save_modules._parquet")
     _restore_after_poisoned(state)
     importlib.import_module("scitex_io._builtin_handlers")
     importlib.reload(sys.modules["scitex_io._builtin_handlers"])

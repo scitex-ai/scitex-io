@@ -1,328 +1,291 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Auto-register all built-in format handlers at import time.
+"""Register built-in format handlers with the registry — *lazily*.
 
-This module is imported by __init__.py to populate the registry
-with all supported formats. User registrations override these.
-Handlers that are None (missing optional dependency) are silently skipped.
+Each extension maps to a ``(module_path, attr_name)`` spec; the matching
+format module is only imported when ``get_saver(".ext")`` or
+``get_loader(".ext")`` is actually called. This keeps ``import scitex_io``
+cheap — a JSON-only ``save({"a":1}, "/tmp/x.json")`` does not transitively
+import PIL, pymupdf, pdfminer, pdfplumber, h5py, pyarrow, plotly, or
+scipy.
+
+User registrations still override these via the public ``register_saver``
+/ ``register_loader`` API (those are *not* lazy — the user passes the
+already-imported callable in).
 """
 
+from __future__ import annotations
+
+import importlib as _importlib
 import warnings as _warnings
 
-from ._registry import register_loader, register_saver
+from ._registry import _builtin_loaders, _builtin_savers, _register_builtin_lazy
 
-# === SAVE HANDLERS ===
-from ._save_modules import (
-    save_catboost,
-    save_csv,
-    save_excel,
-    save_hdf5,
-    save_html,
-    save_image,
-    save_joblib,
-    save_json,
-    save_matlab,
-    save_mp4,
-    save_npy,
-    save_npz,
-    save_pickle,
-    save_pickle_compressed,
-    save_tex,
-    save_text,
-    save_torch,
-    save_yaml,
-    save_zarr,
-)
-
-try:
-    from ._save_modules._parquet import _save_parquet as save_parquet
-except Exception:
-    save_parquet = None
-
-try:
-    from ._save_modules._feather import _save_feather as save_feather
-except Exception:
-    save_feather = None
-
-try:
-    from ._save_modules._bibtex import save_bibtex
-except Exception:
-    save_bibtex = None
-
-_SAVER_MAP = {
-    # Spreadsheet
-    ".csv": save_csv,
-    ".xlsx": save_excel,
-    ".xls": save_excel,
-    # Columnar
-    ".parquet": save_parquet,
-    ".feather": save_feather,
-    # NumPy
-    ".npy": save_npy,
-    ".npz": save_npz,
-    # Pickle
-    ".pkl": save_pickle,
-    ".pickle": save_pickle,
-    ".pkl.gz": save_pickle_compressed,
-    # Binary
-    ".joblib": save_joblib,
-    ".pth": save_torch,
-    ".pt": save_torch,
-    ".mat": save_matlab,
-    ".cbm": save_catboost,
-    # Text
-    ".json": save_json,
-    ".yaml": save_yaml,
-    ".yml": save_yaml,
-    ".txt": save_text,
-    ".md": save_text,
-    ".py": save_text,
-    ".css": save_text,
-    ".js": save_text,
-    ".log": save_text,
-    ".mmd": save_text,
-    ".dot": save_text,
-    ".gv": save_text,
-    ".def": save_text,
-    ".cfg": save_text,
-    ".ini": save_text,
-    ".toml": save_text,
-    ".sh": save_text,
-    ".bash": save_text,
-    ".zsh": save_text,
-    ".rst": save_text,
-    ".tsv": save_text,
-    ".tex": save_tex,
-    # Bibliography
-    ".bib": save_bibtex,
+# ---------------------------------------------------------------------------
+# SAVE HANDLERS
+# ---------------------------------------------------------------------------
+# Each entry is ``(module_path, attr_name)``. The module is *not* imported
+# until ``get_saver(ext)`` is called for an extension that maps to it.
+_LAZY_SAVERS: dict[str, tuple[str, str]] = {
+    # Spreadsheet (cheap: pandas is already a hard dep)
+    ".csv": ("scitex_io._save_modules._csv", "_save_csv"),
+    # Spreadsheet (heavy: openpyxl)
+    ".xlsx": ("scitex_io._save_modules._excel", "save_excel"),
+    ".xls": ("scitex_io._save_modules._excel", "save_excel"),
+    # Columnar (heavy: pyarrow)
+    ".parquet": ("scitex_io._save_modules._parquet", "_save_parquet"),
+    ".feather": ("scitex_io._save_modules._feather", "_save_feather"),
+    # NumPy (numpy is a hard dep)
+    ".npy": ("scitex_io._save_modules._numpy", "_save_npy"),
+    ".npz": ("scitex_io._save_modules._numpy", "_save_npz"),
+    # Pickle (stdlib)
+    ".pkl": ("scitex_io._save_modules._pickle", "_save_pickle"),
+    ".pickle": ("scitex_io._save_modules._pickle", "_save_pickle"),
+    ".pkl.gz": ("scitex_io._save_modules._pickle", "_save_pickle_gz"),
+    # Binary (heavy: joblib, torch, scipy, catboost)
+    ".joblib": ("scitex_io._save_modules._joblib", "_save_joblib"),
+    ".pth": ("scitex_io._save_modules._torch", "_save_torch"),
+    ".pt": ("scitex_io._save_modules._torch", "_save_torch"),
+    ".mat": ("scitex_io._save_modules._matlab", "_save_matlab"),
+    ".cbm": ("scitex_io._save_modules._catboost", "_save_catboost"),
+    # Text (stdlib)
+    ".json": ("scitex_io._save_modules._json", "_save_json"),
+    ".yaml": ("scitex_io._save_modules._yaml", "_save_yaml"),
+    ".yml": ("scitex_io._save_modules._yaml", "_save_yaml"),
+    ".txt": ("scitex_io._save_modules._text", "_save_text"),
+    ".md": ("scitex_io._save_modules._text", "_save_text"),
+    ".py": ("scitex_io._save_modules._text", "_save_text"),
+    ".css": ("scitex_io._save_modules._text", "_save_text"),
+    ".js": ("scitex_io._save_modules._text", "_save_text"),
+    ".log": ("scitex_io._save_modules._text", "_save_text"),
+    ".mmd": ("scitex_io._save_modules._text", "_save_text"),
+    ".dot": ("scitex_io._save_modules._text", "_save_text"),
+    ".gv": ("scitex_io._save_modules._text", "_save_text"),
+    ".def": ("scitex_io._save_modules._text", "_save_text"),
+    ".cfg": ("scitex_io._save_modules._text", "_save_text"),
+    ".ini": ("scitex_io._save_modules._text", "_save_text"),
+    ".toml": ("scitex_io._save_modules._text", "_save_text"),
+    ".sh": ("scitex_io._save_modules._text", "_save_text"),
+    ".bash": ("scitex_io._save_modules._text", "_save_text"),
+    ".zsh": ("scitex_io._save_modules._text", "_save_text"),
+    ".rst": ("scitex_io._save_modules._text", "_save_text"),
+    ".tsv": ("scitex_io._save_modules._text", "_save_text"),
+    ".tex": ("scitex_io._save_modules._tex", "save_tex"),
+    # Bibliography (heavy: bibtexparser)
+    ".bib": ("scitex_io._save_modules._bibtex", "save_bibtex"),
     # Data
-    ".html": save_html,
-    ".hdf5": save_hdf5,
-    ".h5": save_hdf5,
-    ".zarr": save_zarr,
-    # Media
-    ".mp4": save_mp4,
-    # Images (handled via _handle_image_with_csv in _save.py)
-    ".png": save_image,
-    ".jpg": save_image,
-    ".jpeg": save_image,
-    ".gif": save_image,
-    ".tiff": save_image,
-    ".tif": save_image,
-    ".svg": save_image,
-    ".pdf": save_image,
+    ".html": ("scitex_io._save_modules._html", "save_html"),
+    # Scientific (heavy: h5py, zarr)
+    ".hdf5": ("scitex_io._save_modules._hdf5", "_save_hdf5"),
+    ".h5": ("scitex_io._save_modules._hdf5", "_save_hdf5"),
+    ".zarr": ("scitex_io._save_modules._zarr", "_save_zarr"),
+    # Media (heavy: matplotlib + imageio)
+    ".mp4": ("scitex_io._save_modules._mp4", "_mk_mp4"),
+    # Images (heavy: PIL/matplotlib) — _save.py routes images through
+    # ``handle_image_with_csv`` rather than the registry, but the
+    # registry entries are still here so ``list_formats`` reports them
+    # and the rare direct ``get_saver(".png")`` lookup works.
+    ".png": ("scitex_io._save_modules._image", "save_image"),
+    ".jpg": ("scitex_io._save_modules._image", "save_image"),
+    ".jpeg": ("scitex_io._save_modules._image", "save_image"),
+    ".gif": ("scitex_io._save_modules._image", "save_image"),
+    ".tiff": ("scitex_io._save_modules._image", "save_image"),
+    ".tif": ("scitex_io._save_modules._image", "save_image"),
+    ".svg": ("scitex_io._save_modules._image", "save_image"),
+    ".pdf": ("scitex_io._save_modules._image", "save_image"),
 }
 
-for _ext, _fn in _SAVER_MAP.items():
-    if _fn is not None:
-        register_saver(_ext, _fn, builtin=True)
-    else:
-        _warnings.warn(
-            f"scitex_io: saver for '{_ext}' not registered (missing optional dependency)",
-            ImportWarning,
-            stacklevel=1,
-        )
+for _ext, (_mod, _attr) in _LAZY_SAVERS.items():
+    _register_builtin_lazy(_builtin_savers, _ext, _mod, _attr)
 
 
-# === LOAD HANDLERS ===
-
-try:
-    from ._load_modules._bibtex import _load_bibtex
-except Exception:
-    _load_bibtex = None
-
-try:
-    from ._load_modules._catboost import _load_catboost
-except Exception:
-    _load_catboost = None
-
-try:
-    from ._load_modules._con import _load_con
-except Exception:
-    _load_con = None
-
-try:
-    from ._load_modules._docx import _load_docx
-except Exception:
-    _load_docx = None
-
-try:
-    from ._load_modules._eeg import _load_eeg_data
-except Exception:
-    _load_eeg_data = None
-
-try:
-    from ._load_modules._hdf5 import _load_hdf5
-except Exception:
-    _load_hdf5 = None
-
-try:
-    from ._load_modules._image import _load_image
-except Exception:
-    _load_image = None
-
-try:
-    from ._load_modules._joblib import _load_joblib
-except Exception:
-    _load_joblib = None
-
-try:
-    from ._load_modules._json import _load_json
-except Exception:
-    _load_json = None
-
-try:
-    from ._load_modules._markdown import _load_markdown
-except Exception:
-    _load_markdown = None
-
-try:
-    from ._load_modules._matlab import _load_matlab
-except Exception:
-    _load_matlab = None
-
-try:
-    from ._load_modules._numpy import _load_npy
-except Exception:
-    _load_npy = None
-
-try:
-    from ._load_modules._pandas import (
-        _load_csv,
-        _load_excel,
-        _load_feather,
-        _load_parquet,
-        _load_tsv,
-    )
-except Exception:
-    _load_csv = None
-    _load_excel = None
-    _load_feather = None
-    _load_parquet = None
-    _load_tsv = None
-
-try:
-    from ._load_modules._pdf import _load_pdf
-except Exception:
-    _load_pdf = None
-
-try:
-    from ._load_modules._pickle import _load_pickle
-except Exception:
-    _load_pickle = None
-
-try:
-    from ._load_modules._sqlite3 import _load_db_sqlite3
-except Exception:
-    _load_db_sqlite3 = None
-
-try:
-    from ._load_modules._torch import _load_torch
-except Exception:
-    _load_torch = None
-
-try:
-    from ._load_modules._txt import _load_txt
-except Exception:
-    _load_txt = None
-
-try:
-    from ._load_modules._xml import _load_xml
-except Exception:
-    _load_xml = None
-
-try:
-    from ._load_modules._yaml import _load_yaml
-except Exception:
-    _load_yaml = None
-
-try:
-    from ._load_modules._zarr import _load_zarr
-except Exception:
-    _load_zarr = None
-
-_LOADER_MAP = {
-    # Default
-    "": _load_txt,
-    # Config
-    ".yaml": _load_yaml,
-    ".yml": _load_yaml,
-    ".json": _load_json,
-    ".xml": _load_xml,
-    # Bibliography
-    ".bib": _load_bibtex,
-    # ML/DL
-    ".cbm": _load_catboost,
-    ".pth": _load_torch,
-    ".pt": _load_torch,
-    ".joblib": _load_joblib,
-    ".pkl": _load_pickle,
-    ".pickle": _load_pickle,
-    ".gz": _load_pickle,
-    # Tabular
-    ".csv": _load_csv,
-    ".tsv": _load_tsv,
-    ".xls": _load_excel,
-    ".xlsx": _load_excel,
-    ".xlsm": _load_excel,
-    ".xlsb": _load_excel,
-    ".parquet": _load_parquet,
-    ".feather": _load_feather,
-    ".db": _load_db_sqlite3,
-    # Scientific
-    ".npy": _load_npy,
-    ".npz": _load_npy,
-    ".mat": _load_matlab,
-    ".hdf5": _load_hdf5,
-    ".h5": _load_hdf5,
-    ".zarr": _load_zarr,
-    ".con": _load_con,
+# ---------------------------------------------------------------------------
+# LOAD HANDLERS
+# ---------------------------------------------------------------------------
+_LAZY_LOADERS: dict[str, tuple[str, str]] = {
+    # Default — empty-ext loads as text
+    "": ("scitex_io._load_modules._txt", "_load_txt"),
+    # Config (PyYAML / stdlib)
+    ".yaml": ("scitex_io._load_modules._yaml", "_load_yaml"),
+    ".yml": ("scitex_io._load_modules._yaml", "_load_yaml"),
+    ".json": ("scitex_io._load_modules._json", "_load_json"),
+    ".xml": ("scitex_io._load_modules._xml", "_load_xml"),
+    # Bibliography (heavy: bibtexparser)
+    ".bib": ("scitex_io._load_modules._bibtex", "_load_bibtex"),
+    # ML/DL (heavy: catboost, torch, joblib)
+    ".cbm": ("scitex_io._load_modules._catboost", "_load_catboost"),
+    ".pth": ("scitex_io._load_modules._torch", "_load_torch"),
+    ".pt": ("scitex_io._load_modules._torch", "_load_torch"),
+    ".joblib": ("scitex_io._load_modules._joblib", "_load_joblib"),
+    ".pkl": ("scitex_io._load_modules._pickle", "_load_pickle"),
+    ".pickle": ("scitex_io._load_modules._pickle", "_load_pickle"),
+    ".gz": ("scitex_io._load_modules._pickle", "_load_pickle"),
+    # Tabular (pandas hard dep; pyarrow for parquet/feather)
+    ".csv": ("scitex_io._load_modules._pandas", "_load_csv"),
+    ".tsv": ("scitex_io._load_modules._pandas", "_load_tsv"),
+    ".xls": ("scitex_io._load_modules._pandas", "_load_excel"),
+    ".xlsx": ("scitex_io._load_modules._pandas", "_load_excel"),
+    ".xlsm": ("scitex_io._load_modules._pandas", "_load_excel"),
+    ".xlsb": ("scitex_io._load_modules._pandas", "_load_excel"),
+    ".parquet": ("scitex_io._load_modules._pandas", "_load_parquet"),
+    ".feather": ("scitex_io._load_modules._pandas", "_load_feather"),
+    ".db": ("scitex_io._load_modules._sqlite3", "_load_db_sqlite3"),
+    # Scientific (heavy: scipy, h5py, zarr)
+    ".npy": ("scitex_io._load_modules._numpy", "_load_npy"),
+    ".npz": ("scitex_io._load_modules._numpy", "_load_npy"),
+    ".mat": ("scitex_io._load_modules._matlab", "_load_matlab"),
+    ".hdf5": ("scitex_io._load_modules._hdf5", "_load_hdf5"),
+    ".h5": ("scitex_io._load_modules._hdf5", "_load_hdf5"),
+    ".zarr": ("scitex_io._load_modules._zarr", "_load_zarr"),
+    ".con": ("scitex_io._load_modules._con", "_load_con"),
     # Documents (text formats — `.md` overridden below by markdown loader)
-    ".txt": _load_txt,
-    ".tex": _load_txt,
-    ".log": _load_txt,
-    ".mmd": _load_txt,
-    ".dot": _load_txt,
-    ".gv": _load_txt,
-    ".def": _load_txt,
-    ".cfg": _load_txt,
-    ".ini": _load_txt,
-    ".toml": _load_txt,
-    ".sh": _load_txt,
-    ".bash": _load_txt,
-    ".zsh": _load_txt,
-    ".rst": _load_txt,
-    ".py": _load_txt,
-    ".css": _load_txt,
-    ".js": _load_txt,
-    ".event": _load_txt,
-    # Specialized document loaders
-    ".md": _load_markdown,
-    ".docx": _load_docx,
-    ".pdf": _load_pdf,
-    # Images
-    ".jpg": _load_image,
-    ".png": _load_image,
-    ".tiff": _load_image,
-    ".tif": _load_image,
-    # EEG
-    ".vhdr": _load_eeg_data,
-    ".vmrk": _load_eeg_data,
-    ".edf": _load_eeg_data,
-    ".bdf": _load_eeg_data,
-    ".gdf": _load_eeg_data,
-    ".cnt": _load_eeg_data,
-    ".egi": _load_eeg_data,
-    ".eeg": _load_eeg_data,
-    ".set": _load_eeg_data,
+    ".txt": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".tex": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".log": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".mmd": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".dot": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".gv": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".def": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".cfg": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".ini": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".toml": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".sh": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".bash": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".zsh": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".rst": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".py": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".css": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".js": ("scitex_io._load_modules._txt", "_load_txt"),
+    ".event": ("scitex_io._load_modules._txt", "_load_txt"),
+    # Specialised document loaders (heavy: docx, pdf stack)
+    ".md": ("scitex_io._load_modules._markdown", "_load_markdown"),
+    ".docx": ("scitex_io._load_modules._docx", "_load_docx"),
+    ".pdf": ("scitex_io._load_modules._pdf", "_load_pdf"),
+    # Images (heavy: PIL)
+    ".jpg": ("scitex_io._load_modules._image", "_load_image"),
+    ".png": ("scitex_io._load_modules._image", "_load_image"),
+    ".tiff": ("scitex_io._load_modules._image", "_load_image"),
+    ".tif": ("scitex_io._load_modules._image", "_load_image"),
+    # EEG (heavy: mne)
+    ".vhdr": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".vmrk": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".edf": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".bdf": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".gdf": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".cnt": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".egi": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".eeg": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+    ".set": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
 }
 
-for _ext, _fn in _LOADER_MAP.items():
-    if _fn is not None:
-        register_loader(_ext, _fn, builtin=True)
-    else:
-        _warnings.warn(
-            f"scitex_io: loader for '{_ext}' not registered (missing optional dependency)",
-            ImportWarning,
-            stacklevel=1,
+for _ext, (_mod, _attr) in _LAZY_LOADERS.items():
+    _register_builtin_lazy(_builtin_loaders, _ext, _mod, _attr)
+
+
+# Clean up loop variables so they don't leak as module attributes.
+del _ext, _mod, _attr
+
+
+# ---------------------------------------------------------------------------
+# Backward-compat module-level attribute access.
+#
+# Historically ``_builtin_handlers`` exposed every imported saver/loader as
+# a module-level name (e.g. ``bh.save_csv``, ``bh._load_json``). Lazy
+# registration no longer imports those at module load time, but tests and
+# downstream code still poke at the attributes — so resolve them on first
+# attribute access via PEP 562.
+# ---------------------------------------------------------------------------
+_SAVER_ATTRS: dict[str, tuple[str, str]] = {
+    # name_on_this_module: (module_path, attr_in_module)
+    "save_csv": ("scitex_io._save_modules._csv", "_save_csv"),
+    "save_excel": ("scitex_io._save_modules._excel", "save_excel"),
+    "save_parquet": ("scitex_io._save_modules._parquet", "_save_parquet"),
+    "save_feather": ("scitex_io._save_modules._feather", "_save_feather"),
+    "save_npy": ("scitex_io._save_modules._numpy", "_save_npy"),
+    "save_npz": ("scitex_io._save_modules._numpy", "_save_npz"),
+    "save_pickle": ("scitex_io._save_modules._pickle", "_save_pickle"),
+    "save_pickle_compressed": (
+        "scitex_io._save_modules._pickle",
+        "_save_pickle_gz",
+    ),
+    "save_joblib": ("scitex_io._save_modules._joblib", "_save_joblib"),
+    "save_torch": ("scitex_io._save_modules._torch", "_save_torch"),
+    "save_matlab": ("scitex_io._save_modules._matlab", "_save_matlab"),
+    "save_catboost": ("scitex_io._save_modules._catboost", "_save_catboost"),
+    "save_json": ("scitex_io._save_modules._json", "_save_json"),
+    "save_yaml": ("scitex_io._save_modules._yaml", "_save_yaml"),
+    "save_text": ("scitex_io._save_modules._text", "_save_text"),
+    "save_tex": ("scitex_io._save_modules._tex", "save_tex"),
+    "save_bibtex": ("scitex_io._save_modules._bibtex", "save_bibtex"),
+    "save_html": ("scitex_io._save_modules._html", "save_html"),
+    "save_hdf5": ("scitex_io._save_modules._hdf5", "_save_hdf5"),
+    "save_zarr": ("scitex_io._save_modules._zarr", "_save_zarr"),
+    "save_mp4": ("scitex_io._save_modules._mp4", "_mk_mp4"),
+    "save_image": ("scitex_io._save_modules._image", "save_image"),
+}
+
+_LOADER_ATTRS: dict[str, tuple[str, str]] = {
+    "_load_txt": ("scitex_io._load_modules._txt", "_load_txt"),
+    "_load_yaml": ("scitex_io._load_modules._yaml", "_load_yaml"),
+    "_load_json": ("scitex_io._load_modules._json", "_load_json"),
+    "_load_xml": ("scitex_io._load_modules._xml", "_load_xml"),
+    "_load_bibtex": ("scitex_io._load_modules._bibtex", "_load_bibtex"),
+    "_load_catboost": ("scitex_io._load_modules._catboost", "_load_catboost"),
+    "_load_torch": ("scitex_io._load_modules._torch", "_load_torch"),
+    "_load_joblib": ("scitex_io._load_modules._joblib", "_load_joblib"),
+    "_load_pickle": ("scitex_io._load_modules._pickle", "_load_pickle"),
+    "_load_csv": ("scitex_io._load_modules._pandas", "_load_csv"),
+    "_load_tsv": ("scitex_io._load_modules._pandas", "_load_tsv"),
+    "_load_excel": ("scitex_io._load_modules._pandas", "_load_excel"),
+    "_load_parquet": ("scitex_io._load_modules._pandas", "_load_parquet"),
+    "_load_feather": ("scitex_io._load_modules._pandas", "_load_feather"),
+    "_load_db_sqlite3": ("scitex_io._load_modules._sqlite3", "_load_db_sqlite3"),
+    "_load_npy": ("scitex_io._load_modules._numpy", "_load_npy"),
+    "_load_matlab": ("scitex_io._load_modules._matlab", "_load_matlab"),
+    "_load_hdf5": ("scitex_io._load_modules._hdf5", "_load_hdf5"),
+    "_load_zarr": ("scitex_io._load_modules._zarr", "_load_zarr"),
+    "_load_con": ("scitex_io._load_modules._con", "_load_con"),
+    "_load_markdown": ("scitex_io._load_modules._markdown", "_load_markdown"),
+    "_load_docx": ("scitex_io._load_modules._docx", "_load_docx"),
+    "_load_pdf": ("scitex_io._load_modules._pdf", "_load_pdf"),
+    "_load_image": ("scitex_io._load_modules._image", "_load_image"),
+    "_load_eeg_data": ("scitex_io._load_modules._eeg", "_load_eeg_data"),
+}
+
+_ATTR_SPECS = {**_SAVER_ATTRS, **_LOADER_ATTRS}
+
+
+def __getattr__(name: str):
+    """PEP 562 lazy attribute resolver for back-compat saver/loader names.
+
+    Resolves ``bh.save_csv``, ``bh._load_json`` etc. on demand, caches the
+    result on the module, and emits an ``ImportWarning`` (returning
+    ``None``) on missing optional dependencies — mirroring the old
+    behaviour of the try/except blocks this module used to carry.
+    """
+    spec = _ATTR_SPECS.get(name)
+    if spec is None:
+        raise AttributeError(
+            f"module {__name__!r} has no attribute {name!r}"
         )
+    module_path, attr_name = spec
+    try:
+        module = _importlib.import_module(module_path)
+        value = getattr(module, attr_name, None)
+        if value is None:
+            raise ImportError(
+                f"module {module_path!r} has no attribute {attr_name!r}"
+            )
+    except Exception as exc:
+        _warnings.warn(
+            f"scitex_io: {name} not available (missing optional dependency: {exc})",
+            ImportWarning,
+            stacklevel=2,
+        )
+        value = None
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_ATTR_SPECS))
