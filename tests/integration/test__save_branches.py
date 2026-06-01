@@ -74,16 +74,19 @@ class TestPathlibInput:
 
 class TestFStringPath:
     def test_f_string_rejects_invalid_variable_name(self, tmp_path):
-        # Arrange — an f-expression with a non-identifier placeholder;
-        # the function raises ValueError internally and the outer
+        # An f-expression with a non-identifier placeholder; the
+        # function raises ValueError internally and the outer
         # try/except re-raises it (fail-loud-fail-early policy,
         # 2026-06-01) instead of swallowing the failure with a `False`
         # sentinel.
         import pytest
         import scitex_io as sio
+        # Arrange
         path = f'f"{tmp_path}/run_{{1invalid}}.json"'
-        # Act / Assert — single behavioural assertion (the raise)
-        with pytest.raises(Exception):
+        # Act
+        ctx = pytest.raises(Exception)
+        # Assert
+        with ctx:
             sio.save({"x": 1}, path, verbose=False)
 
 
@@ -208,18 +211,21 @@ class TestSymlinkTo:
 
 class TestUnknownExtension:
     def test_no_handler_raises(self, tmp_path):
-        # Arrange — `.totally-fake` has no registered handler. save()
-        # must raise (fail-loud-fail-early policy, 2026-06-01) so the
-        # caller sees the failure at the call site rather than
-        # receiving a falsy sentinel and continuing as if the file had
-        # been written. The actual exception type is whatever the
-        # unknown-handler code path emits today (ValueError);
-        # ``Exception`` keeps the test robust across future refactors.
+        # `.totally-fake` has no registered handler. save() must raise
+        # (fail-loud-fail-early policy, 2026-06-01) so the caller sees
+        # the failure at the call site rather than receiving a falsy
+        # sentinel and continuing as if the file had been written. The
+        # actual exception type is whatever the unknown-handler code
+        # path emits today (ValueError); ``Exception`` keeps the test
+        # robust across future refactors.
         import pytest
         import scitex_io as sio
+        # Arrange
         out = str(tmp_path / "data.totally-fake")
-        # Act / Assert — single behavioural assertion (the raise)
-        with pytest.raises(Exception):
+        # Act
+        ctx = pytest.raises(Exception)
+        # Assert
+        with ctx:
             sio.save({"x": 1}, out, verbose=False)
 
 
