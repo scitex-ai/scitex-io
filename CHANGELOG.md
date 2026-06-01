@@ -7,6 +7,14 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.20] — 2026-06-01
+
+### Changed
+- **`scitex_io.save()` fails LOUD now (#51).** The outer `try/except` previously caught every exception, logged it as `ERRO`, and returned `False`. Callers doing `path = sio.save(obj, p)` proceeded as if the save had succeeded, and the failure surfaced much later — typically as a `FileNotFoundError` in a downstream consumer. The exception now re-raises at the call site; the log still carries the `spath` / `specified_path` debug trail for forensics. **Breaking** for any caller relying on the `False`-on-error sentinel; an internal audit found only test-suite users of the sentinel, which were updated in the same PR.
+
+### Fixed
+- **Per-extension lazy registry — JSON save no longer imports PIL / pymupdf / pdfminer / pdfplumber / pyarrow / h5py / plotly / scipy (#52).** `_builtin_handlers.py` used to eagerly `from ._save_modules import save_X` for every saver at first `import scitex_io`, and `_load_modules/__init__.py` scanned its own directory and `importlib.import_module()`-ed every `.py` in it. A JSON-only `stx.io.save({"a":1}, "/tmp/x.json")` consequently pulled in ~200 heavy modules, several of which transitively link `libgthread-2.0.so.0` and fail on minimal containers (paper-scitex-clew WSL2 incident, 2026-06-01). Switched to a per-extension lazy `(module_path, attr_name)` registry that resolves+memoises on first `get_saver()`/`get_loader()` lookup. Verification: `import scitex_io as sio; sio.save({"a":1}, "/tmp/x.json")` followed by `sys.modules` filter for `PIL|pymupdf|pdfminer|pdfplumber|pyarrow|h5py|plotly|scipy` returns **0 entries** (before: ~200).
+
 ## [0.2.17]
 
 - perf: accessing `register_post_save_hook`/`register_post_load_hook` no longer eager-registers the built-in format handlers (catboost/zarr/pandas/…). The observer hook registry is registry-independent, so `__getattr__` now skips `_ensure_builtin_handlers_registered()` for `._observers` attrs. Cuts the hot path for observer packages (e.g. scitex-clew registers hooks at import): `import scitex_clew` dropped ~3700ms → ~100ms.
