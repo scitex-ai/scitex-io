@@ -276,7 +276,24 @@ def save(
         ########################################
 
         spath_cwd = _os.getcwd() + "/" + specified_path
-        spath_cwd = clean(spath_cwd)
+        # scitex-io#55: spath_cwd is the LITERAL location of the cwd
+        # anchor symlink we're about to (re)create — it must NOT be
+        # collapsed to whatever the existing symlink currently points
+        # to. ``clean()`` did ``Path.resolve()`` here, which on a second
+        # save() call followed call-1's symlink, silently shifted the
+        # anchor onto the target file, and made the subsequent rm
+        # delete the just-written artefact. Use ``normpath`` so the
+        # anchor stays where the caller asked for it.
+        spath_cwd = _os.path.normpath(spath_cwd)
+        # Defensive cleanup: if a previous (pre-fix) run left a broken
+        # or self-looping symlink at the anchor, remove it now so the
+        # downstream ``rm -f`` / ``ln -sfr`` aren't forced to interact
+        # with a path that ``Path.resolve()`` would refuse to follow.
+        if _os.path.islink(spath_cwd):
+            try:
+                _os.stat(spath_cwd)  # follow → raises on loop/broken
+            except OSError:
+                _os.unlink(spath_cwd)
 
         should_skip_deletion = spath_final.endswith(".csv") or (
             (spath_final.endswith(".hdf5") or spath_final.endswith(".h5"))
@@ -313,7 +330,9 @@ def save(
             **kwargs,
         )
 
-        _symlink(spath, spath_cwd, symlink_from_cwd, verbose)
+        _symlink(
+            spath, spath_cwd, symlink_from_cwd, verbose, spath_final=spath_final
+        )
         _symlink_to(spath_final, symlink_to, verbose)
         saved_path = Path(spath)
         # Notify any registered observers (clew, audit, …). See _hooks.
@@ -353,12 +372,40 @@ def save(
         raise
 
 
-def _symlink(spath, spath_cwd, symlink_from_cwd, verbose):
-    """Create a symbolic link from the current working directory."""
+def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
+    """Create a symbolic link from the current working directory.
+
+    Uses ``spath_final`` (the path normalised through ``clean()``) as
+    the link source when supplied; falls back to the raw ``spath`` for
+    backward compatibility with callers that don't yet pass it.
+
+    scitex-io#55: when ``spath`` contained ``./`` segments (the common
+    case for ``save(obj, "./x.csv", symlink_from_cwd=True)``), the
+    ``ln -sfr`` relative-target computation could collapse to the same
+    basename in the same dir, producing a ``./x.csv -> x.csv``
+    self-loop. We now:
+
+    1. Prefer the cleaned ``spath_final`` as the link source.
+    2. Compute the relative target ourselves and bail out (logging) if
+       it would equal ``basename(spath_cwd)`` in ``dirname(spath_cwd)``.
+    """
     if symlink_from_cwd and (spath != spath_cwd):
+        target = spath_final if spath_final is not None else spath
         _os.makedirs(_os.path.dirname(spath_cwd), exist_ok=True)
+        rel_target = _os.path.relpath(target, _os.path.dirname(spath_cwd))
+        if rel_target == _os.path.basename(spath_cwd):
+            # Defensive guard — refuse to create a self-loop. This
+            # should be unreachable now that spath_cwd uses normpath
+            # (not clean→resolve) upstream, but is kept as a belt-and-
+            # suspenders for any caller that passes already-resolved
+            # paths.
+            logger.error(
+                f"_symlink would self-loop {spath_cwd} -> {rel_target}; "
+                "skipping link creation (scitex-io#55)."
+            )
+            return
         sh(["rm", "-f", f"{spath_cwd}"], verbose=False)
-        sh(["ln", "-sfr", f"{spath}", f"{spath_cwd}"], verbose=False)
+        sh(["ln", "-sfr", f"{target}", f"{spath_cwd}"], verbose=False)
         if verbose:
             logger.success(color_text(f"(Symlinked to: {spath_cwd})", "yellow"))
 

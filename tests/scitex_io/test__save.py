@@ -576,3 +576,103 @@ def test_save_pickle_without_track_arg_still_works(cwd_tmp):
     sio.save({"a": 1}, str(target), env_detector=_env("script"))
     # Assert
     assert target.is_file()
+
+
+# ===========================================================================
+# scitex-io#55 — repeat ``save(symlink_from_cwd=True)`` must not self-loop
+# ===========================================================================
+#
+# Two consecutive ``save(obj, "./x.csv", symlink_from_cwd=True)`` calls
+# from the same cwd used to leave a ``./x.csv -> x.csv`` (or
+# repro_out-local) self-loop symlink, because:
+#
+# 1. ``spath_cwd = clean(spath_cwd)`` did ``Path.resolve()``, which on
+#    call 2 followed call 1's symlink and silently rebound the cwd
+#    anchor onto the target file inside repro_out.
+# 2. ``_symlink`` was then passed the un-normalised ``spath`` containing
+#    ``./``, and ``ln -sfr`` collapsed the relative target to the
+#    symlink's own basename in its own dir.
+#
+# The fix uses ``normpath`` for ``spath_cwd`` (anchor stays at the
+# literal cwd location) and passes ``spath_final`` (cleaned) into
+# ``_symlink`` with a defensive self-loop guard. These tests pin the
+# end-to-end behaviour.
+
+
+def test_double_save_does_not_self_loop_cwd_anchor(cwd_tmp):
+    """After two saves, the cwd anchor symlink target is NOT its own basename."""
+    # Arrange
+    import os
+    import pandas as pd
+
+    df = pd.DataFrame({"a": [1]})
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    # Act
+    link_target = os.readlink(cwd_tmp / "x.csv")
+    # Assert
+    assert link_target != "x.csv"
+
+
+def test_double_save_does_not_self_loop_routed_target(cwd_tmp):
+    """After two saves, the routed file is NOT itself a symlink to itself."""
+    # Arrange
+    import pandas as pd
+
+    df = pd.DataFrame({"a": [1]})
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    # Act
+    # Resolve the cwd anchor — must succeed (no Errno 40).
+    resolved = Path(cwd_tmp / "x.csv").resolve()
+    # Assert
+    assert resolved.is_file()
+
+
+def test_double_save_then_third_save_does_not_raise(cwd_tmp):
+    """Third save() must not blow up on a stale self-loop from prior runs."""
+    # Arrange
+    import pandas as pd
+
+    df = pd.DataFrame({"a": [1]})
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    completed = False
+    # Act
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    completed = True
+    # Assert
+    assert completed
+
+
+def test_double_save_content_round_trip_matches(cwd_tmp):
+    """After two saves with symlink_from_cwd, loading by filename returns latest data."""
+    # Arrange
+    import pandas as pd
+
+    df_first = pd.DataFrame({"a": [1]})
+    df_second = pd.DataFrame({"a": [2]})
+    sio.save(df_first, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    sio.save(df_second, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    # Act
+    loaded = sio.load(str(cwd_tmp / "x.csv"))
+    # Assert
+    assert loaded["a"].tolist() == [2]
+
+
+def test_stale_self_loop_symlink_at_cwd_anchor_is_cleaned(cwd_tmp):
+    """A pre-existing self-loop symlink at the cwd anchor is removed by save()."""
+    # Arrange
+    import os
+    import pandas as pd
+
+    bad_link = cwd_tmp / "x.csv"
+    # Plant a self-looping symlink that would otherwise trip Path.resolve()
+    # with OSError [Errno 40] inside clean() on the next save().
+    os.symlink("x.csv", str(bad_link))
+    df = pd.DataFrame({"a": [1]})
+    # Act
+    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    link_target = os.readlink(bad_link)
+    # Assert
+    assert link_target != "x.csv"
