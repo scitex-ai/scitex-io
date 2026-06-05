@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._utils &mdash; SciTeX IO v0.2.15</title>
+  <title>scitex_io._utils &mdash; SciTeX IO v0.2.21</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=d5b904a0"></script>
+      <script src="../../_static/documentation_options.js?v=84986ecb"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -144,6 +144,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.clear_load_cache"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.__init__"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict._resolve_key"><code class="docutils literal notranslate"><span class="pre">DotDict._resolve_key()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.get"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.to_dict"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.keys"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
@@ -155,6 +156,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.copy"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -165,59 +168,12 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#core-i-o">Core I/O</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id0"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id16"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id17"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id18"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id24"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id30"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id31"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#registry">Registry</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id38"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id39"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id40"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id41"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id42"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id45"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id46"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#cache-control">Cache Control</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id47"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id48"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id49"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#dict-utilities">Dict Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id50"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id60"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#metadata">Metadata</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id61"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id62"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id63"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#explorers">Explorers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.H5Explorer"><code class="docutils literal notranslate"><span class="pre">H5Explorer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.ZarrExplorer"><code class="docutils literal notranslate"><span class="pre">ZarrExplorer</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#core-i-o">Core I/O</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#registry">Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#cache-control">Cache Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#dict-utilities">Dict Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#metadata">Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#explorers">Explorers</a></li>
 </ul>
 </li>
 </ul>
@@ -295,7 +251,26 @@
 <a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.DotDict">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">DotDict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A dictionary-like object that allows attribute-like access (for valid identifier keys)</span>
-<span class="sd">    and standard item access for all keys (including integers, etc.).&quot;&quot;&quot;</span>
+<span class="sd">    and standard item access for all keys (including integers, etc.).</span>
+
+<span class="sd">    Case-insensitive on string-key lookup, storage-stable</span>
+<span class="sd">    -----------------------------------------------------</span>
+<span class="sd">    Keys are stored exactly as set (``load_configs`` separately</span>
+<span class="sd">    normalises every config key to UPPER on load). Lookups, however,</span>
+<span class="sd">    are **case-insensitive for string keys**: ``d[&quot;seizure&quot;]``,</span>
+<span class="sd">    ``d[&quot;SEIZURE&quot;]``, ``d.seizure`` and ``d.SEIZURE`` all resolve to the</span>
+<span class="sd">    same stored value regardless of the stored case, and</span>
+<span class="sd">    ``&quot;seizure&quot; in d`` matches a stored ``&quot;SEIZURE&quot;`` (and vice versa).</span>
+
+<span class="sd">    This means a config written ``STR2COLOR: {&quot;seizure&quot;: &quot;red&quot;}`` —</span>
+<span class="sd">    which ``load_configs`` stores as ``{&quot;SEIZURE&quot;: &quot;red&quot;}`` — can still</span>
+<span class="sd">    be looked up with the lowercase key the user wrote</span>
+<span class="sd">    (``CONFIG.X.STR2COLOR[&quot;seizure&quot;]``) without a surprise ``KeyError``.</span>
+
+<span class="sd">    ``keys()`` / ``values()`` / ``items()`` / iteration return the</span>
+<span class="sd">    stored (canonical) form — they are NOT case-folded. Non-string keys</span>
+<span class="sd">    (ints, etc.) are left untouched and matched exactly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="DotDict.__init__">
 <a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.DotDict.__init__">[docs]</a>
@@ -312,11 +287,42 @@
                 <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
 
+<div class="viewcode-block" id="DotDict._resolve_key">
+<a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.DotDict._resolve_key">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the stored key matching ``key`` case-insensitively.</span>
+
+<span class="sd">        Resolution order, designed so the common (UPPER-stored) path</span>
+<span class="sd">        stays O(1) and the case-insensitive scan runs only on a genuine</span>
+<span class="sd">        miss:</span>
+
+<span class="sd">        1. Exact match — covers non-string keys and same-case lookups.</span>
+<span class="sd">        2. For string keys, ``key.upper()`` — covers lowercase lookup of</span>
+<span class="sd">           an UPPER-stored key (the ``load_configs`` case).</span>
+<span class="sd">        3. For string keys, a case-insensitive scan over stored string</span>
+<span class="sd">           keys — covers any other case mix (e.g. lowercase storage).</span>
+
+<span class="sd">        Raises ``KeyError`` (carrying the *original* lookup key) when</span>
+<span class="sd">        nothing matches, so callers see the key they actually asked for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">key</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">upper</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">upper</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">upper</span>
+            <span class="k">for</span> <span class="n">stored</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">stored</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="n">upper</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">stored</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_resolve_key</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; object has no attribute &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
@@ -342,7 +348,7 @@
                 <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_resolve_key</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">DotDict</span><span class="p">):</span>
@@ -355,7 +361,12 @@
 <div class="viewcode-block" id="DotDict.get">
 <a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.DotDict.get">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+        <span class="c1"># Case-insensitive for string keys, mirroring __getitem__, so</span>
+        <span class="c1"># d.get(&quot;seizure&quot;) and d[&quot;seizure&quot;] never disagree.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_resolve_key</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">default</span></div>
 
 
 <div class="viewcode-block" id="DotDict.to_dict">
@@ -452,7 +463,11 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>

@@ -19,30 +19,28 @@ except ImportError:
 
 
 def glob(expression: Union[str, Path], parse=False, ensure_one=False):
-    """
-    Perform a glob operation with natural sorting and extended pattern support.
+    """Perform a glob operation with natural sorting and extended pattern support.
 
     This function extends the standard glob functionality by adding natural sorting
     and support for curly brace expansion in the glob pattern.
 
-    Parameters:
-    -----------
-    expression : Union[str, Path]
-        The glob pattern to match against file paths. Can be a string or pathlib.Path object.
-        Supports standard glob syntax and curly brace expansion (e.g., 'dir/{a,b}/*.txt').
+    Parameters
+    ----------
+    expression : str or Path
+        The glob pattern. Supports standard glob and ``{a,b}`` expansion.
     parse : bool, optional
         Whether to parse the matched paths. Default is False.
     ensure_one : bool, optional
         Ensure exactly one match is found. Default is False.
 
-    Returns:
-    --------
-    Union[List[str], Tuple[List[str], List[dict]]]
-        If parse=False: A naturally sorted list of file paths
-        If parse=True: Tuple of (paths, parsed results)
+    Returns
+    -------
+    list or tuple
+        If ``parse=False``: naturally sorted file paths.
+        If ``parse=True``: tuple of ``(paths, parsed_results)``.
 
-    Examples:
-    ---------
+    Examples
+    --------
     >>> glob('data/*.txt')
     ['data/file1.txt', 'data/file2.txt', 'data/file10.txt']
 
@@ -82,23 +80,22 @@ def glob(expression: Union[str, Path], parse=False, ensure_one=False):
 
 
 def parse_glob(expression: Union[str, Path], ensure_one=False):
-    """
-    Convenience function for glob with parsing enabled.
+    """Convenience function for glob with parsing enabled.
 
-    Parameters:
-    -----------
-    expression : Union[str, Path]
-        The glob pattern to match against file paths. Can be a string or pathlib.Path object.
+    Parameters
+    ----------
+    expression : str or Path
+        The glob pattern.
     ensure_one : bool, optional
         Ensure exactly one match is found. Default is False.
 
-    Returns:
-    --------
-    Tuple[List[str], List[dict]]
+    Returns
+    -------
+    tuple
         Matched paths and parsed results.
 
-    Examples:
-    ---------
+    Examples
+    --------
     >>> paths, parsed = pglob('data/subj_{id}/run_{run}.txt')
     >>> paths
     ['data/subj_001/run_01.txt', 'data/subj_001/run_02.txt']

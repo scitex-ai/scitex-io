@@ -141,16 +141,12 @@ class TestRegistry:
 
     def test_user_override_get_saver_test_ov_is_none(self):
         # Arrange
-        # Arrange
         def my_saver(obj, path, **kw):
             pass
 
-        # Act
         register_saver(".test_ov", my_saver)
-        # Assert
-        assert get_saver(".test_ov") is my_saver
-        unregister_saver(".test_ov")
         # Act
+        unregister_saver(".test_ov")
         # Assert
         assert get_saver(".test_ov") is None
 
@@ -185,17 +181,13 @@ class TestRegistry:
 
     def test_user_overrides_builtin_get_saver_json_is_original(self):
         # Arrange
-        # Arrange
         original = get_saver(".json")
 
         def custom_json(obj, path, **kw):
             pass
 
-        # Act
         register_saver(".json", custom_json)
-        # Assert
-        assert get_saver(".json") is custom_json
-        unregister_saver(".json")
         # Act
+        unregister_saver(".json")
         # Assert
         assert get_saver(".json") is original

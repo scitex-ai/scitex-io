@@ -1,5 +1,5 @@
 Interactive Explorers
-====================
+=====================
 
 scitex-io includes interactive explorers for hierarchical data formats.
 These let you browse complex files without loading everything into memory.

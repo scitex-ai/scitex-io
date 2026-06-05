@@ -115,58 +115,56 @@ class TestHookScript:
             f"missing .py should not block; stderr={result.stderr!r}"
         )
 
+    @pytest.mark.skipif(
+        shutil.which("scitex-dev") is None,
+        reason="scitex-dev linter not on PATH",
+    )
     def test_clean_python_file_exits_zero(self):
         """A .py file with no scitex-io violations passes."""
         # Arrange
-        # Act
-        # Assert
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
             tmp.write("import scitex_io as sio\nsio.save({'a': 1}, './out.json')\n")
             py_path = tmp.name
         try:
+            # Act
             result = _run_hook({"tool_input": {"file_path": py_path}}, timeout=30.0)
-            # If scitex-dev linter is unavailable, the script may exit
-            # 127 (command not found) — that's an environment issue,
-            # not a hook bug. Only enforce the contract when the
-            # linter is present on PATH.
-            if shutil.which("scitex-dev") is None:
-                pytest.skip("scitex-dev linter not on PATH")
-            assert result.returncode == 0, (
-                f"clean file should pass; rc={result.returncode}; "
-                f"stderr={result.stderr!r}"
-            )
         finally:
             os.unlink(py_path)
-
-    def test_python_file_with_io_violation_blocks(self):
-        """A .py file calling `np.save` directly should trip STX-IO001
-        at error severity → hook exits 2 (block)."""
-        # Arrange
-        # Act
         # Assert
-        if shutil.which("scitex-dev") is None:
-            pytest.skip("scitex-dev linter not on PATH")
+        assert result.returncode == 0, (
+            f"clean file should pass; rc={result.returncode}; "
+            f"stderr={result.stderr!r}"
+        )
+
+    @pytest.mark.skipif(
+        shutil.which("scitex-dev") is None,
+        reason="scitex-dev linter not on PATH",
+    )
+    def test_python_file_with_io_violation_surfaces_feedback(self):
+        """A .py file calling `np.save` directly should trip STX-IO001:
+        the hook either exits 2 (when the rule is error-severity) or
+        emits the violation to stderr (when warning-severity)."""
+        # Arrange
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as tmp:
             tmp.write("import numpy as np\nnp.save('./out.npy', np.array([1, 2, 3]))\n")
             py_path = tmp.name
         try:
+            # Act
             result = _run_hook({"tool_input": {"file_path": py_path}}, timeout=30.0)
-            # The hook contract is: rc=2 when an error-severity rule
-            # fires. STX-IO001 may currently ship as 'warning', in
-            # which case the error sweep finds nothing and the script
-            # exits 0 with the warning printed to stderr. Accept
-            # either outcome but require that *something* about the
-            # violation surfaced on stderr (so the agent sees it).
-            assert result.returncode in (0, 2), (
-                f"unexpected exit code {result.returncode}; stderr={result.stderr!r}"
-            )
-            assert (
-                "STX-IO001" in result.stderr
-                or "np.save" in result.stderr
-                or result.returncode == 0
-            ), (
-                "expected linter feedback on stderr for np.save; "
-                f"stderr={result.stderr!r}"
-            )
         finally:
             os.unlink(py_path)
+        # The hook contract is: rc=2 when an error-severity rule fires.
+        # STX-IO001 may currently ship as 'warning', in which case the
+        # error sweep finds nothing and the script exits 0 with the
+        # warning printed to stderr. Accept either outcome but require
+        # that *something* about the violation surfaced on stderr (so
+        # the agent sees it).
+        # Assert
+        assert result.returncode in (0, 2) and (
+            "STX-IO001" in result.stderr
+            or "np.save" in result.stderr
+            or result.returncode == 0
+        ), (
+            f"unexpected exit code {result.returncode} or missing feedback; "
+            f"stderr={result.stderr!r}"
+        )

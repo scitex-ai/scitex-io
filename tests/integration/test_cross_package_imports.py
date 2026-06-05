@@ -28,14 +28,19 @@ CROSS_PACKAGE_IMPORTS = [
     "scitex_dev.linter.checker",
     "scitex_logging",
     "scitex_stats._utils._normalizers",
+    "scitex_stats._dataclasses",
+    "scitex_stats.io",
 ]
 # ===== END AUTO-GENERATED =====
 
 
 @pytest.mark.parametrize("module_name", CROSS_PACKAGE_IMPORTS)
-def test_cross_package_import(module_name):
+def test_cross_package_import_resolves_to_module(module_name):
     """Importing scitex-io's declared cross-package dependency must succeed."""
     # Arrange
+    # (importorskip skips when peer standalone absent; otherwise asserts
+    # the imported object is the named module.)
     # Act
+    mod = pytest.importorskip(module_name)
     # Assert
-    pytest.importorskip(module_name)
+    assert getattr(mod, "__name__", None) == module_name

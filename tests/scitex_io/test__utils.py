@@ -7,6 +7,7 @@ Every public helper + the DotDict class. Real fixtures only — no mocks
 around the system layer beyond `monkeypatch` for env vars / sys.argv.
 """
 
+
 import os
 import sys
 from pathlib import Path
@@ -47,6 +48,7 @@ class TestStringHelpers:
         # Act
         # Assert
         assert clean_path("./x/./y") == os.path.normpath("./x/./y")
+
 
     def test_clean_path_pathlike(self):
         # Arrange
@@ -124,6 +126,7 @@ class TestDotDictBasics:
         # Assert
         assert bool(d) is False
 
+
     def test_from_dict_d_a_equals_n_1(self):
         # Arrange
         # Arrange
@@ -153,6 +156,7 @@ class TestDotDictBasics:
         # Assert
         # Assert
         assert bool(d) is True
+
 
     def test_from_dotdict_b_x_equals_n_1(self):
         # Arrange
@@ -195,6 +199,7 @@ class TestDotDictBasics:
         # Assert
         assert d.top.inner == 1
 
+
     def test_attr_access_missing_raises(self):
         # Arrange
         # Act
@@ -217,19 +222,17 @@ class TestDotDictBasics:
         # Assert
         assert d.x == 5
 
-    def test_attr_set_and_del_raises_attributeerror(self):
-        # Arrange
+    def test_attr_del_twice_raises_attributeerror(self):
         # Arrange
         d = DotDict()
-        # Act
         d.x = 5
-        # Assert
-        assert d.x == 5
         del d.x
         # Act
+        ctx = pytest.raises(AttributeError)
         # Assert
-        with pytest.raises(AttributeError):
+        with ctx:
             del d.x  # already gone
+
 
     def test_item_access_d_a_1(self):
         # Arrange
@@ -251,33 +254,22 @@ class TestDotDictBasics:
         # Assert
         assert d[42] == "answer"
 
-    def test_item_access_d_new_equals_n_7(self):
+    def test_item_set_string_key_visible_as_attribute(self):
         # Arrange
-        # Arrange
-        # Act
         d = DotDict({"a": 1, 42: "answer"})
-        # Assert
-        assert d["a"] == 1
-        assert d[42] == "answer"
-        d["new"] = 7
         # Act
+        d["new"] = 7
         # Assert
         assert d.new == 7
 
-    def test_item_access_a_not_in_d(self):
+    def test_item_del_removes_string_key(self):
         # Arrange
-        # Arrange
-        # Act
         d = DotDict({"a": 1, 42: "answer"})
-        # Assert
-        assert d["a"] == 1
-        assert d[42] == "answer"
-        d["new"] = 7
-        assert d.new == 7
-        del d["a"]
         # Act
+        del d["a"]
         # Assert
         assert "a" not in d
+
 
     def test_item_set_wraps_dict_isinstance_d_sub_dotdict(self):
         # Arrange
@@ -302,6 +294,7 @@ class TestDotDictBasics:
         assert d["sub"].k == 1
 
 
+
 class TestDotDictMappingMethods:
     def test_get_d_get_a_1(self):
         # Arrange
@@ -322,6 +315,7 @@ class TestDotDictMappingMethods:
         # Assert
         # Assert
         assert d.get("missing", "default") == "default"
+
 
     def test_keys_values_items_set_d_keys_a_b(self):
         # Arrange
@@ -353,6 +347,7 @@ class TestDotDictMappingMethods:
         # Assert
         assert set(d.items()) == {("a", 1), ("b", 2)}
 
+
     def test_update_with_dict_d_a_equals_n_99(self):
         # Arrange
         # Arrange
@@ -374,6 +369,7 @@ class TestDotDictMappingMethods:
         # Assert
         # Assert
         assert d.b == 2
+
 
     def test_update_with_iterable(self):
         # Arrange
@@ -435,15 +431,14 @@ class TestDotDictMappingMethods:
         # Assert
         assert d.b == 7
 
+
     def test_pop_d_pop_a_1(self):
         # Arrange
-        # Arrange
-        # Act
         d = DotDict({"a": 1})
         # Act
+        d.pop("a")
         # Assert
-        # Assert
-        assert d.pop("a") == 1
+        assert d.pop("a", "missing") == "missing"
 
     def test_pop_a_not_in_d(self):
         # Arrange
@@ -485,6 +480,7 @@ class TestDotDictMappingMethods:
         with pytest.raises(TypeError):
             d.pop("a", "b", "c")
 
+
     def test_contains_iter_a_in_d(self):
         # Arrange
         # Arrange
@@ -506,6 +502,7 @@ class TestDotDictMappingMethods:
         assert list(iter(d)) == ["a", "b"]
 
 
+
 class TestDotDictReprAndEq:
     def test_eq_with_dotdict_dotdict_a_1_dotdict_a_1(self):
         # Arrange
@@ -525,6 +522,7 @@ class TestDotDictReprAndEq:
         # Assert
         assert DotDict({"a": 1}) != DotDict({"a": 2})
 
+
     def test_eq_with_plain_dict_dotdict_a_1_a_1(self):
         # Arrange
         # Act
@@ -542,6 +540,7 @@ class TestDotDictReprAndEq:
         # Act
         # Assert
         assert DotDict({"a": 1}) != {"a": 2}
+
 
     def test_eq_other_type_returns_false(self):
         # Arrange
@@ -574,6 +573,7 @@ class TestDotDictReprAndEq:
         # Assert
         assert not isinstance(plain["b"], DotDict)
 
+
     def test_to_dict_skips_private_keys_secret_not_in_plain(self):
         # Arrange
         # Arrange
@@ -596,19 +596,14 @@ class TestDotDictReprAndEq:
         # Assert
         assert plain["open"] == 2
 
-    def test_to_dict_skips_private_keys_secret_in_plain_all(self):
-        # Arrange
+    def test_to_dict_include_private_true_keeps_private_key(self):
         # Arrange
         d = DotDict({"_secret": 1, "open": 2})
         # Act
-        plain = d.to_dict()
-        # Assert
-        assert "_secret" not in plain
-        assert plain["open"] == 2
         plain_all = d.to_dict(include_private=True)
-        # Act
         # Assert
         assert "_secret" in plain_all
+
 
     def test_str_is_json(self):
         # Arrange
@@ -658,18 +653,15 @@ class TestDotDictReprAndEq:
         # Assert
         assert c == d
 
-    def test_copy_d_a_equals_n_1(self):
-        # Arrange
+    def test_copy_isolates_mutations_from_original(self):
         # Arrange
         d = DotDict({"a": 1})
-        # Act
         c = d.copy()
-        # Assert
-        assert c == d
-        c["a"] = 99
         # Act
+        c["a"] = 99
         # Assert
         assert d.a == 1
+
 
 
 class TestPathHelpers:
@@ -679,7 +671,6 @@ class TestPathHelpers:
         def f():
             "doc"
             return 1
-
         # Act
         g = preserve_doc(f)
         # Act
@@ -693,13 +684,13 @@ class TestPathHelpers:
         def f():
             "doc"
             return 1
-
         # Act
         g = preserve_doc(f)
         # Act
         # Assert
         # Assert
         assert g.__doc__ == "doc"
+
 
     def test_split_a_in_parts_and_b_in_parts_and_c_in_parts(self):
         # Arrange
@@ -830,87 +821,75 @@ class TestEnvironmentDetect:
         assert detect_environment() == "python"
 
     def test_notebook_path_explicit_env_var_name_equals_demo_ipynb(
-        self, tmp_path, monkeypatch
+        self, tmp_path, env_save_restore
     ):
-        # Arrange
         # Arrange
         nb = tmp_path / "demo.ipynb"
         nb.write_text("{}")
-        monkeypatch.setenv("SCITEX_NOTEBOOK_PATH", str(nb))
+        env_save_restore.set("SCITEX_NOTEBOOK_PATH", str(nb))
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        name, _dir = get_notebook_info_simple()
         # Assert
         assert name == "demo.ipynb"
 
     def test_notebook_path_explicit_env_var_dir_equals_str_tmp_path(
-        self, tmp_path, monkeypatch
+        self, tmp_path, env_save_restore
     ):
-        # Arrange
         # Arrange
         nb = tmp_path / "demo.ipynb"
         nb.write_text("{}")
-        monkeypatch.setenv("SCITEX_NOTEBOOK_PATH", str(nb))
+        env_save_restore.set("SCITEX_NOTEBOOK_PATH", str(nb))
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        _name, dir_ = get_notebook_info_simple()
         # Assert
         assert dir_ == str(tmp_path)
 
+
     def test_notebook_path_argv_fallback_name_equals_via_argv_ipynb(
-        self, tmp_path, monkeypatch
+        self, tmp_path, env_save_restore, argv_restore
     ):
-        # Arrange
         # Arrange
         nb = tmp_path / "via_argv.ipynb"
         nb.write_text("{}")
-        monkeypatch.delenv("SCITEX_NOTEBOOK_PATH", raising=False)
-        monkeypatch.setattr(sys, "argv", ["jupyter", str(nb)])
+        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        sys.argv[:] = ["jupyter", str(nb)]
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        name, _dir = get_notebook_info_simple()
         # Assert
         assert name == "via_argv.ipynb"
 
     def test_notebook_path_argv_fallback_dir_equals_str_tmp_path(
-        self, tmp_path, monkeypatch
+        self, tmp_path, env_save_restore, argv_restore
     ):
-        # Arrange
         # Arrange
         nb = tmp_path / "via_argv.ipynb"
         nb.write_text("{}")
-        monkeypatch.delenv("SCITEX_NOTEBOOK_PATH", raising=False)
-        monkeypatch.setattr(sys, "argv", ["jupyter", str(nb)])
+        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        sys.argv[:] = ["jupyter", str(nb)]
         # Act
-        name, dir_ = get_notebook_info_simple()
-        # Act
-        # Assert
+        _name, dir_ = get_notebook_info_simple()
         # Assert
         assert dir_ == str(tmp_path)
 
-    def test_notebook_path_none_when_no_signal(self, monkeypatch):
-        # Arrange
-        # Arrange
-        monkeypatch.delenv("SCITEX_NOTEBOOK_PATH", raising=False)
-        # Act
-        # Act
-        monkeypatch.setattr(sys, "argv", ["pytest"])
-        # No IPython kernel running → both layers fail → (None, None).
-        # Assert
-        # Assert
-        assert get_notebook_info_simple() == (None, None)
 
-    def test_notebook_path_env_var_missing_file(self, tmp_path, monkeypatch):
-        # Env var points at a non-existent path → fall through.
+    def test_notebook_path_none_when_no_signal(self, env_save_restore, argv_restore):
         # Arrange
-        # Arrange
-        monkeypatch.setenv("SCITEX_NOTEBOOK_PATH", str(tmp_path / "missing.ipynb"))
+        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        sys.argv[:] = ["pytest"]
         # Act
+        result = get_notebook_info_simple()
+        # Assert
+        assert result == (None, None)
+
+    def test_notebook_path_env_var_missing_file(
+        self, tmp_path, env_save_restore, argv_restore
+    ):
+        # Arrange — env var points at a non-existent path → fall through
+        env_save_restore.set(
+            "SCITEX_NOTEBOOK_PATH", str(tmp_path / "missing.ipynb")
+        )
+        sys.argv[:] = ["pytest"]
         # Act
-        monkeypatch.setattr(sys, "argv", ["pytest"])
+        result = get_notebook_info_simple()
         # Assert
-        # Assert
-        assert get_notebook_info_simple() == (None, None)
+        assert result == (None, None)

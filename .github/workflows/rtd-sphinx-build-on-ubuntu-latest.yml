@@ -44,9 +44,13 @@ jobs:
         run: |
           rm -rf src/scitex_io/_sphinx_html
           cp -rf docs/sphinx/_build/html src/scitex_io/_sphinx_html
+          # Exclude sphinx build cache — .doctrees/environment.pickle is non-deterministic
+          # and causes an infinite auto-commit loop on release-time develop→main PRs.
+          rm -rf src/scitex_io/_sphinx_html/.doctrees
           touch src/scitex_io/_sphinx_html/.nojekyll
 
       - name: Commit refreshed HTML if it changed (develop push only)
+        continue-on-error: true
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         run: |
           if [ -n "$(git status --porcelain src/scitex_io/_sphinx_html)" ]; then

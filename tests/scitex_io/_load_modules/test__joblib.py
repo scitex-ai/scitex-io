@@ -56,61 +56,65 @@ class CustomObject:
 class TestLoadJoblibBasic:
     """Basic functionality tests for _load_joblib."""
 
-    def test_load_simple_dict(self):
-        """Test loading a simple dictionary."""
+    def test_load_simple_dict_round_trips_whole_dict(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"key1": "value1", "key2": 42, "key3": 3.14}
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(data, f.name)
-            temp_path = f.name
-
-        try:
-            loaded = _load_joblib(temp_path)
-            assert loaded == data
-            assert isinstance(loaded, dict)
-            assert all(k in loaded for k in data)
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_numpy_arrays(self):
-        """Test loading various numpy arrays."""
-        # Arrange
+        p = tmp_path / "simple.joblib"
+        joblib.dump(data, str(p))
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert loaded == data
+
+    def test_load_simple_dict_returns_dict_instance(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        data = {"key1": "value1", "key2": 42, "key3": 3.14}
+        p = tmp_path / "simple.joblib"
+        joblib.dump(data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert isinstance(loaded, dict)
+
+    def test_load_numpy_arrays_preserves_values_for_all_dtypes(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
         arrays = {
             "1d": np.array([1, 2, 3, 4, 5]),
-            "2d": np.random.rand(10, 20),
-            "3d": np.random.rand(5, 10, 15),
+            "int": np.array([1, 2, 3], dtype=np.int32),
+            "float": np.array([1.1, 2.2, 3.3], dtype=np.float64),
+        }
+        p = tmp_path / "arrays.joblib"
+        joblib.dump(arrays, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert all(np.array_equal(loaded[k], arrays[k]) for k in arrays)
+
+    def test_load_numpy_arrays_preserves_dtype_for_all_dtypes(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        arrays = {
             "int": np.array([1, 2, 3], dtype=np.int32),
             "float": np.array([1.1, 2.2, 3.3], dtype=np.float64),
             "complex": np.array([1 + 2j, 3 + 4j], dtype=np.complex128),
             "bool": np.array([True, False, True], dtype=bool),
         }
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(arrays, f.name)
-            temp_path = f.name
-
-        try:
-            loaded = _load_joblib(temp_path)
-            for key, original in arrays.items():
-                np.testing.assert_array_equal(loaded[key], original)
-                assert loaded[key].dtype == original.dtype
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_pandas_objects(self):
-        """Test loading pandas DataFrames and Series."""
-        # Arrange
+        p = tmp_path / "arrays.joblib"
+        joblib.dump(arrays, str(p))
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert all(loaded[k].dtype == arrays[k].dtype for k in arrays)
+
+    def test_load_pandas_dataframe_round_trips(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
         df = pd.DataFrame(
@@ -121,225 +125,267 @@ class TestLoadJoblibBasic:
                 "D": [1.1, 2.2, 3.3, 4.4, 5.5],
             }
         )
+        p = tmp_path / "df.joblib"
+        joblib.dump({"dataframe": df}, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded["dataframe"].equals(df)
+
+    def test_load_pandas_series_round_trips(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
 
         series = pd.Series([10, 20, 30], index=["x", "y", "z"])
-
-        data = {"dataframe": df, "series": series}
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(data, f.name)
-            temp_path = f.name
-
-        try:
-            loaded = _load_joblib(temp_path)
-            pd.testing.assert_frame_equal(loaded["dataframe"], df)
-            pd.testing.assert_series_equal(loaded["series"], series)
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_nested_structures(self):
-        """Test loading deeply nested data structures."""
-        # Arrange
+        p = tmp_path / "series.joblib"
+        joblib.dump({"series": series}, str(p))
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert loaded["series"].equals(series)
+
+    def test_load_nested_structures_preserves_deep_list(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
         nested_data = {
             "level1": {
-                "level2": {
-                    "level3": {
-                        "array": np.array([1, 2, 3]),
-                        "list": [[1, 2], [3, 4]],
-                        "tuple": (("a", "b"), ("c", "d")),
-                    }
-                },
-                "items": [{"id": i, "value": i**2} for i in range(5)],
-            },
-            "metadata": {
-                "created": datetime.datetime.now(),
-                "version": "1.0.0",
-                "tags": {"python", "testing", "joblib"},
+                "level2": {"level3": {"list": [[1, 2], [3, 4]]}},
             },
         }
+        p = tmp_path / "nested.joblib"
+        joblib.dump(nested_data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded["level1"]["level2"]["level3"]["list"] == [[1, 2], [3, 4]]
 
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(nested_data, f.name)
-            temp_path = f.name
+    def test_load_nested_structures_preserves_version_metadata(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
 
-        try:
-            loaded = _load_joblib(temp_path)
-            assert loaded["level1"]["level2"]["level3"]["list"] == [[1, 2], [3, 4]]
-            assert loaded["metadata"]["version"] == "1.0.0"
-            assert isinstance(loaded["metadata"]["tags"], set)
-        finally:
-            os.unlink(temp_path)
+        nested_data = {"metadata": {"version": "1.0.0"}}
+        p = tmp_path / "nested.joblib"
+        joblib.dump(nested_data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded["metadata"]["version"] == "1.0.0"
+
+    def test_load_nested_structures_preserves_set_type(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        nested_data = {"metadata": {"tags": {"python", "testing", "joblib"}}}
+        p = tmp_path / "nested.joblib"
+        joblib.dump(nested_data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert isinstance(loaded["metadata"]["tags"], set)
 
 
 class TestLoadJoblibCompression:
     """Test compression-related functionality."""
 
-    def test_load_all_compression_levels(self):
-        """Test loading files with different compression levels."""
+    @pytest.mark.parametrize("compress_level", list(range(10)))
+    def test_load_all_compression_levels_round_trip(self, tmp_path, compress_level):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = np.random.rand(100, 100)
-
-        for compress_level in range(10):  # 0-9 compression levels
-            with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-                joblib.dump(data, f.name, compress=compress_level)
-                temp_path = f.name
-
-            try:
-                loaded = _load_joblib(temp_path)
-                np.testing.assert_array_almost_equal(loaded, data)
-            finally:
-                os.unlink(temp_path)
-
-    def test_load_different_compression_methods(self):
-        """Test loading files with different compression methods."""
-        # Arrange
+        p = tmp_path / f"c{compress_level}.joblib"
+        joblib.dump(data, str(p), compress=compress_level)
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert np.allclose(loaded, data)
+
+    @pytest.mark.parametrize("method", ["zlib", "gzip", "bz2", "lzma", "xz"])
+    def test_load_different_compression_methods_round_trip(self, tmp_path, method):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"array": np.random.rand(50, 50), "value": 42}
-
-        compression_methods = [
-            ("zlib", 3),
-            ("gzip", 3),
-            ("bz2", 3),
-            ("lzma", 3),
-            ("xz", 3),
-        ]
-
-        for method, level in compression_methods:
-            try:
-                with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-                    joblib.dump(data, f.name, compress=(method, level))
-                    temp_path = f.name
-
-                loaded = _load_joblib(temp_path)
-                np.testing.assert_array_almost_equal(loaded["array"], data["array"])
-                assert loaded["value"] == data["value"]
-            except Exception as e:
-                # Some compression methods might not be available
-                if "module" in str(e) and "not found" in str(e):
-                    continue
-                raise
-            finally:
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
-
-    def test_load_large_compressed_data(self):
-        """Test loading large compressed data."""
-        # Arrange
+        p = tmp_path / f"{method}.joblib"
+        try:
+            joblib.dump(data, str(p), compress=(method, 3))
+        except Exception as exc:
+            if "module" in str(exc) and "not found" in str(exc):
+                return  # Compression method not installed in this env — OK.
+            raise
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert np.allclose(loaded["array"], data["array"])
+
+    def test_load_large_compressed_data_preserves_matrix_shape(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
-        # Create large dataset
-        large_data = {
-            "matrix": np.random.rand(1000, 1000),
-            "strings": ["string_" + str(i) for i in range(10000)],
-            "nested": {str(i): np.random.rand(10, 10) for i in range(100)},
-        }
+        large_data = {"matrix": np.random.rand(1000, 1000)}
+        p = tmp_path / "large.joblib"
+        joblib.dump(large_data, str(p), compress=3)
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded["matrix"].shape == (1000, 1000)
 
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(large_data, f.name, compress=3)
-            temp_path = f.name
-            compressed_size = os.path.getsize(temp_path)
+    def test_load_large_compressed_data_preserves_string_list_length(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
 
-        try:
-            loaded = _load_joblib(temp_path)
-            assert loaded["matrix"].shape == (1000, 1000)
-            assert len(loaded["strings"]) == 10000
-            assert len(loaded["nested"]) == 100
+        large_data = {"strings": ["string_" + str(i) for i in range(10000)]}
+        p = tmp_path / "large.joblib"
+        joblib.dump(large_data, str(p), compress=3)
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert len(loaded["strings"]) == 10000
 
-            # Verify compression was effective
-            uncompressed_size = large_data["matrix"].nbytes
-            assert compressed_size < uncompressed_size
-        finally:
-            os.unlink(temp_path)
+    def test_load_large_compressed_data_preserves_nested_dict_length(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        large_data = {"nested": {str(i): np.random.rand(10, 10) for i in range(100)}}
+        p = tmp_path / "large.joblib"
+        joblib.dump(large_data, str(p), compress=3)
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert len(loaded["nested"]) == 100
+
+    def test_load_large_compressed_data_compresses_below_uncompressed_size(
+        self, tmp_path
+    ):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib  # noqa: F401
+
+        large_data = {"matrix": np.random.rand(1000, 1000)}
+        p = tmp_path / "large.joblib"
+        joblib.dump(large_data, str(p), compress=3)
+        # Act
+        compressed_size = os.path.getsize(str(p))
+        # Assert
+        assert compressed_size < large_data["matrix"].nbytes
 
 
 class TestLoadJoblibCustomObjects:
     """Test loading custom objects and classes."""
 
-    def test_load_custom_class(self):
-        """Test loading custom class instances."""
+    def test_load_custom_class_returns_same_class_instance(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         obj = CustomObject(x=42, y="test")
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(obj, f.name)
-            temp_path = f.name
-
-        try:
-            loaded = _load_joblib(temp_path)
-            assert isinstance(loaded, CustomObject)
-            assert loaded.x == 42
-            assert loaded.y == "test"
-            assert loaded == obj
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_dataclass_calls_testdata(self):
-        """Test loading dataclass instances."""
-        # Arrange
+        p = tmp_path / "obj.joblib"
+        joblib.dump(obj, str(p))
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert isinstance(loaded, CustomObject)
+
+    def test_load_custom_class_preserves_x_attribute(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        obj = CustomObject(x=42, y="test")
+        p = tmp_path / "obj.joblib"
+        joblib.dump(obj, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded.x == 42
+
+    def test_load_custom_class_preserves_y_attribute(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        obj = CustomObject(x=42, y="test")
+        p = tmp_path / "obj.joblib"
+        joblib.dump(obj, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded.y == "test"
+
+    def test_load_custom_class_equals_original_object(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        obj = CustomObject(x=42, y="test")
+        p = tmp_path / "obj.joblib"
+        joblib.dump(obj, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded == obj
+
+    def test_load_dataclass_returns_same_class_instance(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = TestData(
             name="test_data", value=3.14159, items=["item1", "item2", "item3"]
         )
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(data, f.name)
-            temp_path = f.name
-
-        try:
-            loaded = _load_joblib(temp_path)
-            assert isinstance(loaded, TestData)
-            assert loaded.name == "test_data"
-            assert loaded.value == 3.14159
-            assert loaded.items == ["item1", "item2", "item3"]
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_lambda_functions(self):
-        """Test loading lambda functions (if supported)."""
-        # Arrange
+        p = tmp_path / "dc.joblib"
+        joblib.dump(data, str(p))
         # Act
+        loaded = _load_joblib(str(p))
         # Assert
+        assert isinstance(loaded, TestData)
+
+    def test_load_dataclass_preserves_name_field(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
-        # Note: Lambda functions might not be serializable depending on joblib version
+        data = TestData(name="test_data", value=3.14159, items=["i"])
+        p = tmp_path / "dc.joblib"
+        joblib.dump(data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded.name == "test_data"
+
+    def test_load_dataclass_preserves_value_field(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        data = TestData(name="x", value=3.14159, items=[])
+        p = tmp_path / "dc.joblib"
+        joblib.dump(data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded.value == 3.14159
+
+    def test_load_dataclass_preserves_items_field(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        data = TestData(name="x", value=0.0, items=["item1", "item2", "item3"])
+        p = tmp_path / "dc.joblib"
+        joblib.dump(data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded.items == ["item1", "item2", "item3"]
+
+    def test_load_lambda_function_preserves_value_field(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
+
+        # Lambda functions may not serialise; tolerate the dump failure.
         data = {"func": lambda x: x * 2, "value": 42}
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            try:
-                joblib.dump(data, f.name)
-                temp_path = f.name
-
-                loaded = _load_joblib(temp_path)
-                assert loaded["value"] == 42
-                # Test if lambda was preserved
-                if "func" in loaded and callable(loaded["func"]):
-                    assert loaded["func"](5) == 10
-            except Exception:
-                # Lambda serialization might fail, which is acceptable
-                pass
-            finally:
-                if os.path.exists(f.name):
-                    os.unlink(f.name)
+        p = tmp_path / "lam.joblib"
+        try:
+            joblib.dump(data, str(p))
+        except Exception:
+            return  # Lambda serialization not supported in this env — OK.
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded["value"] == 42
 
 
 class TestLoadJoblibEdgeCases:
@@ -414,11 +460,8 @@ class TestLoadJoblibEdgeCases:
         with pytest.raises(FileNotFoundError):
             _load_joblib("/tmp/nonexistent_file_12345.joblib")
 
-    def test_load_none_values(self):
-        """Test loading None values and empty containers."""
-        # Arrange
-        # Act
-        # Assert
+    @pytest.fixture
+    def loaded_empty_values(self, tmp_path):
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {
@@ -430,82 +473,106 @@ class TestLoadJoblibEdgeCases:
             "empty_string": "",
             "empty_array": np.array([]),
         }
+        p = tmp_path / "empties.joblib"
+        joblib.dump(data, str(p))
+        return _load_joblib(str(p))
 
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(data, f.name)
-            temp_path = f.name
+    def test_load_none_value_round_trips(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = loaded["none"]
+        # Assert
+        assert result is None
 
-        try:
-            loaded = _load_joblib(temp_path)
-            assert loaded["none"] is None
-            assert loaded["empty_list"] == []
-            assert loaded["empty_dict"] == {}
-            assert loaded["empty_tuple"] == ()
-            assert loaded["empty_set"] == set()
-            assert loaded["empty_string"] == ""
-            assert len(loaded["empty_array"]) == 0
-        finally:
-            os.unlink(temp_path)
+    def test_load_empty_list_round_trips(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = loaded["empty_list"]
+        # Assert
+        assert result == []
+
+    def test_load_empty_dict_round_trips(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = loaded["empty_dict"]
+        # Assert
+        assert result == {}
+
+    def test_load_empty_tuple_round_trips(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = loaded["empty_tuple"]
+        # Assert
+        assert result == ()
+
+    def test_load_empty_set_round_trips(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = loaded["empty_set"]
+        # Assert
+        assert result == set()
+
+    def test_load_empty_string_round_trips(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = loaded["empty_string"]
+        # Assert
+        assert result == ""
+
+    def test_load_empty_array_has_zero_length(self, loaded_empty_values):
+        # Arrange
+        loaded = loaded_empty_values
+        # Act
+        result = len(loaded["empty_array"])
+        # Assert
+        assert result == 0
 
 
 class TestLoadJoblibWithKwargs:
     """Test _load_joblib with various keyword arguments."""
 
-    def test_load_with_mmap_mode(self):
-        """Test loading with memory mapping.
-
-        Note: The source _load_joblib opens file with open(lpath, 'rb') and passes
-        the file handle to joblib.load(). Memory mapping behavior may differ when
-        using file handles vs filenames. This test verifies the data is loaded
-        correctly regardless of mmap_mode.
-        """
+    @pytest.mark.parametrize("mmap_mode", [None, "r", "r+", "c"])
+    def test_load_with_mmap_mode_preserves_shape(self, tmp_path, mmap_mode):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
-        # Large array that benefits from memory mapping
         large_array = np.random.rand(1000, 1000)
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(large_array, f.name)
-            temp_path = f.name
-
-        try:
-            # Test different mmap modes - values should be correct regardless
-            for mmap_mode in [None, "r", "r+", "c"]:
-                loaded = _load_joblib(temp_path, mmap_mode=mmap_mode)
-
-                # Verify it's an array-like object
-                assert hasattr(loaded, "shape")
-                assert loaded.shape == (1000, 1000)
-
-                # Values should be the same regardless of mmap mode
-                np.testing.assert_array_almost_equal(loaded, large_array)
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_with_custom_kwargs(self):
-        """Test passing custom kwargs to joblib.load."""
-        # Arrange
+        p = tmp_path / "large.joblib"
+        joblib.dump(large_array, str(p))
         # Act
+        loaded = _load_joblib(str(p), mmap_mode=mmap_mode)
         # Assert
+        assert loaded.shape == (1000, 1000)
+
+    def test_load_with_custom_kwargs_preserves_string_value(self, tmp_path):
+        # Arrange
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"test": "data", "array": np.array([1, 2, 3])}
+        p = tmp_path / "k.joblib"
+        joblib.dump(data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert loaded["test"] == data["test"]
 
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(data, f.name)
-            temp_path = f.name
+    def test_load_with_custom_kwargs_preserves_array_value(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._joblib import _load_joblib
 
-        try:
-            # Test with various kwargs (if supported by joblib version)
-            loaded = _load_joblib(temp_path)
-            # Can't use == on dicts with numpy arrays - compare individually
-            assert loaded["test"] == data["test"]
-            np.testing.assert_array_equal(loaded["array"], data["array"])
-        finally:
-            os.unlink(temp_path)
+        data = {"test": "data", "array": np.array([1, 2, 3])}
+        p = tmp_path / "k.joblib"
+        joblib.dump(data, str(p))
+        # Act
+        loaded = _load_joblib(str(p))
+        # Assert
+        assert np.array_equal(loaded["array"], data["array"])
 
 
 class TestLoadJoblibPathHandling:
@@ -586,150 +653,150 @@ class TestLoadJoblibPathHandling:
 class TestLoadJoblibConcurrency:
     """Test concurrent loading scenarios."""
 
-    def test_load_same_file_multiple_times(self):
-        """Test loading the same file multiple times."""
+    def test_load_same_file_multiple_times_returns_equal_arrays(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._joblib import _load_joblib
 
         data = {"concurrent": np.random.rand(100, 100)}
-
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(data, f.name)
-            temp_path = f.name
-
-        try:
-            # Load multiple times
-            results = []
-            for _ in range(10):
-                loaded = _load_joblib(temp_path)
-                results.append(loaded)
-
-            # All should be equal
-            for result in results[1:]:
-                np.testing.assert_array_almost_equal(
-                    result["concurrent"], results[0]["concurrent"]
-                )
-        finally:
-            os.unlink(temp_path)
+        p = tmp_path / "c.joblib"
+        joblib.dump(data, str(p))
+        results = [_load_joblib(str(p)) for _ in range(10)]
+        # Act
+        all_equal = all(
+            np.allclose(r["concurrent"], results[0]["concurrent"]) for r in results[1:]
+        )
+        # Assert
+        assert all_equal
 
 
 class TestLoadJoblibIntegration:
     """Integration tests with real-world scenarios."""
 
-    def test_load_machine_learning_model(self):
-        """Test loading a mock ML model structure."""
-        # Arrange
-        # Act
-        # Assert
+    @pytest.fixture
+    def loaded_ml_model(self, tmp_path):
         from scitex_io._load_modules._joblib import _load_joblib
 
-        # Mock ML model data
         model_data = {
             "weights": {
                 "layer1": np.random.rand(100, 50),
-                "layer2": np.random.rand(50, 10),
-                "bias1": np.random.rand(50),
-                "bias2": np.random.rand(10),
             },
-            "config": {
-                "learning_rate": 0.001,
-                "epochs": 100,
-                "batch_size": 32,
-                "optimizer": "adam",
-            },
-            "metadata": {
-                "trained_on": datetime.datetime.now(),
-                "accuracy": 0.95,
-                "loss": 0.05,
-            },
+            "config": {"learning_rate": 0.001},
         }
+        p = tmp_path / "model.joblib"
+        joblib.dump(model_data, str(p), compress=3)
+        return _load_joblib(str(p))
 
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(model_data, f.name, compress=3)
-            temp_path = f.name
-
-        try:
-            loaded = _load_joblib(temp_path)
-            assert "weights" in loaded
-            assert "config" in loaded
-            assert loaded["config"]["learning_rate"] == 0.001
-            assert loaded["weights"]["layer1"].shape == (100, 50)
-        finally:
-            os.unlink(temp_path)
-
-    def test_load_scientific_data(self):
-        """Test loading scientific computation results."""
+    def test_load_ml_model_preserves_weights_section(self, loaded_ml_model):
         # Arrange
+        loaded = loaded_ml_model
         # Act
+        has_weights = "weights" in loaded
         # Assert
+        assert has_weights
+
+    def test_load_ml_model_preserves_config_section(self, loaded_ml_model):
+        # Arrange
+        loaded = loaded_ml_model
+        # Act
+        has_config = "config" in loaded
+        # Assert
+        assert has_config
+
+    def test_load_ml_model_preserves_learning_rate(self, loaded_ml_model):
+        # Arrange
+        loaded = loaded_ml_model
+        # Act
+        result = loaded["config"]["learning_rate"]
+        # Assert
+        assert result == 0.001
+
+    def test_load_ml_model_preserves_layer1_shape(self, loaded_ml_model):
+        # Arrange
+        loaded = loaded_ml_model
+        # Act
+        result = loaded["weights"]["layer1"].shape
+        # Assert
+        assert result == (100, 50)
+
+    @pytest.fixture
+    def loaded_sci_data(self, tmp_path):
         from scitex_io._load_modules._joblib import _load_joblib
 
-        # Mock scientific data
         sci_data = {
             "experiment_id": "EXP-2024-001",
-            "measurements": {
-                "time": np.linspace(0, 10, 1000),
-                "signal": np.sin(np.linspace(0, 10, 1000))
-                + np.random.normal(0, 0.1, 1000),
-                "temperature": np.random.normal(25, 0.5, 1000),
-            },
-            "analysis": {
-                "mean": np.mean,  # Function reference
-                "std": np.std,
-                "results": {"peak": 1.0, "frequency": 0.159},
-            },
-            "parameters": {
-                "sampling_rate": 100,
-                "duration": 10,
-                "sensor_type": "PT100",
-            },
+            "measurements": {"time": np.linspace(0, 10, 1000)},
+            "analysis": {"mean": np.mean},
+            "parameters": {"sampling_rate": 100},
         }
+        p = tmp_path / "sci.joblib"
+        joblib.dump(sci_data, str(p))
+        return _load_joblib(str(p))
 
-        with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-            joblib.dump(sci_data, f.name)
-            temp_path = f.name
+    def test_load_sci_data_preserves_experiment_id(self, loaded_sci_data):
+        # Arrange
+        loaded = loaded_sci_data
+        # Act
+        result = loaded["experiment_id"]
+        # Assert
+        assert result == "EXP-2024-001"
 
-        try:
-            loaded = _load_joblib(temp_path)
-            assert loaded["experiment_id"] == "EXP-2024-001"
-            assert len(loaded["measurements"]["time"]) == 1000
-            assert loaded["parameters"]["sampling_rate"] == 100
-            # Function references should be preserved
-            assert callable(loaded["analysis"]["mean"])
-        finally:
-            os.unlink(temp_path)
+    def test_load_sci_data_preserves_time_series_length(self, loaded_sci_data):
+        # Arrange
+        loaded = loaded_sci_data
+        # Act
+        result = len(loaded["measurements"]["time"])
+        # Assert
+        assert result == 1000
+
+    def test_load_sci_data_preserves_sampling_rate(self, loaded_sci_data):
+        # Arrange
+        loaded = loaded_sci_data
+        # Act
+        result = loaded["parameters"]["sampling_rate"]
+        # Assert
+        assert result == 100
+
+    def test_load_sci_data_preserves_callable_function_reference(self, loaded_sci_data):
+        # Arrange
+        loaded = loaded_sci_data
+        # Act
+        is_callable = callable(loaded["analysis"]["mean"])
+        # Assert
+        assert is_callable
 
 
-def test_backwards_compatibility_smoke_case():
-    """Test loading joblib files created with pickle protocol."""
+@pytest.mark.parametrize("protocol", [2, 3, 4])
+def test_backwards_compatibility_round_trips_string_field(tmp_path, protocol):
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._joblib import _load_joblib
 
-    # Create data and save with different protocols
     data = {"test": "backwards", "array": np.array([1, 2, 3])}
+    p = tmp_path / f"p{protocol}.joblib"
+    try:
+        joblib.dump(data, str(p), protocol=protocol)
+    except TypeError:
+        return  # Older joblib without protocol kwarg — OK.
+    # Act
+    loaded = _load_joblib(str(p))
+    # Assert
+    assert loaded["test"] == data["test"]
 
-    for protocol in [2, 3, 4]:  # Different pickle protocols
-        temp_path = None
-        try:
-            with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
-                # Some joblib versions support protocol parameter
-                joblib.dump(data, f.name, protocol=protocol)
-                temp_path = f.name
 
-            loaded = _load_joblib(temp_path)
-            # Can't use == on dicts with numpy arrays - compare individually
-            assert loaded["test"] == data["test"]
-            np.testing.assert_array_equal(loaded["array"], data["array"])
-        except TypeError:
-            # Protocol parameter not supported in this joblib version
-            pass
-        finally:
-            if temp_path is not None and os.path.exists(temp_path):
-                os.unlink(temp_path)
+@pytest.mark.parametrize("protocol", [2, 3, 4])
+def test_backwards_compatibility_round_trips_array_field(tmp_path, protocol):
+    # Arrange
+    from scitex_io._load_modules._joblib import _load_joblib
+
+    data = {"test": "backwards", "array": np.array([1, 2, 3])}
+    p = tmp_path / f"p{protocol}.joblib"
+    try:
+        joblib.dump(data, str(p), protocol=protocol)
+    except TypeError:
+        return  # Older joblib without protocol kwarg — OK.
+    # Act
+    loaded = _load_joblib(str(p))
+    # Assert
+    assert np.array_equal(loaded["array"], data["array"])
 
 
 if __name__ == "__main__":

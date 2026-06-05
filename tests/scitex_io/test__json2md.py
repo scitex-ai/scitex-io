@@ -904,115 +904,120 @@ class TestJson2MdEdgeCases:
 class TestJson2MdMain:
     """Test the main function and CLI interface."""
 
-    def test_main_with_valid_json_file(self, tmp_path):
-        """Test main function with valid JSON file."""
-        # Arrange
-        # Act
-        # Assert
+    def _run_main_capturing_stdout(self, argv, argv_restore):
+        import io
         import sys
+        from contextlib import redirect_stdout
 
         from scitex_io._json2md import main
 
-        # Create test JSON file
+        sys.argv[:] = argv
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            main()
+        return buf.getvalue()
+
+    def test_main_with_valid_json_file_has_title_marker(self, tmp_path, argv_restore):
+        # Arrange
         test_data = {"title": "Test", "items": ["a", "b", "c"]}
         json_file = tmp_path / "test.json"
         json_file.write_text(json.dumps(test_data))
-
-        # Mock command line arguments
-        original_argv = sys.argv
-        try:
-            sys.argv = ["json2md", str(json_file)]
-
-            # Capture stdout
-            import io
-            from contextlib import redirect_stdout
-
-            f = io.StringIO()
-            with redirect_stdout(f):
-                main()
-
-            output = f.getvalue()
-            assert "# title" in output
-            assert "* a" in output
-
-        finally:
-            sys.argv = original_argv
-
-    def test_main_with_output_file(self, tmp_path):
-        """Test main function with output file option."""
-        # Arrange
         # Act
+        output = self._run_main_capturing_stdout(
+            ["json2md", str(json_file)], argv_restore
+        )
         # Assert
+        assert "# title" in output
+
+    def test_main_with_valid_json_file_has_item_marker(self, tmp_path, argv_restore):
+        # Arrange
+        test_data = {"title": "Test", "items": ["a", "b", "c"]}
+        json_file = tmp_path / "test.json"
+        json_file.write_text(json.dumps(test_data))
+        # Act
+        output = self._run_main_capturing_stdout(
+            ["json2md", str(json_file)], argv_restore
+        )
+        # Assert
+        assert "* a" in output
+
+    def test_main_with_output_file_creates_file(self, tmp_path, argv_restore):
+        # Arrange
         import sys
 
         from scitex_io._json2md import main
 
-        # Create test JSON file
         test_data = {"section": "content"}
         json_file = tmp_path / "input.json"
         json_file.write_text(json.dumps(test_data))
         output_file = tmp_path / "output.md"
-
-        # Mock command line arguments
-        original_argv = sys.argv
-        try:
-            sys.argv = ["json2md", str(json_file), "-o", str(output_file)]
-            main()
-
-            # Check output file created and contains expected content
-            assert output_file.exists()
-            content = output_file.read_text()
-            assert "# section" in content
-            assert "content" in content
-
-        finally:
-            sys.argv = original_argv
-
-    def test_main_with_nonexistent_file(self, tmp_path):
-        """Test main function with nonexistent file."""
-        # Arrange
+        sys.argv[:] = ["json2md", str(json_file), "-o", str(output_file)]
         # Act
+        main()
         # Assert
+        assert output_file.exists()
+
+    def test_main_with_output_file_writes_section_marker(self, tmp_path, argv_restore):
+        # Arrange
+        import sys
+
+        from scitex_io._json2md import main
+
+        test_data = {"section": "content"}
+        json_file = tmp_path / "input.json"
+        json_file.write_text(json.dumps(test_data))
+        output_file = tmp_path / "output.md"
+        sys.argv[:] = ["json2md", str(json_file), "-o", str(output_file)]
+        # Act
+        main()
+        # Assert
+        assert "# section" in output_file.read_text()
+
+    def test_main_with_output_file_writes_content_text(self, tmp_path, argv_restore):
+        # Arrange
+        import sys
+
+        from scitex_io._json2md import main
+
+        test_data = {"section": "content"}
+        json_file = tmp_path / "input.json"
+        json_file.write_text(json.dumps(test_data))
+        output_file = tmp_path / "output.md"
+        sys.argv[:] = ["json2md", str(json_file), "-o", str(output_file)]
+        # Act
+        main()
+        # Assert
+        assert "content" in output_file.read_text()
+
+    def test_main_with_nonexistent_file_exits_with_code_1(self, tmp_path, argv_restore):
+        # Arrange
         import sys
 
         from scitex_io._json2md import main
 
         nonexistent = tmp_path / "does_not_exist.json"
-
-        original_argv = sys.argv
+        sys.argv[:] = ["json2md", str(nonexistent)]
+        captured_code = None
         try:
-            sys.argv = ["json2md", str(nonexistent)]
-
-            # Should exit with error
-            with pytest.raises(SystemExit) as exc_info:
-                main()
-
-            assert exc_info.value.code == 1
-
-        finally:
-            sys.argv = original_argv
+            main()
+        except SystemExit as exc:
+            captured_code = exc.code
+        # Act
+        result = captured_code
+        # Assert
+        assert result == 1
 
 
 class TestJson2MdIntegration:
     """Test integration scenarios."""
 
-    def test_round_trip_json_to_md(self):
-        """Test converting various JSON structures to markdown."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io import json2md
-
-        test_cases = [
-            # Simple dict
+    @pytest.mark.parametrize(
+        "data",
+        [
             {"key": "value"},
-            # Nested dict
             {"outer": {"inner": "value"}},
-            # Dict with list
             {"items": [1, 2, 3]},
-            # List of dicts
             [{"a": 1}, {"b": 2}],
-            # Complex structure
             {
                 "metadata": {"title": "Report", "date": "2024-01-01"},
                 "sections": [
@@ -1020,14 +1025,32 @@ class TestJson2MdIntegration:
                     {"name": "Conclusion", "content": "..."},
                 ],
             },
-        ]
+        ],
+    )
+    def test_round_trip_json_to_md_returns_string(self, data):
+        # Arrange
+        from scitex_io import json2md
+        # Act
+        result = json2md(data)
+        # Assert
+        assert isinstance(result, str)
 
-        for data in test_cases:
-            result = json2md(data)
-            assert isinstance(result, str)
-            # Verify some conversion happened (not empty for non-empty inputs)
-            if data:
-                assert len(result) > 0
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"key": "value"},
+            {"outer": {"inner": "value"}},
+            {"items": [1, 2, 3]},
+            [{"a": 1}, {"b": 2}],
+        ],
+    )
+    def test_round_trip_json_to_md_nonempty_for_nonempty_input(self, data):
+        # Arrange
+        from scitex_io import json2md
+        # Act
+        result = json2md(data)
+        # Assert
+        assert len(result) > 0
 
     def test_large_json_conversion_result_is_str(self):
         # Arrange

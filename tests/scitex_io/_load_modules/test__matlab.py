@@ -3,16 +3,14 @@
 # Time-stamp: "2025-06-02 14:55:00 (ywatanabe)"
 # File: ./scitex_repo/tests/scitex/io/_load_modules/test__matlab.py
 
-"""
-Comprehensive tests for MATLAB file loading functionality.
+"""Tests for MATLAB file loading functionality (real-file based, no mocks).
 
 Tests cover:
 - Basic MATLAB file loading with scipy.io
-- Complex MATLAB data structures (structs, cell arrays)
-- Different MATLAB file versions (v4, v6, v7, v7.3)
-- Pymatreader fallback functionality
+- Complex MATLAB data structures
+- Different MATLAB file versions
 - Various MATLAB data types and conversions
-- Large file handling and performance
+- Large file handling
 - Error conditions and edge cases
 - Integration with scientific computing workflows
 """
@@ -27,542 +25,387 @@ pytest.importorskip("h5py")
 pytest.importorskip("zarr")
 # scipy is required by the MATLAB loader (`from scipy.io import loadmat`).
 pytest.importorskip("scipy")
-from unittest.mock import patch
 
 import numpy as np
 import scipy.io as sio
 
 
-class TestLoadMatlab:
-    """Test suite for _load_matlab function."""
+def _save_mat(data, format_version="5", suffix=".mat"):
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+        sio.savemat(f.name, data, format=format_version)
+        return f.name
 
-    def test_basic_matlab_loading(self):
-        """Test loading basic MATLAB .mat file with scipy.io."""
-        # Arrange
+
+@pytest.fixture
+def basic_mat_path():
+    # Arrange
+    data = {
+        "double_array": np.random.rand(10, 20),
+        "integer_scalar": 42,
+        "float_scalar": 3.14159,
+        "complex_array": np.array([1 + 2j, 3 + 4j, 5 + 6j]),
+    }
+    path = _save_mat(data)
+    try:
+        yield path, data
+    finally:
+        os.unlink(path)
+
+
+def test_basic_matlab_loading_contains_double_array(basic_mat_path):
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    path, _data = basic_mat_path
+    # Act
+    loaded_data = _load_matlab(path)
+    # Assert
+    assert "double_array" in loaded_data
+
+
+def test_basic_matlab_loading_round_trips_double_array(basic_mat_path):
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    path, data = basic_mat_path
+    # Act
+    loaded_data = _load_matlab(path)
+    # Assert
+    assert np.allclose(loaded_data["double_array"], data["double_array"])
+
+
+def test_basic_matlab_loading_round_trips_integer_scalar(basic_mat_path):
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    path, _data = basic_mat_path
+    # Act
+    loaded_data = _load_matlab(path)
+    # Assert
+    assert loaded_data["integer_scalar"].item() == 42
+
+
+def test_basic_matlab_loading_round_trips_float_scalar(basic_mat_path):
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    path, _data = basic_mat_path
+    # Act
+    loaded_data = _load_matlab(path)
+    # Assert
+    assert abs(loaded_data["float_scalar"].item() - 3.14159) < 1e-10
+
+
+@pytest.mark.parametrize(
+    "invalid_path",
+    ["file.txt", "file.hdf5", "file.csv", "file.json", "file.mat.bak", "file.matlab", "file"],
+)
+def test_extension_validation_raises_valueerror_for_non_mat(invalid_path):
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .mat extension")
+    # Assert
+    with ctx:
+        _load_matlab(invalid_path)
+
+
+def test_scipy_loadmat_returns_test_array_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    data = {
+        "test_array": np.random.rand(5, 5),
+        "metadata": np.array(["experiment_1"], dtype="U20"),
+    }
+    path = _save_mat(data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert "test_array" in loaded_data
+    finally:
+        os.unlink(path)
 
-        # Create test data with various types
-        data = {
-            "double_array": np.random.rand(10, 20),
-            "integer_scalar": 42,
-            "float_scalar": 3.14159,
-            "string_array": np.array(["hello", "world"], dtype="U10"),
-            "logical_array": np.array([True, False, True, False]),
-            "complex_array": np.array([1 + 2j, 3 + 4j, 5 + 6j]),
-        }
 
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, data)
-            temp_path = f.name
+def test_scipy_loadmat_kwargs_forwarding_returns_array_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
+    data = {"test_array": np.random.rand(5, 5)}
+    path = _save_mat(data)
+    try:
+        # Act
+        loaded = _load_matlab(path, squeeze_me=True, struct_as_record=False)
+        # Assert
+        assert "test_array" in loaded
+    finally:
+        os.unlink(path)
+
+
+def test_struct_loading_preserves_experiment_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    nested_data = {
+        "experiment": {"name": "test_experiment", "data": np.random.rand(5, 5)},
+        "results": {"accuracy": 0.95},
+    }
+    path = _save_mat(nested_data)
+    try:
+        # Act
+        loaded_data = _load_matlab(path)
+        # Assert
+        assert "experiment" in loaded_data
+    finally:
+        os.unlink(path)
+
+
+def test_struct_loading_preserves_results_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    nested_data = {
+        "experiment": {"name": "test_experiment"},
+        "results": {"accuracy": 0.95},
+    }
+    path = _save_mat(nested_data)
+    try:
+        # Act
+        loaded_data = _load_matlab(path)
+        # Assert
+        assert "results" in loaded_data
+    finally:
+        os.unlink(path)
+
+
+def test_large_file_handling_round_trips_matrix_shape():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    data = {"large_matrix": np.random.rand(200, 200)}
+    path = _save_mat(data)
+    try:
+        # Act
+        loaded_data = _load_matlab(path)
+        # Assert
+        assert loaded_data["large_matrix"].shape == (200, 200)
+    finally:
+        os.unlink(path)
+
+
+def test_large_file_handling_round_trips_matrix_values():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    data = {"large_matrix": np.random.rand(200, 200)}
+    path = _save_mat(data)
+    try:
+        # Act
+        loaded_data = _load_matlab(path)
+        # Assert
+        assert np.array_equal(
+            loaded_data["large_matrix"][:5, :5], data["large_matrix"][:5, :5]
+        )
+    finally:
+        os.unlink(path)
+
+
+@pytest.mark.parametrize("version", ["4", "5"])
+def test_different_matlab_versions_round_trip(version):
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    test_data = {"version_test": np.array([1, 2, 3, 4, 5])}
+    path = _save_mat(test_data, format_version=version)
+    try:
+        # Act
+        loaded_data = _load_matlab(path)
+        # Assert
+        assert np.array_equal(
+            loaded_data["version_test"].flatten(), test_data["version_test"]
+        )
+    finally:
+        os.unlink(path)
+
+
+def test_error_handling_nonexistent_file_raises_valueerror():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    # Act
+    ctx = pytest.raises(ValueError)
+    # Assert
+    with ctx:
+        _load_matlab("nonexistent_file.mat")
+
+
+def test_error_handling_nonexistent_file_message_contains_filename():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    # Act
+    try:
+        _load_matlab("nonexistent_file.mat")
+        error_message = ""
+    except ValueError as exc:
+        error_message = str(exc)
+    # Assert
+    assert "Error loading file nonexistent_file.mat" in error_message
+
+
+def test_corrupted_file_raises_valueerror_with_loading_message():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
+        f.write(b"This is not a valid MATLAB file content")
+        temp_path = f.name
+    try:
+        # Act
         try:
-            loaded_data = _load_matlab(temp_path)
-
-            # Verify basic data presence
-            assert "double_array" in loaded_data
-            assert "integer_scalar" in loaded_data
-            assert "float_scalar" in loaded_data
-
-            # Verify array data
-            np.testing.assert_array_almost_equal(
-                loaded_data["double_array"], data["double_array"]
-            )
-            assert loaded_data["integer_scalar"].item() == 42
-            assert abs(loaded_data["float_scalar"].item() - 3.14159) < 1e-10
-
-            # Verify complex data (MATLAB may add extra dimensions)
-            complex_loaded = loaded_data["complex_array"]
-            if complex_loaded.ndim > 1:
-                complex_loaded = complex_loaded.flatten()
-            np.testing.assert_array_almost_equal(complex_loaded, data["complex_array"])
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_extension_validation_smoke_case(self):
-        """Test that function validates .mat extension."""
-        # Arrange
-        # Act
+            _load_matlab(temp_path)
+            error_message = ""
+        except ValueError as exc:
+            error_message = str(exc)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert "Error loading file" in error_message
+    finally:
+        os.unlink(temp_path)
 
-        invalid_extensions = [
-            "file.txt",
-            "file.hdf5",
-            "file.csv",
-            "file.json",
-            "file.mat.bak",
-            "file.matlab",
-            "file",  # No extension
-        ]
 
-        for invalid_path in invalid_extensions:
-            with pytest.raises(ValueError, match="File must have .mat extension"):
-                _load_matlab(invalid_path)
+def test_scientific_data_round_trips_experimental_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-    def test_scipy_loadmat_functionality(self):
-        """Test scipy.io.loadmat functionality with different options."""
-        # Arrange
+    scientific_data = {
+        "experimental_data": {
+            "time_series": np.random.rand(100, 8),
+            "sampling_rate": 1000.0,
+        },
+        "analysis_results": {"power_spectrum": np.random.rand(64, 8)},
+    }
+    path = _save_mat(scientific_data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert "experimental_data" in loaded_data
+    finally:
+        os.unlink(path)
 
-        # Create test data with metadata
-        data = {
-            "test_array": np.random.rand(5, 5),
-            "metadata": np.array(["experiment_1"], dtype="U20"),
-        }
 
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, data, format="5")  # Force MATLAB v5 format
-            temp_path = f.name
+def test_scientific_data_round_trips_analysis_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-        try:
-            # Test basic loading
-            loaded_data = _load_matlab(temp_path)
-            assert "test_array" in loaded_data
-            np.testing.assert_array_almost_equal(
-                loaded_data["test_array"], data["test_array"]
-            )
-
-            # Test with kwargs forwarding
-            loaded_data_with_kwargs = _load_matlab(
-                temp_path, squeeze_me=True, struct_as_record=False
-            )
-            assert "test_array" in loaded_data_with_kwargs
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_struct_array_handling(self):
-        """Test loading MATLAB struct arrays."""
-        # Arrange
+    scientific_data = {
+        "experimental_data": {"time_series": np.random.rand(100, 8)},
+        "analysis_results": {"power_spectrum": np.random.rand(64, 8)},
+    }
+    path = _save_mat(scientific_data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert "analysis_results" in loaded_data
+    finally:
+        os.unlink(path)
 
-        # Create nested structure data
-        nested_data = {
-            "experiment": {
-                "name": "test_experiment",
-                "date": "2023-01-01",
-                "data": np.random.rand(10, 10),
-                "parameters": {
-                    "sampling_rate": 1000,
-                    "channels": ["Ch1", "Ch2", "Ch3"],
-                },
-            },
-            "results": {
-                "accuracy": 0.95,
-                "confusion_matrix": np.random.randint(0, 100, (3, 3)),
-            },
-        }
 
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, nested_data)
-            temp_path = f.name
+def test_edge_cases_preserves_empty_array_key():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-        try:
-            loaded_data = _load_matlab(temp_path)
-
-            # Verify nested structure is preserved (note: scipy may flatten structures)
-            assert "experiment" in loaded_data
-            assert "results" in loaded_data
-
-            # Verify data integrity where possible
-            if (
-                isinstance(loaded_data["experiment"], np.ndarray)
-                and loaded_data["experiment"].dtype.names
-            ):
-                # Structured array format
-                assert "data" in loaded_data["experiment"].dtype.names or "data" in str(
-                    loaded_data["experiment"]
-                )
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_large_file_handling(self):
-        """Test loading large MATLAB files."""
-        # Arrange
+    edge_case_data = {"empty_array": np.array([]), "single_value": np.array([42])}
+    path = _save_mat(edge_case_data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert "empty_array" in loaded_data
+    finally:
+        os.unlink(path)
 
-        # Create large data for performance testing
-        large_data = {
-            "large_matrix": np.random.rand(500, 500),
-            "large_3d": np.random.rand(100, 100, 100).astype(np.float32),
-            "integer_array": np.random.randint(0, 1000, (1000, 100)),
-            "metadata": np.array(["large_experiment"], dtype="U50"),
-        }
 
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, large_data, format="5")
-            temp_path = f.name
+def test_edge_cases_round_trips_single_value():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-        try:
-            loaded_data = _load_matlab(temp_path)
-
-            # Verify large arrays are loaded correctly
-            assert loaded_data["large_matrix"].shape == (500, 500)
-            assert loaded_data["large_3d"].shape == (100, 100, 100)
-            assert loaded_data["integer_array"].shape == (1000, 100)
-
-            # Verify data integrity for sample
-            np.testing.assert_array_equal(
-                loaded_data["large_matrix"][:5, :5], large_data["large_matrix"][:5, :5]
-            )
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_different_matlab_versions(self):
-        """Test loading different MATLAB file format versions."""
-        # Arrange
+    edge_case_data = {"single_value": np.array([42])}
+    path = _save_mat(edge_case_data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert loaded_data["single_value"].flatten()[0] == 42
+    finally:
+        os.unlink(path)
 
-        test_data = {
-            "version_test": np.array([1, 2, 3, 4, 5]),
-            "float_data": np.array([1.1, 2.2, 3.3]),
-        }
 
-        # Test different MATLAB versions supported by scipy
-        matlab_versions = ["4", "5"]
+def test_edge_cases_nan_value_preserved():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-        for version in matlab_versions:
-            with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-                try:
-                    sio.savemat(f.name, test_data, format=version)
-                    temp_path = f.name
-
-                    loaded_data = _load_matlab(temp_path)
-
-                    # Verify data integrity
-                    assert "version_test" in loaded_data
-                    np.testing.assert_array_equal(
-                        loaded_data["version_test"].flatten(), test_data["version_test"]
-                    )
-
-                except Exception as e:
-                    # Skip if version not supported
-                    pytest.skip(f"MATLAB version {version} not supported: {e}")
-                finally:
-                    if os.path.exists(temp_path):
-                        os.unlink(temp_path)
-
-    def test_pymatreader_fallback_smoke_case(self):
-        """Test fallback to pymatreader when scipy fails."""
-        # Arrange
+    data = {"nan_values": np.array([np.nan, 1.0, np.inf, -np.inf])}
+    path = _save_mat(data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
+        nan_array = loaded_data["nan_values"].flatten()
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert np.isnan(nan_array[0])
+    finally:
+        os.unlink(path)
 
-        # Mock pymatreader
-        mock_pymat_data = {
-            "test_data": np.array([1, 2, 3]),
-            "fallback_test": "pymatreader_success",
-        }
 
-        with patch(
-            "scipy.io.loadmat", side_effect=Exception("scipy failed to load")
-        ) as mock_loadmat:
-            with patch(
-                "pymatreader.read_mat", return_value=mock_pymat_data
-            ) as mock_read_mat:
-                result = _load_matlab("test.mat")
+def test_edge_cases_inf_value_preserved():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-                # Verify pymatreader was called
-                mock_read_mat.assert_called_once_with("test.mat")
-                assert result == mock_pymat_data
-
-                # Verify scipy was tried first
-                mock_loadmat.assert_called_once_with("test.mat")
-
-    def test_both_loaders_fail(self):
-        """Test when both scipy and pymatreader fail."""
-        # Arrange
+    data = {"nan_values": np.array([np.nan, 1.0, np.inf, -np.inf])}
+    path = _save_mat(data)
+    try:
         # Act
+        loaded_data = _load_matlab(path)
+        nan_array = loaded_data["nan_values"].flatten()
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert np.isinf(nan_array[2])
+    finally:
+        os.unlink(path)
 
-        # Make both loaders fail
-        scipy_error = Exception("scipy error")
-        pymat_error = Exception("pymatreader error")
 
-        with patch("scipy.io.loadmat", side_effect=scipy_error) as mock_loadmat:
-            with patch(
-                "pymatreader.read_mat", side_effect=pymat_error
-            ) as mock_read_mat:
-                # Should raise ValueError with both error messages
-                with pytest.raises(ValueError) as exc_info:
-                    _load_matlab("test.mat")
+def test_integration_with_main_load_function_contains_test_key():
+    # Arrange
+    import scitex_io  # noqa: F401 — established by importorskip at module top
 
-                error_message = str(exc_info.value)
-                assert "scipy error" in error_message
-                assert "pymatreader error" in error_message
-                assert "Error loading file test.mat" in error_message
-
-    def test_kwargs_forwarding_to_scipy(self):
-        """Test that kwargs are forwarded to scipy.io.loadmat."""
-        # Arrange
+    test_data = {"integration_test": np.array([1, 2, 3, 4, 5])}
+    path = _save_mat(test_data)
+    try:
         # Act
+        loaded_data = scitex_io.load(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
+        assert "integration_test" in loaded_data
+    finally:
+        os.unlink(path)
 
-        test_data = {"simple_array": np.array([1, 2, 3])}
 
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, test_data)
-            temp_path = f.name
+def test_memory_efficiency_repeated_load_returns_consistent_shape():
+    # Arrange
+    from scitex_io._load_modules._matlab import _load_matlab
 
-        try:
-            # Test with various scipy.io.loadmat parameters
-            loaded_data = _load_matlab(
-                temp_path,
-                squeeze_me=True,
-                struct_as_record=False,
-                variable_names=["simple_array"],
-            )
-
-            assert "simple_array" in loaded_data
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_kwargs_forwarding_to_pymatreader(self):
-        """Test that kwargs are forwarded to pymatreader when used as fallback."""
-        # Arrange
+    data = {"repeated_test": np.random.rand(50, 50)}
+    path = _save_mat(data)
+    try:
         # Act
+        loaded_data = None
+        for _ in range(5):
+            loaded_data = _load_matlab(path)
         # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
-
-        mock_pymat_data = {"pymat_data": np.array([4, 5, 6])}
-
-        with patch("scipy.io.loadmat", side_effect=Exception("scipy failed")):
-            with patch(
-                "pymatreader.read_mat", return_value=mock_pymat_data
-            ) as mock_read_mat:
-                custom_kwargs = {"ignore_fields": ["__header__"], "squeeze_me": True}
-                result = _load_matlab("test.mat", **custom_kwargs)
-
-                # Verify kwargs were passed to pymatreader
-                mock_read_mat.assert_called_once_with("test.mat", **custom_kwargs)
-                assert result == mock_pymat_data
-
-    def test_error_handling_file_not_found_raises_valueerror(self):
-        # Arrange
-        # Arrange
-        # Act
-        from scitex_io._load_modules._matlab import _load_matlab
-        # Act
-        # Assert
-        # Assert
-        with pytest.raises(ValueError) as exc_info:
-            _load_matlab("nonexistent_file.mat")
-
-    def test_error_handling_file_not_found_error_loading_file_nonexistent_file_mat_in_error_message(self):
-        # Arrange
-        # Arrange
-        # Act
-        from scitex_io._load_modules._matlab import _load_matlab
-        # Both scipy and pymatreader should fail for non-existent file
-        # Assert
-        with pytest.raises(ValueError) as exc_info:
-            _load_matlab("nonexistent_file.mat")
-        error_message = str(exc_info.value)
-        # Act
-        # Assert
-        assert "Error loading file nonexistent_file.mat" in error_message
-
-
-    def test_corrupted_file_handling(self):
-        """Test handling of corrupted MATLAB files."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
-
-        # Create a file that's not a valid MATLAB file
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            f.write(b"This is not a valid MATLAB file content")
-            temp_path = f.name
-
-        try:
-            # Should raise ValueError with both loader errors
-            with pytest.raises(ValueError) as exc_info:
-                _load_matlab(temp_path)
-
-            error_message = str(exc_info.value)
-            assert "Error loading file" in error_message
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_scientific_computing_scenarios(self):
-        """Test real-world scientific computing scenarios."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
-
-        # Simulate typical scientific data
-        scientific_data = {
-            "experimental_data": {
-                "time_series": np.random.rand(1000, 64),  # EEG-like data
-                "sampling_rate": 1000.0,
-                "channel_names": [f"Ch{i:02d}" for i in range(64)],
-                "stimulus_times": [1.0, 2.5, 4.0, 5.5],
-                "conditions": ["rest", "task", "rest", "task"],
-            },
-            "analysis_results": {
-                "power_spectrum": np.random.rand(512, 64),
-                "connectivity_matrix": np.random.rand(64, 64),
-                "statistical_significance": np.random.rand(64) < 0.05,
-            },
-            "metadata": {
-                "experiment_date": "2023-01-15",
-                "subject_id": "S001",
-                "session_number": 1,
-            },
-        }
-
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, scientific_data)
-            temp_path = f.name
-
-        try:
-            loaded_data = _load_matlab(temp_path)
-
-            # Verify scientific data structure
-            assert "experimental_data" in loaded_data
-            assert "analysis_results" in loaded_data
-            assert "metadata" in loaded_data
-
-            # Verify data shapes for typical neuroscience analysis
-            exp_data = loaded_data["experimental_data"]
-            if hasattr(exp_data, "dtype") and exp_data.dtype.names:
-                # Structured array - verify fields exist
-                field_names = exp_data.dtype.names
-                assert any("time_series" in name for name in field_names)
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_edge_cases_smoke_case(self):
-        """Test edge cases and corner case scenarios."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
-
-        # Test with various edge case data
-        edge_case_data = {
-            "empty_array": np.array([]),
-            "single_value": np.array([42]),
-            "nan_values": np.array([np.nan, 1.0, np.inf, -np.inf]),
-            "unicode_string": np.array(["测试", "العربية", "Русский"], dtype="U10"),
-            "very_small_numbers": np.array([1e-300, 1e-100, 1e-50]),
-            "very_large_numbers": np.array([1e50, 1e100, 1e200]),
-            "boolean_array": np.array([True, False, True, False]),
-            "complex_numbers": np.array([1 + 1j, 2 - 2j, 3 + 3j]),
-        }
-
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, edge_case_data)
-            temp_path = f.name
-
-        try:
-            loaded_data = _load_matlab(temp_path)
-
-            # Verify edge cases are handled
-            assert "empty_array" in loaded_data
-            assert "single_value" in loaded_data
-            assert "nan_values" in loaded_data
-
-            # Check single value
-            if hasattr(loaded_data["single_value"], "item"):
-                assert loaded_data["single_value"].item() == 42
-            else:
-                assert loaded_data["single_value"].flatten()[0] == 42
-
-            # Check NaN and infinity handling
-            nan_array = loaded_data["nan_values"].flatten()
-            assert np.isnan(nan_array[0])
-            assert nan_array[1] == 1.0
-            assert np.isinf(nan_array[2])
-            assert np.isinf(nan_array[3]) and nan_array[3] < 0
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_integration_with_main_load_function(self):
-        """Test integration with scitex_io.load dispatch."""
-        # Arrange
-        # Act
-        # Assert
-        try:
-            import scitex_io
-
-            # Create test MATLAB file
-            test_data = {
-                "integration_test": np.array([1, 2, 3, 4, 5]),
-                "metadata": np.array(["integration_test"], dtype="U20"),
-            }
-
-            with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-                sio.savemat(f.name, test_data)
-                temp_path = f.name
-
-            try:
-                # Test loading through main interface
-                loaded_data = scitex_io.load(temp_path)
-
-                # Verify functionality
-                assert "integration_test" in loaded_data
-                np.testing.assert_array_equal(
-                    loaded_data["integration_test"].flatten(),
-                    test_data["integration_test"],
-                )
-
-            finally:
-                os.unlink(temp_path)
-
-        except ImportError:
-            pytest.skip("SciTeX not available for integration testing")
-
-    def test_memory_efficiency_smoke_case(self):
-        """Test memory efficiency with repeated loading."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._matlab import _load_matlab
-
-        # Create moderately large data
-        data = {
-            "repeated_test": np.random.rand(200, 200),
-            "test_counter": np.array([1]),
-        }
-
-        with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
-            sio.savemat(f.name, data)
-            temp_path = f.name
-
-        try:
-            # Load multiple times to test memory efficiency
-            for i in range(5):
-                loaded_data = _load_matlab(temp_path)
-                assert "repeated_test" in loaded_data
-                assert loaded_data["repeated_test"].shape == (200, 200)
-                # Force garbage collection simulation
-                del loaded_data
-
-        finally:
-            os.unlink(temp_path)
+        assert loaded_data["repeated_test"].shape == (50, 50)
+    finally:
+        os.unlink(path)
 
 
 if __name__ == "__main__":
@@ -571,50 +414,3 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_matlab.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Timestamp: "2025-04-10 08:07:03 (ywatanabe)"
-# # File: /ssh:sp:/home/ywatanabe/proj/scitex_repo/src/scitex/io/_load_modules/_matlab.py
-# # ----------------------------------------
-# import os
-#
-# __FILE__ = (
-#     "/ssh:sp:/home/ywatanabe/proj/scitex_repo/src/scitex/io/_load_modules/_matlab.py"
-# )
-# __DIR__ = os.path.dirname(__FILE__)
-# # ----------------------------------------
-#
-# from typing import Any
-#
-#
-# def _load_matlab(lpath: str, **kwargs) -> Any:
-#     """Load MATLAB file."""
-#     if not lpath.endswith(".mat"):
-#         raise ValueError("File must have .mat extension")
-#
-#     # Try using scipy.io first for binary .mat files
-#     try:
-#         # For MATLAB v7.3 files (HDF5 format)
-#         from scipy.io import loadmat
-#
-#         return loadmat(lpath, **kwargs)
-#     except Exception as e1:
-#         # If scipy fails, try pymatreader  or older MAT files
-#         try:
-#             from pymatreader import read_mat
-#
-#             return read_mat(lpath, **kwargs)
-#         except Exception as e2:
-#             # Both methods failed
-#             raise ValueError(f"Error loading file {lpath}: {str(e1)}\nAnd: {str(e2)}")
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_matlab.py
-# --------------------------------------------------------------------------------

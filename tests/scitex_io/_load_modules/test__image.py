@@ -12,261 +12,371 @@ import pytest
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
-import io
-from unittest.mock import Mock, patch
-
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 
 class TestLoadImage:
     """Test suite for _load_image function."""
 
-    def test_basic_rgb_image_loading(self):
-        """Test loading basic RGB image files in various formats."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._image import _load_image
-
-        # Create a simple RGB image with distinct colors
+    @pytest.fixture
+    def rgb_red_blue_split_image(self):
         img_array = np.zeros((100, 100, 3), dtype=np.uint8)
         img_array[:, :50, 0] = 255  # Red half
         img_array[:, 50:, 2] = 255  # Blue half
-        img = Image.fromarray(img_array, "RGB")
+        return Image.fromarray(img_array, "RGB")
 
-        # Test multiple supported formats
-        for ext in [".png", ".jpg", ".jpeg"]:
-            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
-                if ext == ".jpg" or ext == ".jpeg":
-                    img.save(f.name, quality=95)  # High quality JPEG
-                else:
-                    img.save(f.name)
-                temp_path = f.name
-
-            try:
-                # Use metadata=False to get just the image, not (image, metadata) tuple
-                loaded_img = _load_image(temp_path, metadata=False)
-                assert isinstance(loaded_img, Image.Image)
-                assert loaded_img.size == (100, 100)
-                assert loaded_img.mode in [
-                    "RGB",
-                    "RGBA",
-                ]  # JPEG -> RGB, PNG may have alpha
-
-                # Verify image content (allowing for JPEG compression artifacts)
-                loaded_array = np.array(loaded_img)
-                if loaded_array.ndim == 3 and loaded_array.shape[2] == 4:
-                    loaded_array = loaded_array[:, :, :3]  # Remove alpha if present
-
-                # Check if red and blue regions are distinguishable
-                assert loaded_array[:, 25, 0].mean() > 200  # Red region should be red
-                assert loaded_array[:, 75, 2].mean() > 200  # Blue region should be blue
-
-            finally:
-                os.unlink(temp_path)
-
-    def test_grayscale_image_loading(self):
-        """Test loading grayscale images."""
-        # Arrange
-        # Act
-        # Assert
+    @pytest.fixture(params=[".png", ".jpg", ".jpeg"])
+    def loaded_rgb_image_for_ext(self, tmp_path, rgb_red_blue_split_image, request):
         from scitex_io._load_modules._image import _load_image
 
-        # Create grayscale image with gradient
+        ext = request.param
+        p = tmp_path / f"x{ext}"
+        if ext in (".jpg", ".jpeg"):
+            rgb_red_blue_split_image.save(str(p), quality=95)
+        else:
+            rgb_red_blue_split_image.save(str(p))
+        return _load_image(str(p), metadata=False)
+
+    def test_basic_rgb_image_returns_pil_image(self, loaded_rgb_image_for_ext):
+        # Arrange
+        loaded = loaded_rgb_image_for_ext
+        # Act
+        result = isinstance(loaded, Image.Image)
+        # Assert
+        assert result
+
+    def test_basic_rgb_image_preserves_size(self, loaded_rgb_image_for_ext):
+        # Arrange
+        loaded = loaded_rgb_image_for_ext
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (100, 100)
+
+    def test_basic_rgb_image_mode_is_rgb_or_rgba(self, loaded_rgb_image_for_ext):
+        # Arrange
+        loaded = loaded_rgb_image_for_ext
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result in ("RGB", "RGBA")
+
+    def test_basic_rgb_image_left_half_is_red(self, loaded_rgb_image_for_ext):
+        # Arrange
+        loaded = loaded_rgb_image_for_ext
+        loaded_array = np.array(loaded)
+        if loaded_array.ndim == 3 and loaded_array.shape[2] == 4:
+            loaded_array = loaded_array[:, :, :3]
+        # Act
+        red_mean = loaded_array[:, 25, 0].mean()
+        # Assert
+        assert red_mean > 200
+
+    def test_basic_rgb_image_right_half_is_blue(self, loaded_rgb_image_for_ext):
+        # Arrange
+        loaded = loaded_rgb_image_for_ext
+        loaded_array = np.array(loaded)
+        if loaded_array.ndim == 3 and loaded_array.shape[2] == 4:
+            loaded_array = loaded_array[:, :, :3]
+        # Act
+        blue_mean = loaded_array[:, 75, 2].mean()
+        # Assert
+        assert blue_mean > 200
+
+    @pytest.fixture
+    def loaded_grayscale_image(self, tmp_path):
+        from scitex_io._load_modules._image import _load_image
+
         gray_array = np.linspace(0, 255, 10000, dtype=np.uint8).reshape(100, 100)
         img = Image.fromarray(gray_array, "L")
+        p = tmp_path / "gray.png"
+        img.save(str(p))
+        return _load_image(str(p), metadata=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            img.save(f.name)
-            temp_path = f.name
-
-        try:
-            loaded_img = _load_image(temp_path, metadata=False)
-            assert isinstance(loaded_img, Image.Image)
-            assert loaded_img.size == (100, 100)
-            assert loaded_img.mode == "L"
-
-            # Verify gradient preserved
-            loaded_array = np.array(loaded_img)
-            assert loaded_array[0, 0] < loaded_array[99, 99]  # Gradient preserved
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_rgba_image_with_transparency(self):
-        """Test loading RGBA images with transparency."""
+    def test_grayscale_image_returns_pil_image(self, loaded_grayscale_image):
         # Arrange
+        loaded = loaded_grayscale_image
         # Act
+        result = isinstance(loaded, Image.Image)
         # Assert
+        assert result
+
+    def test_grayscale_image_preserves_size(self, loaded_grayscale_image):
+        # Arrange
+        loaded = loaded_grayscale_image
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (100, 100)
+
+    def test_grayscale_image_mode_is_l(self, loaded_grayscale_image):
+        # Arrange
+        loaded = loaded_grayscale_image
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result == "L"
+
+    def test_grayscale_image_preserves_gradient(self, loaded_grayscale_image):
+        # Arrange
+        loaded_array = np.array(loaded_grayscale_image)
+        # Act
+        result = loaded_array[0, 0] < loaded_array[99, 99]
+        # Assert
+        assert result
+
+    @pytest.fixture
+    def loaded_rgba_image(self, tmp_path):
         from scitex_io._load_modules._image import _load_image
 
-        # Create RGBA image with transparency
         rgba_array = np.zeros((100, 100, 4), dtype=np.uint8)
-        rgba_array[:, :, 0] = 255  # Red channel
-        rgba_array[:, :50, 3] = 255  # Full opacity for left half
-        rgba_array[:, 50:, 3] = 128  # Half opacity for right half
+        rgba_array[:, :, 0] = 255
+        rgba_array[:, :50, 3] = 255
+        rgba_array[:, 50:, 3] = 128
         img = Image.fromarray(rgba_array, "RGBA")
+        p = tmp_path / "rgba.png"
+        img.save(str(p))
+        return _load_image(str(p), metadata=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            img.save(f.name)
-            temp_path = f.name
-
-        try:
-            loaded_img = _load_image(temp_path, metadata=False)
-            assert isinstance(loaded_img, Image.Image)
-            assert loaded_img.size == (100, 100)
-            assert loaded_img.mode == "RGBA"
-
-            # Verify transparency preserved
-            loaded_array = np.array(loaded_img)
-            assert loaded_array[50, 25, 3] == 255  # Full opacity
-            assert loaded_array[50, 75, 3] == 128  # Half opacity
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_tiff_format_support(self):
-        """Test loading TIFF format images (both .tiff and .tif extensions)."""
+    def test_rgba_image_returns_pil_image(self, loaded_rgba_image):
         # Arrange
+        loaded = loaded_rgba_image
         # Act
+        result = isinstance(loaded, Image.Image)
         # Assert
+        assert result
+
+    def test_rgba_image_preserves_size(self, loaded_rgba_image):
+        # Arrange
+        loaded = loaded_rgba_image
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (100, 100)
+
+    def test_rgba_image_mode_is_rgba(self, loaded_rgba_image):
+        # Arrange
+        loaded = loaded_rgba_image
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result == "RGBA"
+
+    def test_rgba_image_left_half_full_opacity(self, loaded_rgba_image):
+        # Arrange
+        loaded_array = np.array(loaded_rgba_image)
+        # Act
+        result = loaded_array[50, 25, 3]
+        # Assert
+        assert result == 255
+
+    def test_rgba_image_right_half_half_opacity(self, loaded_rgba_image):
+        # Arrange
+        loaded_array = np.array(loaded_rgba_image)
+        # Act
+        result = loaded_array[50, 75, 3]
+        # Assert
+        assert result == 128
+
+    @pytest.fixture
+    def tiff_image_array(self):
+        return np.random.randint(0, 255, (200, 300, 3), dtype=np.uint8)
+
+    @pytest.fixture(params=[".tiff", ".tif"])
+    def loaded_tiff_for_ext(self, tmp_path, tiff_image_array, request):
         from scitex_io._load_modules._image import _load_image
 
-        # Create high-resolution image for TIFF
-        img_array = np.random.randint(0, 255, (200, 300, 3), dtype=np.uint8)
-        img = Image.fromarray(img_array, "RGB")
+        img = Image.fromarray(tiff_image_array, "RGB")
+        p = tmp_path / f"x{request.param}"
+        img.save(str(p), compression="lzw")
+        return tiff_image_array, _load_image(str(p), metadata=False)
 
-        for ext in [".tiff", ".tif"]:
-            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
-                img.save(f.name, compression="lzw")  # Use LZW compression
-                temp_path = f.name
-
-            try:
-                loaded_img = _load_image(temp_path, metadata=False)
-                assert isinstance(loaded_img, Image.Image)
-                assert loaded_img.size == (300, 200)  # PIL reports (width, height)
-                assert loaded_img.mode == "RGB"
-
-                # Verify image content preserved
-                loaded_array = np.array(loaded_img)
-                np.testing.assert_array_equal(loaded_array, img_array)
-
-            finally:
-                os.unlink(temp_path)
-
-    def test_large_image_loading(self):
-        """Test loading large images to verify memory handling."""
+    def test_tiff_format_returns_pil_image(self, loaded_tiff_for_ext):
         # Arrange
+        _orig, loaded = loaded_tiff_for_ext
         # Act
+        result = isinstance(loaded, Image.Image)
         # Assert
+        assert result
+
+    def test_tiff_format_preserves_size(self, loaded_tiff_for_ext):
+        # Arrange
+        _orig, loaded = loaded_tiff_for_ext
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (300, 200)
+
+    def test_tiff_format_mode_is_rgb(self, loaded_tiff_for_ext):
+        # Arrange
+        _orig, loaded = loaded_tiff_for_ext
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result == "RGB"
+
+    def test_tiff_format_preserves_pixel_values(self, loaded_tiff_for_ext):
+        # Arrange
+        orig, loaded = loaded_tiff_for_ext
+        # Act
+        result = np.array_equal(np.array(loaded), orig)
+        # Assert
+        assert result
+
+    @pytest.fixture
+    def loaded_large_image(self, tmp_path):
         from scitex_io._load_modules._image import _load_image
 
-        # Create a large image (4K-like resolution)
         large_array = np.random.randint(0, 255, (2160, 3840, 3), dtype=np.uint8)
         img = Image.fromarray(large_array, "RGB")
+        p = tmp_path / "large.png"
+        img.save(str(p), optimize=True, compress_level=6)
+        return _load_image(str(p), metadata=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            # Use compression to reduce file size
-            img.save(f.name, optimize=True, compress_level=6)
-            temp_path = f.name
-
-        try:
-            loaded_img = _load_image(temp_path, metadata=False)
-            assert isinstance(loaded_img, Image.Image)
-            assert loaded_img.size == (3840, 2160)
-            assert loaded_img.mode == "RGB"
-
-            # Verify we can access pixel data without errors
-            loaded_array = np.array(loaded_img)
-            assert loaded_array.shape == (2160, 3840, 3)
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_scientific_image_formats(self):
-        """Test loading images commonly used in scientific applications."""
+    def test_large_image_returns_pil_image(self, loaded_large_image):
         # Arrange
+        loaded = loaded_large_image
         # Act
+        result = isinstance(loaded, Image.Image)
         # Assert
+        assert result
+
+    def test_large_image_preserves_size(self, loaded_large_image):
+        # Arrange
+        loaded = loaded_large_image
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (3840, 2160)
+
+    def test_large_image_mode_is_rgb(self, loaded_large_image):
+        # Arrange
+        loaded = loaded_large_image
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result == "RGB"
+
+    def test_large_image_array_shape_matches(self, loaded_large_image):
+        # Arrange
+        loaded = loaded_large_image
+        # Act
+        result = np.array(loaded).shape
+        # Assert
+        assert result == (2160, 3840, 3)
+
+    @pytest.fixture
+    def loaded_16bit_tiff(self, tmp_path):
         from scitex_io._load_modules._image import _load_image
 
-        # 16-bit grayscale (common in microscopy)
         img_16bit = Image.new("I;16", (256, 256))
-        # Create a pattern
         draw = ImageDraw.Draw(img_16bit)
         for i in range(0, 256, 32):
             draw.rectangle([i, i, i + 16, i + 16], fill=i * 256)
+        p = tmp_path / "x.tiff"
+        img_16bit.save(str(p))
+        return _load_image(str(p), metadata=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".tiff", delete=False) as f:
-            img_16bit.save(f.name)
-            temp_path = f.name
-
-        try:
-            loaded_img = _load_image(temp_path, metadata=False)
-            assert isinstance(loaded_img, Image.Image)
-            assert loaded_img.size == (256, 256)
-            # PIL may convert 16-bit to other formats
-            assert loaded_img.mode in ["I;16", "I", "L"]
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_multipage_tiff_loading(self):
-        """Test loading multi-page TIFF (loads first page)."""
+    def test_scientific_16bit_returns_pil_image(self, loaded_16bit_tiff):
         # Arrange
+        loaded = loaded_16bit_tiff
         # Act
+        result = isinstance(loaded, Image.Image)
         # Assert
+        assert result
+
+    def test_scientific_16bit_preserves_size(self, loaded_16bit_tiff):
+        # Arrange
+        loaded = loaded_16bit_tiff
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (256, 256)
+
+    def test_scientific_16bit_mode_is_grey_family(self, loaded_16bit_tiff):
+        # Arrange
+        loaded = loaded_16bit_tiff
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result in ("I;16", "I", "L")
+
+    @pytest.fixture
+    def loaded_first_page_of_multipage_tiff(self, tmp_path):
         from scitex_io._load_modules._image import _load_image
 
-        # Create multi-page TIFF
         pages = []
         for i in range(3):
             img_array = np.full((100, 100, 3), i * 80, dtype=np.uint8)
             pages.append(Image.fromarray(img_array, "RGB"))
+        p = tmp_path / "multi.tiff"
+        pages[0].save(
+            str(p), save_all=True, append_images=pages[1:], compression="lzw"
+        )
+        return _load_image(str(p), metadata=False)
 
-        with tempfile.NamedTemporaryFile(suffix=".tiff", delete=False) as f:
-            pages[0].save(
-                f.name, save_all=True, append_images=pages[1:], compression="lzw"
-            )
-            temp_path = f.name
-
-        try:
-            loaded_img = _load_image(temp_path, metadata=False)
-            assert isinstance(loaded_img, Image.Image)
-            assert loaded_img.size == (100, 100)
-            assert loaded_img.mode == "RGB"
-
-            # Should load the first page
-            loaded_array = np.array(loaded_img)
-            assert np.all(loaded_array == 0)  # First page should be all zeros
-
-        finally:
-            os.unlink(temp_path)
-
-    def test_kwargs_parameter_passing(self):
-        """Test that kwargs are properly passed to PIL Image.open."""
+    def test_multipage_tiff_returns_pil_image(
+        self, loaded_first_page_of_multipage_tiff
+    ):
         # Arrange
+        loaded = loaded_first_page_of_multipage_tiff
         # Act
+        result = isinstance(loaded, Image.Image)
         # Assert
+        assert result
+
+    def test_multipage_tiff_preserves_size(self, loaded_first_page_of_multipage_tiff):
+        # Arrange
+        loaded = loaded_first_page_of_multipage_tiff
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (100, 100)
+
+    def test_multipage_tiff_mode_is_rgb(self, loaded_first_page_of_multipage_tiff):
+        # Arrange
+        loaded = loaded_first_page_of_multipage_tiff
+        # Act
+        result = loaded.mode
+        # Assert
+        assert result == "RGB"
+
+    def test_multipage_tiff_first_page_is_all_zeros(
+        self, loaded_first_page_of_multipage_tiff
+    ):
+        # Arrange
+        loaded_array = np.array(loaded_first_page_of_multipage_tiff)
+        # Act
+        result = bool(np.all(loaded_array == 0))
+        # Assert
+        assert result
+
+    @pytest.fixture
+    def loaded_kwargs_png(self, tmp_path):
         from scitex_io._load_modules._image import _load_image
 
-        # Create test image
         img_array = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
         img = Image.fromarray(img_array, "RGB")
+        p = tmp_path / "kw.png"
+        img.save(str(p))
+        return _load_image(str(p), metadata=False, formats=["PNG"])
 
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            img.save(f.name)
-            temp_path = f.name
+    def test_kwargs_parameter_passing_returns_pil_image(self, loaded_kwargs_png):
+        # Arrange
+        loaded = loaded_kwargs_png
+        # Act
+        result = isinstance(loaded, Image.Image)
+        # Assert
+        assert result
 
-        try:
-            # Test with kwargs (formats parameter for PIL) and metadata=False
-            loaded_img = _load_image(temp_path, metadata=False, formats=["PNG"])
-            assert isinstance(loaded_img, Image.Image)
-            assert loaded_img.size == (50, 50)
-
-        finally:
-            os.unlink(temp_path)
+    def test_kwargs_parameter_passing_preserves_size(self, loaded_kwargs_png):
+        # Arrange
+        loaded = loaded_kwargs_png
+        # Act
+        result = loaded.size
+        # Assert
+        assert result == (50, 50)
 
     def test_unsupported_extensions_smoke_case(self):
         """Test that unsupported file extensions raise ValueError."""
@@ -410,82 +520,41 @@ class TestLoadImage:
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
 
-    @patch("PIL.Image.open")
-    def test_pil_integration_mocking(self, mock_open):
-        """Test integration with PIL using mocking."""
+    def test_load_image_returns_pil_image_for_real_png(self, tmp_path):
         # Arrange
         from scitex_io._load_modules._image import _load_image
 
-        # Setup mock
-        mock_image = Mock(spec=Image.Image)
-        mock_image.size = (640, 480)
-        mock_image.mode = "RGB"
-        mock_open.return_value = mock_image
-
-        # Test function call with metadata=False to get just the image
+        img = Image.new("RGB", (640, 480), color=(10, 20, 30))
+        p = tmp_path / "x.png"
+        img.save(str(p))
         # Act
-        result = _load_image("test_image.png", metadata=False)
-
-        # Verify behavior
+        result = _load_image(str(p), metadata=False)
         # Assert
-        assert result is mock_image
-        mock_open.assert_called_once_with("test_image.png")
+        assert isinstance(result, Image.Image)
 
-    @patch("PIL.Image.open")
-    def test_kwargs_forwarding_to_pil(self, mock_open):
-        """Test that kwargs are properly forwarded to PIL.Image.open."""
+    def test_load_image_preserves_size_for_real_png(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         from scitex_io._load_modules._image import _load_image
 
-        # Setup mock
-        mock_image = Mock(spec=Image.Image)
-        mock_open.return_value = mock_image
+        img = Image.new("RGB", (640, 480), color=(10, 20, 30))
+        p = tmp_path / "x.png"
+        img.save(str(p))
+        # Act
+        result = _load_image(str(p), metadata=False)
+        # Assert
+        assert result.size == (640, 480)
 
-        # Test with various kwargs - metadata=False ensures we get just the image
-        test_kwargs = {"formats": ["PNG"], "mode": "r"}
-        _load_image("test.png", metadata=False, **test_kwargs)
+    def test_load_image_with_formats_kwarg_returns_pil_image(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._image import _load_image
 
-        # Verify kwargs were passed (excluding metadata which is handled internally)
-        mock_open.assert_called_once_with("test.png", **test_kwargs)
-
-
-# Legacy test functions for backward compatibility
-def test_load_image_basic():
-    """Legacy test function - basic image loading."""
-    # Arrange
-    # Act
-    # Assert
-    test_instance = TestLoadImage()
-    test_instance.test_basic_rgb_image_loading()
-
-
-def test_load_image_grayscale():
-    """Legacy test function - grayscale image loading."""
-    # Arrange
-    # Act
-    # Assert
-    test_instance = TestLoadImage()
-    test_instance.test_grayscale_image_loading()
-
-
-def test_load_image_invalid_extension():
-    """Legacy test function - invalid extension handling."""
-    # Arrange
-    # Act
-    # Assert
-    test_instance = TestLoadImage()
-    test_instance.test_unsupported_extensions_smoke_case()
-
-
-def test_load_image_nonexistent():
-    """Legacy test function - nonexistent file handling."""
-    # Arrange
-    # Act
-    # Assert
-    test_instance = TestLoadImage()
-    test_instance.test_nonexistent_file_error()
+        img = Image.new("RGB", (50, 50), color=(0, 0, 0))
+        p = tmp_path / "x.png"
+        img.save(str(p))
+        # Act
+        result = _load_image(str(p), metadata=False, formats=["PNG"])
+        # Assert
+        assert isinstance(result, Image.Image)
 
 
 if __name__ == "__main__":

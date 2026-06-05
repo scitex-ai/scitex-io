@@ -74,21 +74,20 @@ class TestPathlibInput:
 
 class TestFStringPath:
     def test_f_string_rejects_invalid_variable_name(self, tmp_path):
-        # Arrange
-        # Arrange
+        # An f-expression with a non-identifier placeholder; the
+        # function raises ValueError internally and the outer
+        # try/except re-raises it (fail-loud-fail-early policy,
+        # 2026-06-01) instead of swallowing the failure with a `False`
+        # sentinel.
+        import pytest
         import scitex_io as sio
-
-        # An f-expression with a non-identifier placeholder. The function
-        # raises ValueError internally and the outer try/except returns
-        # False (the function's error envelope).
+        # Arrange
         path = f'f"{tmp_path}/run_{{1invalid}}.json"'
         # Act
-        # Act
-        result = sio.save({"x": 1}, path, verbose=False)
-        # Bad path → outer try/except returns False.
+        ctx = pytest.raises(Exception)
         # Assert
-        # Assert
-        assert result is False
+        with ctx:
+            sio.save({"x": 1}, path, verbose=False)
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +116,9 @@ class TestAbsolutePathBypass:
 
 
 class TestInteractiveRouting:
-    def test_repl_env_routes_to_scitex_cache(self, tmp_path, monkeypatch):
+    def test_repl_env_routes_to_scitex_cache(
+        self, tmp_path, env_save_restore, attr_restore
+    ):
         """When detect_environment() returns 'ipython', save() routes to
         $SCITEX_DIR/io/runtime/cache. The helper is imported lazily
         inside the save() body — patch on the _utils module."""
@@ -125,10 +126,10 @@ class TestInteractiveRouting:
         import scitex_io as sio
         from scitex_io import _utils
 
-        monkeypatch.setenv("SCITEX_DIR", str(tmp_path))
-        monkeypatch.setattr(_utils, "detect_environment", lambda: "ipython")
-        sio.save({"x": 1}, "result.json", verbose=False)
+        env_save_restore.set("SCITEX_DIR", str(tmp_path))
+        attr_restore.set(_utils, "detect_environment", lambda: "ipython")
         # Act
+        sio.save({"x": 1}, "result.json", verbose=False)
         out = tmp_path / "io" / "runtime" / "cache" / "result.json"
         # Assert
         assert out.is_file(), f"expected {out} to exist"
@@ -209,19 +210,23 @@ class TestSymlinkTo:
 
 
 class TestUnknownExtension:
-    def test_no_handler_returns_false(self, tmp_path):
-        # Arrange
-        # Arrange
+    def test_no_handler_raises(self, tmp_path):
+        # `.totally-fake` has no registered handler. save() must raise
+        # (fail-loud-fail-early policy, 2026-06-01) so the caller sees
+        # the failure at the call site rather than receiving a falsy
+        # sentinel and continuing as if the file had been written. The
+        # actual exception type is whatever the unknown-handler code
+        # path emits today (ValueError); ``Exception`` keeps the test
+        # robust across future refactors.
+        import pytest
         import scitex_io as sio
-
-        # `.totally-fake` has no registered handler. save() catches the
-        # ValueError and returns False.
-        # Act
-        # Act
+        # Arrange
         out = str(tmp_path / "data.totally-fake")
+        # Act
+        ctx = pytest.raises(Exception)
         # Assert
-        # Assert
-        assert sio.save({"x": 1}, out, verbose=False) is False
+        with ctx:
+            sio.save({"x": 1}, out, verbose=False)
 
 
 # ---------------------------------------------------------------------------

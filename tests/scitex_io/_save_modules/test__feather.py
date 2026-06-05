@@ -35,18 +35,15 @@ class TestSaveFeather:
         back = pf.read_feather(str(out))
         pd.testing.assert_frame_equal(back, df)
 
-    def test_dict_coerced_to_dataframe(self, tmp_path):
+    def test_dict_coerced_to_dataframe_preserves_values(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         d = {"a": [1, 2], "b": ["x", "y"]}
         out = tmp_path / "data.feather"
         _save_feather(d, str(out))
+        # Act
         back = pf.read_feather(str(out))
-        pd.testing.assert_frame_equal(back, pd.DataFrame(d))
+        # Assert
+        assert back.equals(pd.DataFrame(d))
 
     def test_ndarray_coerced_to_dataframe_back_shape_equals_n_2_3(self, tmp_path):
         # Arrange

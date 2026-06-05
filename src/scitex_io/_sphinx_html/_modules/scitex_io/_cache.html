@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._cache &mdash; SciTeX IO v0.2.15</title>
+  <title>scitex_io._cache &mdash; SciTeX IO v0.2.21</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=d5b904a0"></script>
+      <script src="../../_static/documentation_options.js?v=84986ecb"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -144,6 +144,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.clear_load_cache"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.__init__"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict._resolve_key"><code class="docutils literal notranslate"><span class="pre">DotDict._resolve_key()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.get"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.to_dict"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.keys"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
@@ -155,6 +156,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.DotDict.copy"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -165,59 +168,12 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#core-i-o">Core I/O</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id0"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id16"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id17"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id18"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id24"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id30"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id31"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#registry">Registry</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id38"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id39"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id40"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id41"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id42"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id45"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id46"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#cache-control">Cache Control</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id47"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id48"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id49"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#dict-utilities">Dict Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id50"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id51"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id52"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id53"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id54"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id55"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id56"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id57"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id58"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id59"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/scitex_io.html#id60"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#metadata">Metadata</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id61"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id62"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#id63"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#explorers">Explorers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.H5Explorer"><code class="docutils literal notranslate"><span class="pre">H5Explorer</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/scitex_io.html#scitex_io.ZarrExplorer"><code class="docutils literal notranslate"><span class="pre">ZarrExplorer</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#core-i-o">Core I/O</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#registry">Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#cache-control">Cache Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#dict-utilities">Dict Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#metadata">Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/scitex_io.html#explorers">Explorers</a></li>
 </ul>
 </li>
 </ul>
@@ -253,42 +209,54 @@
 <span class="c1"># ./src/scitex/io/_cache.py</span>
 
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_default_cache_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Canonical cache directory for scitex-io.</span>
+
+<span class="sd">    Returns ``$SCITEX_DIR/io/runtime/cache/`` (defaulting to</span>
+<span class="sd">    ``~/.scitex/io/runtime/cache/``), creating it on first use.</span>
+<span class="sd">    Follows the scitex local-state-directories convention — see</span>
+<span class="sd">    scitex-dev skills/general ``01_ecosystem/06_local-state-directories.md`` §4c.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scitex_dir</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">&quot;SCITEX_DIR&quot;</span><span class="p">,</span>
+        <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~&quot;</span><span class="p">),</span> <span class="s2">&quot;.scitex&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">scitex_dir</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;io&quot;</span> <span class="o">/</span> <span class="s2">&quot;runtime&quot;</span> <span class="o">/</span> <span class="s2">&quot;cache&quot;</span>
+    <span class="n">d</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span>
+
+
 <div class="viewcode-block" id="cache">
 <a class="viewcode-back" href="../../api/scitex_io.html#scitex_io.cache">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">cache</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Store or fetch data using a pickle file.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cache</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">cache_root</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Store or fetch data using a pickle file.</span>
 
-<span class="sd">    This function provides a simple caching mechanism for storing and retrieving</span>
-<span class="sd">    Python objects. It uses pickle to serialize the data and stores it in a file</span>
-<span class="sd">    with a unique identifier. If the data is already cached, it can be retrieved</span>
-<span class="sd">    without recomputation.</span>
+<span class="sd">    This function provides a simple caching mechanism for storing and</span>
+<span class="sd">    retrieving Python objects. It uses pickle to serialize the data</span>
+<span class="sd">    and stores it in a file with a unique identifier. If the data is</span>
+<span class="sd">    already cached, it can be retrieved without recomputation.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
-<span class="sd">    id : str</span>
-<span class="sd">        A unique identifier for the cache file.</span>
-<span class="sd">    *args : str</span>
-<span class="sd">        Variable names to be cached or loaded.</span>
+<span class="sd">    :param id: A unique identifier for the cache file.</span>
+<span class="sd">    :type id: str</span>
+<span class="sd">    :param \\*args: Variable names to be cached or loaded.</span>
+<span class="sd">    :type \\*args: str</span>
+<span class="sd">    :param cache_root: Explicit cache directory. Defaults to</span>
+<span class="sd">        ``$SCITEX_DIR/io/runtime/cache/`` (``~/.scitex/io/runtime/cache/``</span>
+<span class="sd">        fallback), honouring the canonical scitex local-state convention.</span>
+<span class="sd">    :type cache_root: Path or None, optional</span>
+<span class="sd">    :returns: A tuple of cached values corresponding to the input variable names.</span>
+<span class="sd">    :rtype: tuple</span>
+<span class="sd">    :raises ValueError: If the cache file is not found and not all variables</span>
+<span class="sd">        are defined.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
-<span class="sd">    tuple</span>
-<span class="sd">        A tuple of cached values corresponding to the input variable names.</span>
-
-<span class="sd">    Raises:</span>
+<span class="sd">    Example</span>
 <span class="sd">    -------</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        If the cache file is not found and not all variables are defined.</span>
-
-<span class="sd">    Example:</span>
-<span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; import scitex</span>
 <span class="sd">    &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">    &gt;&gt;&gt;</span>
@@ -306,7 +274,10 @@
 <span class="sd">    &gt;&gt;&gt; var1, var2, var3 = scitex.io.cache(&quot;my_id&quot;, &quot;var1&quot;, &quot;var2&quot;, &quot;var3&quot;)</span>
 <span class="sd">    &gt;&gt;&gt; print(var1, var2, var3)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.cache&quot;</span> <span class="o">/</span> <span class="s2">&quot;your_app_name&quot;</span>
+    <span class="k">if</span> <span class="n">cache_root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cache_root</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">_default_cache_dir</span><span class="p">()</span>
     <span class="n">cache_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">cache_file</span> <span class="o">=</span> <span class="n">cache_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s2">.pkl&quot;</span>
 
@@ -335,8 +306,8 @@
 
 <span class="c1"># Usage example</span>
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">scitex</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">scitex</span>
 
     <span class="c1"># Variables to cache</span>
     <span class="n">var1</span> <span class="o">=</span> <span class="s2">&quot;x&quot;</span>

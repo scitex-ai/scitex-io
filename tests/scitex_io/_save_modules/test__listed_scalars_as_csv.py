@@ -74,8 +74,7 @@ def test_custom_column_and_suffix_list_df_index_a_b_c(tmp_path, capsys):
     assert list(df.index) == ["a", "b", "c"]
 
 
-def test_custom_column_and_suffix_saved_to_in_captured_out(tmp_path, capsys):
-    # Arrange
+def test_custom_column_and_suffix_logs_saved_message(tmp_path, capsys):
     # Arrange
     p = str(tmp_path / "s2.csv")
     _save_listed_scalars_as_csv(
@@ -86,12 +85,7 @@ def test_custom_column_and_suffix_saved_to_in_captured_out(tmp_path, capsys):
         verbose=True,
     )
     # Act
-    df = pd.read_csv(p, index_col=0)
-    # Assert
-    assert list(df.columns) == ["value"]
-    assert list(df.index) == ["a", "b", "c"]
     captured = capsys.readouterr()
-    # Act
     # Assert
     assert "Saved to" in captured.out
 

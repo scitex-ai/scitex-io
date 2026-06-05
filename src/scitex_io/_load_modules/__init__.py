@@ -1,56 +1,88 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Timestamp: "2025-06-12 13:05:00 (ywatanabe)"
-# File: ./scitex_repo/src/scitex/io/_load_modules/__init__.py
+"""Load handler submodules for ``scitex_io.load``.
 
+Each ``_load_modules._<format>`` submodule defines a ``_load_<format>``
+callable. They are no longer eagerly swept at package import time — the
+old directory-scanning loop that ``importlib.import_module``'d every
+``.py`` here was the root cause of the eager fan-out incident
+(2026-06-01, libgthread on minimal containers): merely touching
+``_load_modules`` pulled PIL, pymupdf, pdfminer, h5py, scipy, plotly,
+etc. even for a JSON-only ``save``.
+
+Format handlers are now registered explicitly in
+``scitex_io._builtin_handlers._LAZY_LOADERS`` as
+``(module_path, attr_name)`` tuples and only imported when the matching
+extension is actually used (see ``_registry.get_loader``).
+
+A handful of public names that the old directory-scan exposed at this
+level (``load_markdown``, ``load_pdf``, ``load_bibtex``,
+``load_yaml_as_an_optuna_dict``, ``load_study_rdb``, ``H5Explorer``,
+``ZarrExplorer``, ``SQLite3``, ``DotDict``, …) remain reachable via
+PEP 562 ``__getattr__`` — they resolve to the underlying submodule
+attribute on first access so existing call sites
+``from scitex_io._load_modules import load_markdown`` keep working
+without triggering an eager fan-out.
 """
-Load modules for scitex.io.load functionality.
 
-Each handler is imported with a try/except so that missing optional
-dependencies only disable the relevant format rather than crashing the
-entire package.
-"""
+from __future__ import annotations
 
-import importlib as __importlib
-import inspect as __inspect
-import os as __os
-import warnings as __warnings
+import importlib as _importlib
 
-_current_dir = __os.path.dirname(__file__)
-_pkg = __name__
+# Public name → (submodule_path, attr_in_submodule). Only names the
+# old auto-scan would have surfaced (i.e. names that don't start with
+# ``_`` in their defining module) are listed here.
+_LAZY_NAMES: dict[str, tuple[str, str]] = {
+    "DotDict": ("scitex_io._load_modules._pdf_utils", "DotDict"),
+    "load_pdf": ("scitex_io._load_modules._pdf", "load_pdf"),
+    "load_bibtex": ("scitex_io._load_modules._bibtex", "load_bibtex"),
+    "SQLite3": ("scitex_io._load_modules._sqlite3", "SQLite3"),
+    "load_yaml_as_an_optuna_dict": (
+        "scitex_io._load_modules._optuna",
+        "load_yaml_as_an_optuna_dict",
+    ),
+    "load_study_rdb": (
+        "scitex_io._load_modules._optuna",
+        "load_study_rdb",
+    ),
+    "load_markdown": (
+        "scitex_io._load_modules._markdown",
+        "load_markdown",
+    ),
+    "H5Explorer": ("scitex_io._load_modules._H5Explorer", "H5Explorer"),
+    "explore_h5": ("scitex_io._load_modules._H5Explorer", "explore_h5"),
+    "has_h5_key": ("scitex_io._load_modules._H5Explorer", "has_h5_key"),
+    "ZarrExplorer": (
+        "scitex_io._load_modules._ZarrExplorer",
+        "ZarrExplorer",
+    ),
+    "explore_zarr": (
+        "scitex_io._load_modules._ZarrExplorer",
+        "explore_zarr",
+    ),
+    "has_zarr_key": (
+        "scitex_io._load_modules._ZarrExplorer",
+        "has_zarr_key",
+    ),
+}
 
-for _filename in __os.listdir(_current_dir):
-    if not _filename.endswith(".py") or _filename.startswith("__"):
-        continue
-    _module_name = _filename[:-3]
-    try:
-        _module = __importlib.import_module(f".{_module_name}", package=_pkg)
-    except ImportError as _exc:
-        __warnings.warn(
-            f"scitex_io: optional dependency missing, skipping load module "
-            f"'{_module_name}': {_exc}",
-            ImportWarning,
-            stacklevel=2,
+
+def __getattr__(name: str):
+    """Resolve a back-compat load-module attribute on first access."""
+    spec = _LAZY_NAMES.get(name)
+    if spec is None:
+        raise AttributeError(
+            f"module {__name__!r} has no attribute {name!r}"
         )
-        continue
+    module_path, attr_name = spec
+    module = _importlib.import_module(module_path)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value
 
-    for _name, _obj in __inspect.getmembers(_module):
-        if (__inspect.isfunction(_obj) or __inspect.isclass(_obj)) and not _name.startswith("_"):
-            globals()[_name] = _obj
 
-# Clean up loop variables
-del (
-    __os,
-    __importlib,
-    __inspect,
-    __warnings,
-    _current_dir,
-    _pkg,
-    _filename,
-    _module_name,
-    _module,
-    _name,
-    _obj,
-)
+def __dir__() -> list[str]:
+    return sorted(set(_LAZY_NAMES) | set(globals()))
+
 
 # EOF

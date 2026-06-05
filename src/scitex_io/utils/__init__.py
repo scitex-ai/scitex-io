@@ -4,6 +4,7 @@
 # File: /ssh:sp:/home/ywatanabe/proj/scitex_repo/src/scitex/io/utils/__init__.py
 # ----------------------------------------
 import os
+
 __FILE__ = __file__
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
@@ -12,9 +13,11 @@ __DIR__ = os.path.dirname(__FILE__)
 IO utility functions for SciTeX.
 """
 
+from ._compress_hdf5 import compress_hdf5
 from .h5_to_zarr import migrate_h5_to_zarr, migrate_h5_to_zarr_batch
 
 __all__ = [
+    "compress_hdf5",
     "migrate_h5_to_zarr",
     "migrate_h5_to_zarr_batch",
 ]

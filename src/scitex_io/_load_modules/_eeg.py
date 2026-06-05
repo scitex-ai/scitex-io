@@ -5,7 +5,7 @@
 
 import os
 import warnings
-from typing import Any
+from typing import Any, Optional
 
 try:
     import mne
@@ -16,7 +16,13 @@ except ImportError:
     MNE_AVAILABLE = False
 
 
-def _load_eeg_data(lpath: str, **kwargs) -> Any:
+def _load_eeg_data(
+    lpath: str,
+    *,
+    mne_module: Optional[Any] = None,
+    isfile: Optional[Any] = None,
+    **kwargs,
+) -> Any:
     """
     Load EEG data based on file extension and associated files using MNE-Python.
 
@@ -27,6 +33,12 @@ def _load_eeg_data(lpath: str, **kwargs) -> Any:
     -----------
     lpath : str
         The path to the EEG file to be loaded.
+    mne_module : module, optional
+        Override the MNE module (defaults to the real ``mne``). Used by
+        tests to inject a hand-rolled fake reader namespace.
+    isfile : callable, optional
+        Override ``os.path.isfile`` (defaults to the real one). Used by
+        tests of the ``.eeg`` companion-file detection.
     **kwargs : dict
         Additional keyword arguments to be passed to the specific MNE loading function.
 
@@ -45,6 +57,11 @@ def _load_eeg_data(lpath: str, **kwargs) -> Any:
     This function uses MNE-Python to load the EEG data. It automatically detects the file format
     based on the file extension and uses the appropriate MNE function to load the data.
     """
+    if mne_module is None:
+        mne_module = mne
+    if isfile is None:
+        isfile = os.path.isfile
+
     # Get the file extension (no leading dot — branch comparisons below
     # assume the bare suffix).
     extension = lpath.rsplit(".", 1)[-1]
@@ -79,42 +96,42 @@ def _load_eeg_data(lpath: str, **kwargs) -> Any:
         # Load the data based on the file extension
         if extension in ["vhdr", "vmrk"]:
             # Load BrainVision data
-            raw = mne.io.read_raw_brainvision(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw_brainvision(lpath, preload=True, **kwargs)
         elif extension == "edf":
             # Load European data format
-            raw = mne.io.read_raw_edf(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw_edf(lpath, preload=True, **kwargs)
         elif extension == "bdf":
             # Load BioSemi data format
-            raw = mne.io.read_raw_bdf(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw_bdf(lpath, preload=True, **kwargs)
         elif extension == "gdf":
             # Load Gen data format
-            raw = mne.io.read_raw_gdf(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw_gdf(lpath, preload=True, **kwargs)
         elif extension == "cnt":
             # Load Neuroscan CNT data
-            raw = mne.io.read_raw_cnt(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw_cnt(lpath, preload=True, **kwargs)
         elif extension == "egi":
             # Load EGI simple binary data
-            raw = mne.io.read_raw_egi(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw_egi(lpath, preload=True, **kwargs)
         elif extension == "set":
             # ???
-            raw = mne.io.read_raw(lpath, preload=True, **kwargs)
+            raw = mne_module.io.read_raw(lpath, preload=True, **kwargs)
         elif extension == "eeg":
             is_BrainVision = any(
-                os.path.isfile(lpath.replace(".eeg", ext)) for ext in [".vhdr", ".vmrk"]
+                isfile(lpath.replace(".eeg", ext)) for ext in [".vhdr", ".vmrk"]
             )
             is_NihonKoden = any(
-                os.path.isfile(lpath.replace(".eeg", ext))
+                isfile(lpath.replace(".eeg", ext))
                 for ext in [".21e", ".pnt", ".log"]
             )
 
             # Brain Vision
             if is_BrainVision:
                 lpath_v = lpath.replace(".eeg", ".vhdr")
-                raw = mne.io.read_raw_brainvision(lpath_v, preload=True, **kwargs)
+                raw = mne_module.io.read_raw_brainvision(lpath_v, preload=True, **kwargs)
             # Nihon Koden
             if is_NihonKoden:
                 # raw = mne.io.read_raw_nihon(lpath, preload=True, **kwargs)
-                raw = mne.io.read_raw(lpath, preload=True, **kwargs)
+                raw = mne_module.io.read_raw(lpath, preload=True, **kwargs)
             if raw is None:
                 raise ValueError(
                     f"No associated files found for .eeg file: {lpath!r} "

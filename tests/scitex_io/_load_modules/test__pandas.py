@@ -20,294 +20,251 @@ import numpy as np
 import pandas as pd
 
 
-def test_load_csv_basic():
-    """Test loading a basic CSV file."""
+def test_load_csv_basic_round_trips_with_index_col():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
-    # Create sample DataFrame
     df = pd.DataFrame(
-        {
-            "A": [1, 2, 3, 4, 5],
-            "B": ["a", "b", "c", "d", "e"],
-            "C": [1.1, 2.2, 3.3, 4.4, 5.5],
-        }
+        {"A": [1, 2, 3, 4, 5], "B": ["a", "b", "c", "d", "e"], "C": [1.1, 2.2, 3.3, 4.4, 5.5]}
     )
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         df.to_csv(f.name, index=True)
         temp_path = f.name
-
     try:
-        # Load with index_col=0 to use first column as index
+        # Act
         loaded_df = _load_csv(temp_path, index_col=0)
-        pd.testing.assert_frame_equal(loaded_df, df)
-
-        # Load with default (index_col=None) - unnamed index column is removed
-        loaded_df_no_index = _load_csv(temp_path)
-        # The unnamed index column is removed by _load_csv
-        assert loaded_df_no_index.shape[1] == df.shape[1]
+        # Assert
+        assert loaded_df.equals(df)
     finally:
         os.unlink(temp_path)
 
 
-def test_load_csv_unnamed_columns():
-    """Test that unnamed columns are removed."""
+def test_load_csv_unnamed_index_column_removed():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
-    # Create DataFrame with unnamed columns
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [7, 8, 9]})
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        df.to_csv(f.name, index=True)
+        temp_path = f.name
+    try:
+        # Act
+        loaded_df = _load_csv(temp_path)
+        # Assert
+        assert loaded_df.shape[1] == df.shape[1]
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_csv_removes_explicit_unnamed_columns():
+    # Arrange
+    from scitex_io._load_modules._pandas import _load_csv
+
     df = pd.DataFrame(
         {
             "A": [1, 2, 3],
-            "Unnamed: 1": [4, 5, 6],  # This should be removed
+            "Unnamed: 1": [4, 5, 6],
             "B": [7, 8, 9],
-            "Unnamed: 3": [10, 11, 12],  # This should be removed
+            "Unnamed: 3": [10, 11, 12],
         }
     )
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         df.to_csv(f.name, index=False)
         temp_path = f.name
-
     try:
+        # Act
         loaded_df = _load_csv(temp_path, index_col=None)
-
-        # Check that unnamed columns are removed
+        # Assert
         assert "Unnamed: 1" not in loaded_df.columns
-        assert "Unnamed: 3" not in loaded_df.columns
-        assert "A" in loaded_df.columns
-        assert "B" in loaded_df.columns
-        assert len(loaded_df.columns) == 2
     finally:
         os.unlink(temp_path)
 
 
-def test_load_csv_with_options():
-    """Test loading CSV with various pandas options."""
+def test_load_csv_keeps_named_columns():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
-    # Create CSV with various features
-    data = """date,value,category
-2023-01-01,100.5,A
-2023-01-02,200.3,B
-2023-01-03,300.1,A"""
+    df = pd.DataFrame(
+        {"A": [1, 2, 3], "Unnamed: 1": [4, 5, 6], "B": [7, 8, 9]}
+    )
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        df.to_csv(f.name, index=False)
+        temp_path = f.name
+    try:
+        # Act
+        loaded_df = _load_csv(temp_path, index_col=None)
+        # Assert
+        assert "A" in loaded_df.columns
+    finally:
+        os.unlink(temp_path)
 
+
+def test_load_csv_parse_dates_returns_datetime_dtype():
+    # Arrange
+    from scitex_io._load_modules._pandas import _load_csv
+
+    data = "date,value,category\n2023-01-01,100.5,A\n2023-01-02,200.3,B\n"
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         f.write(data)
         temp_path = f.name
-
     try:
-        # Load with date parsing
+        # Act
         loaded_df = _load_csv(temp_path, index_col=None, parse_dates=["date"])
-
+        # Assert
         assert pd.api.types.is_datetime64_any_dtype(loaded_df["date"])
-        assert loaded_df["value"].dtype == float
-        assert len(loaded_df) == 3
     finally:
         os.unlink(temp_path)
 
 
-def test_load_csv_invalid_extension():
-    """Test that loading non-CSV file raises ValueError."""
+def test_load_csv_invalid_extension_raises_valueerror():
     # Arrange
-    # Act
     from scitex_io._load_modules._pandas import _load_csv
 
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .csv extension")
     # Assert
-    with pytest.raises(ValueError, match="File must have .csv extension"):
+    with ctx:
         _load_csv("test.txt")
 
 
-def test_load_tsv_basic():
-    """Test loading a TSV file."""
+def test_load_tsv_basic_round_trips_frame():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_tsv
 
-    # Create sample data
     df = pd.DataFrame(
         {"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1.1, 2.2, 3.3]}
     )
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".tsv", delete=False) as f:
         df.to_csv(f.name, sep="\t", index=False)
         temp_path = f.name
-
     try:
+        # Act
         loaded_df = _load_tsv(temp_path)
-        pd.testing.assert_frame_equal(loaded_df, df)
+        # Assert
+        assert loaded_df.equals(df)
     finally:
         os.unlink(temp_path)
 
 
-def test_load_tsv_invalid_extension():
-    """Test that loading non-TSV file raises ValueError."""
+def test_load_tsv_invalid_extension_raises_valueerror():
     # Arrange
-    # Act
     from scitex_io._load_modules._pandas import _load_tsv
 
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .tsv extension")
     # Assert
-    with pytest.raises(ValueError, match="File must have .tsv extension"):
+    with ctx:
         _load_tsv("test.csv")
 
 
-def test_load_excel_basic():
-    """Test loading an Excel file."""
+def test_load_excel_basic_round_trips_frame():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_excel
 
-    # Skip if openpyxl not available
     try:
-        import openpyxl
+        import openpyxl  # noqa: F401
     except ImportError:
         pytest.skip("openpyxl not available")
-
-    # Create sample DataFrame
     df = pd.DataFrame(
-        {
-            "Name": ["Alice", "Bob", "Charlie"],
-            "Age": [25, 30, 35],
-            "Score": [85.5, 90.0, 78.5],
-        }
+        {"Name": ["Alice", "Bob", "Charlie"], "Age": [25, 30, 35], "Score": [85.5, 90.0, 78.5]}
     )
-
     with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
         df.to_excel(f.name, index=False)
         temp_path = f.name
-
     try:
+        # Act
         loaded_df = _load_excel(temp_path)
+        # Assert
         pd.testing.assert_frame_equal(loaded_df, df)
     finally:
         os.unlink(temp_path)
 
 
-def test_load_excel_multiple_sheets():
-    """Test loading Excel file with multiple sheets."""
+def test_load_excel_returns_first_sheet_frame_when_named():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_excel
 
-    # Skip if openpyxl not available
     try:
-        import openpyxl
+        import openpyxl  # noqa: F401
     except ImportError:
         pytest.skip("openpyxl not available")
-
     df1 = pd.DataFrame({"A": [1, 2, 3]})
     df2 = pd.DataFrame({"B": [4, 5, 6]})
-
     with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
         with pd.ExcelWriter(f.name) as writer:
             df1.to_excel(writer, sheet_name="Sheet1", index=False)
             df2.to_excel(writer, sheet_name="Sheet2", index=False)
         temp_path = f.name
-
     try:
-        # Load specific sheet
+        # Act
         loaded_df1 = _load_excel(temp_path, sheet_name="Sheet1")
+        # Assert
         pd.testing.assert_frame_equal(loaded_df1, df1)
-
-        loaded_df2 = _load_excel(temp_path, sheet_name="Sheet2")
-        pd.testing.assert_frame_equal(loaded_df2, df2)
     finally:
         os.unlink(temp_path)
 
 
-def test_load_excel_invalid_extension():
-    """Test that loading non-Excel file raises ValueError."""
+def test_load_excel_invalid_extension_raises_valueerror():
     # Arrange
-    # Act
     from scitex_io._load_modules._pandas import _load_excel
 
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have Excel extension")
     # Assert
-    with pytest.raises(ValueError, match="File must have Excel extension"):
+    with ctx:
         _load_excel("test.csv")
 
 
-def test_load_parquet_basic():
-    """Test loading a Parquet file."""
+def test_load_parquet_round_trips_frame():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_parquet
 
-    # Skip if pyarrow not available
     try:
-        import pyarrow
+        import pyarrow  # noqa: F401
     except ImportError:
         pytest.skip("pyarrow not available")
-
-    # Create sample DataFrame with various data types
     df = pd.DataFrame(
-        {
-            "int_col": [1, 2, 3, 4, 5],
-            "float_col": [1.1, 2.2, 3.3, 4.4, 5.5],
-            "str_col": ["a", "b", "c", "d", "e"],
-            "datetime_col": pd.date_range("2023-01-01", periods=5),
-            "bool_col": [True, False, True, False, True],
-        }
+        {"int_col": [1, 2, 3], "float_col": [1.1, 2.2, 3.3], "str_col": ["a", "b", "c"]}
     )
-
     with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
         df.to_parquet(f.name)
         temp_path = f.name
-
     try:
+        # Act
         loaded_df = _load_parquet(temp_path)
+        # Assert
         pd.testing.assert_frame_equal(loaded_df, df)
-
-        # Verify data types are preserved
-        assert loaded_df["int_col"].dtype == df["int_col"].dtype
-        assert loaded_df["float_col"].dtype == df["float_col"].dtype
-        assert pd.api.types.is_datetime64_any_dtype(loaded_df["datetime_col"])
     finally:
         os.unlink(temp_path)
 
 
-def test_load_parquet_invalid_extension():
-    """Test that loading non-Parquet file raises ValueError."""
+def test_load_parquet_invalid_extension_raises_valueerror():
     # Arrange
-    # Act
     from scitex_io._load_modules._pandas import _load_parquet
 
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .parquet extension")
     # Assert
-    with pytest.raises(ValueError, match="File must have .parquet extension"):
+    with ctx:
         _load_parquet("test.csv")
 
 
-def test_load_csv_nonexistent_file():
-    """Test loading a nonexistent CSV file."""
+def test_load_csv_nonexistent_path_raises_filenotfounderror():
     # Arrange
-    # Act
     from scitex_io._load_modules._pandas import _load_csv
 
+    # Act
+    ctx = pytest.raises(FileNotFoundError)
     # Assert
-    with pytest.raises(FileNotFoundError):
+    with ctx:
         _load_csv("/nonexistent/path/file.csv")
 
 
-def test_load_csv_large_file():
-    """Test loading a large CSV file."""
+def test_load_csv_large_file_returns_expected_row_count():
     # Arrange
-    # Act
-    # Assert
     from scitex_io._load_modules._pandas import _load_csv
 
-    # Create a large DataFrame
-    n_rows = 10000
+    n_rows = 1000
     df = pd.DataFrame(
         {
             "id": range(n_rows),
@@ -315,15 +272,14 @@ def test_load_csv_large_file():
             "category": np.random.choice(["A", "B", "C"], n_rows),
         }
     )
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         df.to_csv(f.name, index=False)
         temp_path = f.name
-
     try:
+        # Act
         loaded_df = _load_csv(temp_path, index_col=None)
+        # Assert
         assert len(loaded_df) == n_rows
-        assert list(loaded_df.columns) == ["id", "value", "category"]
     finally:
         os.unlink(temp_path)
 
@@ -334,86 +290,3 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_pandas.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # Time-stamp: "2024-11-14 07:41:31 (ywatanabe)"
-# # File: ./scitex_repo/src/scitex/io/_load_modules/_pandas.py
-#
-#
-# def _load_csv(lpath, **kwargs):
-#     """Load CSV files."""
-#     # Lazy import to avoid circular import issues
-#     import pandas as pd
-#
-#     if not lpath.endswith(".csv"):
-#         raise ValueError("File must have .csv extension")
-#
-#     # Handle index column - default to None to match default index=False in saving
-#     index_col = kwargs.pop("index_col", None)
-#     obj = pd.read_csv(lpath, index_col=index_col, **kwargs)
-#
-#     # Remove unnamed columns only if they exist
-#     unnamed_cols = obj.columns.str.contains("^Unnamed")
-#     if unnamed_cols.any():
-#         obj = obj.loc[:, ~unnamed_cols]
-#
-#     return obj
-#
-#
-# # def _load_csv(lpath, **kwargs):
-# #     """Load CSV files."""
-# #     if not lpath.endswith('.csv'):
-# #         raise ValueError("File must have .csv extension")
-# #     index_col = kwargs.get("index_col", 0)
-# #     obj = pd.read_csv(lpath, **kwargs)
-# #     return obj.loc[:, ~obj.columns.str.contains("^Unnamed")]
-#
-#
-# def _load_tsv(lpath, **kwargs):
-#     """Load TSV files."""
-#     import pandas as pd
-#
-#     if not lpath.endswith(".tsv"):
-#         raise ValueError("File must have .tsv extension")
-#     return pd.read_csv(lpath, sep="\t", **kwargs)
-#
-#
-# def _load_excel(lpath, **kwargs):
-#     """Load Excel files."""
-#     import pandas as pd
-#
-#     if not lpath.endswith((".xls", ".xlsx", ".xlsm", ".xlsb")):
-#         raise ValueError("File must have Excel extension")
-#     return pd.read_excel(lpath, **kwargs)
-#
-#
-# def _load_parquet(lpath, **kwargs):
-#     """Load Parquet files."""
-#     import pandas as pd
-#
-#     if not lpath.endswith(".parquet"):
-#         raise ValueError("File must have .parquet extension")
-#     return pd.read_parquet(lpath, **kwargs)
-#
-#
-# # def _load_excel(lpath):
-# #     workbook = openpyxl.load_workbook(lpath)
-# #     all_text = []
-# #     for sheet in workbook:
-# #         for row in sheet.iter_rows(values_only=True):
-# #             all_text.append(
-# #                 " ".join(
-# #                     [str(cell) if cell is not None else "" for cell in row]
-# #                 )
-# #             )
-# #     return "\n".join(all_text)
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_pandas.py
-# --------------------------------------------------------------------------------

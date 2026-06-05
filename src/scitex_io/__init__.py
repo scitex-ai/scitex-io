@@ -11,7 +11,7 @@ Functionalities
 - `register_saver(".ext")` / `register_loader(".ext")` — plugin hooks
   for user-defined formats; dispatch lookup follows the same registry.
 - `load_configs()` — collect every `<project-root>/config/*.yaml` into
-  a single `DotDict` with UPPER_CASE normalisation + DEBUG_ overrides.
+  a single ``DotDict`` with ``UPPER_CASE`` normalisation + ``DEBUG_`` overrides.
 - `glob` / `parse_glob` — natural-sorted globbing with `{placeholder}`
   parsing; `cache` / `reload` / `flush` — load-cache management.
 
@@ -91,6 +91,10 @@ _LAZY_ATTRS: dict[str, str] = {
     "clear_load_cache": "._loading",  # aliased below
     # Dict utilities
     "DotDict": "._utils",
+    # Observer hook registry (R6 — observers self-register here;
+    # scitex_io itself never names them). See _hooks.py.
+    "register_post_save_hook": "._observers",
+    "register_post_load_hook": "._observers",
 }
 
 # Optional public names that may not be importable. Resolve once, lazily.
@@ -113,6 +117,9 @@ _OPTIONAL_ATTRS: dict[str, tuple[str, str]] = {
     ),
     "path": ("._path", "path"),
     "mv_to_tmp": ("._mv_to_tmp", "mv_to_tmp"),
+    # HDF5 gzip re-compression (needs optional h5py). Migrated from the
+    # scitex umbrella; h5py is imported lazily inside the function.
+    "compress_hdf5": (".utils", "compress_hdf5"),
     "json2md": ("._json2md", "json2md"),
     "migrate_h5_to_zarr": ("utils", "migrate_h5_to_zarr"),
     "migrate_h5_to_zarr_batch": ("utils", "migrate_h5_to_zarr_batch"),
@@ -171,13 +178,26 @@ def _ensure_builtin_handlers_registered() -> None:
     from importlib import import_module
 
     import_module("._builtin_handlers", __name__)
+    # Optional ecosystem providers (e.g. figrecipe) contribute extra
+    # formats when their package is installed — a no-op otherwise.
+    from ._optional_providers import register_optional_providers
+
+    register_optional_providers()
     globals()["_BUILTINS_REGISTERED"] = True
 
 
 def __getattr__(name: str):
     """PEP 562 lazy-loader: import on first access, cache, return."""
-    # Built-in handlers must be registered before any registry-facing call.
-    if name in _LAZY_ATTRS or name in _OPTIONAL_ATTRS:
+    # Built-in handlers must be registered before any registry-facing call
+    # (save/load/list_formats/get_saver/…). The observer hook-registry
+    # functions (mapped to ``._observers``) are registry-INDEPENDENT, so
+    # skip the eager handler registration for them — otherwise merely
+    # accessing ``register_post_save_hook`` pulls in every format handler
+    # (catboost/zarr/pandas/…), adding ~3s. This is the hot path for
+    # observer packages like scitex-clew that register hooks at import.
+    if (name in _LAZY_ATTRS or name in _OPTIONAL_ATTRS) and _LAZY_ATTRS.get(
+        name
+    ) != "._observers":
         _ensure_builtin_handlers_registered()
     if name in _LAZY_ATTRS:
         return _load_lazy_attr(name)

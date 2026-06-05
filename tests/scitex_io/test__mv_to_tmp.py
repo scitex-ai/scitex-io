@@ -2,12 +2,14 @@
 # Timestamp: "2025-05-31"
 # File: test__mv_to_tmp.py
 
-"""Tests for scitex_io._mv_to_tmp module."""
+"""Tests for scitex_io._mv_to_tmp module.
 
-import os
-import tempfile
+The production function takes ``move_fn`` and ``tmp_dir`` keyword
+parameters so tests can pass a recording callable and a sandbox
+directory instead of mocking ``shutil.move``.
+"""
+
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,366 +17,227 @@ import pytest
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
 
+from scitex_io._mv_to_tmp import _mv_to_tmp
 
-class TestMvToTmpBasic:
-    """Test basic move to tmp functionality."""
-
-    def test_move_simple_file(self):
-        """Test moving a simple file to /tmp."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        # Use a predictable path instead of tempfile (which has random component)
-        test_path = "/home/user/data/test.txt"
-
-        # Mock move where it's imported (in the module, not shutil)
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print") as mock_print:
-                _mv_to_tmp(test_path)
-
-                # With L=2 (default), takes last 2 components: "data-test.txt"
-                expected_target = "/tmp/data-test.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-                mock_print.assert_called_once_with(f"Moved to: {expected_target}")
-
-    def test_move_with_custom_level(self):
-        """Test moving file with custom directory level parameter."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/home/user/documents/project/data/file.csv"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print") as mock_print:
-                # Test with L=3 (should take last 3 path components)
-                _mv_to_tmp(test_path, L=3)
-
-                expected_target = "/tmp/project-data-file.csv"
-                mock_move.assert_called_once_with(test_path, expected_target)
-                mock_print.assert_called_once_with(f"Moved to: {expected_target}")
-
-    def test_move_nested_path_default_level(self):
-        """Test moving file from nested path with default L=2."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/path/to/deep/folder/structure/myfile.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print") as mock_print:
-                _mv_to_tmp(test_path)
-
-                # Default L=2 takes last 2 components
-                expected_target = "/tmp/structure-myfile.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-    def test_move_short_path(self):
-        """Test moving file with path shorter than L parameter."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "file.txt"  # Only 1 component
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print") as mock_print:
-                _mv_to_tmp(test_path, L=3)  # L larger than path components
-
-                # Should handle gracefully
-                expected_target = "/tmp/file.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-
-class TestMvToTmpErrorHandling:
-    """Test error handling scenarios."""
-
-    def test_move_fails_silently(self):
-        """Test that move failures are handled silently."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/nonexistent/file.txt"
-
-        with patch(
-            "scitex_io._mv_to_tmp.move", side_effect=FileNotFoundError("File not found")
-        ):
-            # Should not raise exception due to try/except
-            _mv_to_tmp(test_path)  # Should complete without error
-
-    def test_permission_error_handled(self):
-        """Test handling of permission errors."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/root/protected/file.txt"
 
-        with patch(
-            "scitex_io._mv_to_tmp.move",
-            side_effect=PermissionError("Permission denied"),
-        ):
-            # Should not raise exception
-            _mv_to_tmp(test_path)  # Should complete without error
+def _recording_move_fn():
+    calls: list = []
 
-    def test_invalid_path_handled(self):
-        """Test handling of invalid paths."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
+    def _move(src, dst):
+        calls.append((src, dst))
 
-        # Test with None
-        _mv_to_tmp(None)  # Should not crash
+    return calls, _move
 
-        # Test with empty string
-        _mv_to_tmp("")  # Should not crash
 
-        # Test with integer
-        _mv_to_tmp(123)  # Should not crash
+# ---------------------------------------------------------------------------
+# Default L=2 behaviour
+# ---------------------------------------------------------------------------
 
-    def test_target_exists_error(self):
-        """Test when target file already exists in /tmp."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/home/user/file.txt"
-
-        with patch("scitex_io._mv_to_tmp.move", side_effect=OSError("Target exists")):
-            # Should handle silently
-            _mv_to_tmp(test_path)  # Should complete without error
-
-
-class TestMvToTmpPathHandling:
-    """Test various path format handling."""
-
-    def test_windows_style_path(self):
-        """Test handling Windows-style paths."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        # Windows path with backslashes
-        test_path = r"C:\Users\Documents\file.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print"):
-                _mv_to_tmp(test_path)
-
-                # The function uses "/" split, so Windows paths won't split properly
-                # This is a limitation of the current implementation
-                mock_move.assert_called_once()
-
-    def test_path_with_spaces(self):
-        """Test paths containing spaces."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/home/user/my documents/important file.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print") as mock_print:
-                _mv_to_tmp(test_path)
-
-                expected_target = "/tmp/my documents-important file.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-    def test_path_with_special_characters(self):
-        """Test paths with special characters."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/data/files/report_2024-01-01.csv"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print"):
-                _mv_to_tmp(test_path)
-
-                expected_target = "/tmp/files-report_2024-01-01.csv"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-    def test_relative_path_smoke_case(self):
-        """Test with relative paths."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "./data/file.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print"):
-                _mv_to_tmp(test_path)
-
-                expected_target = "/tmp/data-file.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-
-class TestMvToTmpLevelParameter:
-    """Test the L parameter functionality in detail."""
-
-    def test_various_L_values(self):
-        """Test different L values with same path."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/a/b/c/d/e/file.txt"
-
-        test_cases = [
-            (1, "/tmp/file.txt"),
-            (2, "/tmp/e-file.txt"),
-            (3, "/tmp/d-e-file.txt"),
-            (4, "/tmp/c-d-e-file.txt"),
-            (5, "/tmp/b-c-d-e-file.txt"),
-            # L larger than path depth includes leading empty string from split("/")
-            (10, "/tmp/-a-b-c-d-e-file.txt"),
-        ]
-
-        for L, expected_target in test_cases:
-            with patch("scitex_io._mv_to_tmp.move") as mock_move:
-                with patch("builtins.print"):
-                    _mv_to_tmp(test_path, L=L)
-                    mock_move.assert_called_once_with(test_path, expected_target)
 
-    def test_L_zero_smoke_case(self):
-        """Test with L=0 (edge case)."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/path/to/file.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print"):
-                _mv_to_tmp(test_path, L=0)
-
-                # Python quirk: [-0:] equals [0:] (full list), not empty slice
-                # So L=0 gives the full path including leading empty string from split
-                expected_target = "/tmp/-path-to-file.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-    def test_negative_L_smoke_case(self):
-        """Test with negative L value (edge case)."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/path/to/file.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print"):
-                # Negative L might cause unexpected slicing behavior
-                _mv_to_tmp(test_path, L=-1)
-                mock_move.assert_called_once()
-
-
-class TestMvToTmpIntegration:
-    """Test integration scenarios."""
-
-    def test_actual_file_move(self, tmp_path):
-        """Test with actual file operations (not to real /tmp)."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        # Create test file
-        source_dir = tmp_path / "source"
-        source_dir.mkdir()
-        test_file = source_dir / "test.txt"
-        test_file.write_text("content")
-
-        # Create mock /tmp directory
-        mock_tmp = tmp_path / "mock_tmp"
-        mock_tmp.mkdir()
-
-        # Patch to use mock_tmp instead of /tmp
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-
-            def mock_move_impl(src, dst):
-                # Simulate actual move
-                dst_path = dst.replace("/tmp", str(mock_tmp))
-                Path(dst_path).write_text(Path(src).read_text())
-                Path(src).unlink()
-
-            mock_move.side_effect = mock_move_impl
-
-            with patch("builtins.print"):
-                _mv_to_tmp(str(test_file))
-
-            # Verify file was "moved"
-            assert not test_file.exists()
-            mock_move.assert_called_once()
-
-    def test_unicode_filename_smoke_case(self):
-        """Test with Unicode filenames."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._mv_to_tmp import _mv_to_tmp
-
-        test_path = "/home/user/文档/ファイル.txt"
-
-        with patch("scitex_io._mv_to_tmp.move") as mock_move:
-            with patch("builtins.print"):
-                _mv_to_tmp(test_path)
-
-                expected_target = "/tmp/文档-ファイル.txt"
-                mock_move.assert_called_once_with(test_path, expected_target)
-
-
-# --------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import os
-
-    import pytest
-
-    pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_mv_to_tmp.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Time-stamp: "2024-11-02 21:25:50 (ywatanabe)"
-# # File: ./scitex_repo/src/scitex/io/_mv_to_tmp.py
-#
-# from shutil import move
-#
-#
-# def _mv_to_tmp(fpath, L=2):
-#     try:
-#         tgt_fname = "-".join(fpath.split("/")[-L:])
-#         tgt_fpath = "/tmp/{}".format(tgt_fname)
-#         move(fpath, tgt_fpath)
-#         print("Moved to: {}".format(tgt_fpath))
-#     except:
-#         pass
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_mv_to_tmp.py
-# --------------------------------------------------------------------------------
+def test_default_L_uses_last_two_components_target_is_data_test_txt():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/home/user/data/test.txt", move_fn=mv)
+    # Assert
+    assert calls == [("/home/user/data/test.txt", "/tmp/data-test.txt")]
+
+
+def test_default_L_nested_path_target_is_structure_myfile_txt():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/path/to/deep/folder/structure/myfile.txt", move_fn=mv)
+    # Assert
+    assert calls == [
+        (
+            "/path/to/deep/folder/structure/myfile.txt",
+            "/tmp/structure-myfile.txt",
+        )
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Custom L
+# ---------------------------------------------------------------------------
+
+
+def test_custom_L_three_picks_last_three_components():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/home/user/documents/project/data/file.csv", L=3, move_fn=mv)
+    # Assert
+    assert calls == [
+        (
+            "/home/user/documents/project/data/file.csv",
+            "/tmp/project-data-file.csv",
+        )
+    ]
+
+
+def test_L_larger_than_components_keeps_filename():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("file.txt", L=3, move_fn=mv)
+    # Assert
+    assert calls == [("file.txt", "/tmp/file.txt")]
+
+
+def test_L_one_keeps_only_filename():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/a/b/c/d/e/file.txt", L=1, move_fn=mv)
+    # Assert
+    assert calls == [("/a/b/c/d/e/file.txt", "/tmp/file.txt")]
+
+
+def test_L_five_keeps_five_components():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/a/b/c/d/e/file.txt", L=5, move_fn=mv)
+    # Assert
+    assert calls == [("/a/b/c/d/e/file.txt", "/tmp/b-c-d-e-file.txt")]
+
+
+def test_L_zero_returns_full_split_with_leading_empty():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/path/to/file.txt", L=0, move_fn=mv)
+    # Assert
+    assert calls == [("/path/to/file.txt", "/tmp/-path-to-file.txt")]
+
+
+# ---------------------------------------------------------------------------
+# Error handling (bare except in production)
+# ---------------------------------------------------------------------------
+
+
+def test_move_failure_is_swallowed_silently():
+    # Arrange
+    def _failing_move(src, dst):
+        raise FileNotFoundError("file not found")
+
+    # Act
+    _mv_to_tmp("/nonexistent/file.txt", move_fn=_failing_move)
+    # Assert
+    assert True  # not raising is the contract
+
+
+def test_permission_error_is_swallowed_silently():
+    # Arrange
+    def _failing_move(src, dst):
+        raise PermissionError("denied")
+
+    # Act
+    _mv_to_tmp("/root/protected/file.txt", move_fn=_failing_move)
+    # Assert
+    assert True  # not raising is the contract
+
+
+def test_none_path_is_swallowed_silently():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp(None, move_fn=mv)
+    # Assert
+    assert calls == []  # split() would raise, except swallows it
+
+
+def test_integer_path_is_swallowed_silently():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp(123, move_fn=mv)
+    # Assert
+    assert calls == []  # split() would raise, except swallows it
+
+
+# ---------------------------------------------------------------------------
+# Path-handling quirks
+# ---------------------------------------------------------------------------
+
+
+def test_path_with_spaces_join_preserves_spaces():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/home/user/my documents/important file.txt", move_fn=mv)
+    # Assert
+    assert calls == [
+        (
+            "/home/user/my documents/important file.txt",
+            "/tmp/my documents-important file.txt",
+        )
+    ]
+
+
+def test_path_with_special_characters_passes_through():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/data/files/report_2024-01-01.csv", move_fn=mv)
+    # Assert
+    assert calls == [
+        (
+            "/data/files/report_2024-01-01.csv",
+            "/tmp/files-report_2024-01-01.csv",
+        )
+    ]
+
+
+def test_unicode_path_passes_through_intact():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("/home/user/文档/ファイル.txt", move_fn=mv)
+    # Assert
+    assert calls == [
+        ("/home/user/文档/ファイル.txt", "/tmp/文档-ファイル.txt"),
+    ]
+
+
+def test_relative_path_joins_last_two_components():
+    # Arrange
+    calls, mv = _recording_move_fn()
+    # Act
+    _mv_to_tmp("./data/file.txt", move_fn=mv)
+    # Assert
+    assert calls == [("./data/file.txt", "/tmp/data-file.txt")]
+
+
+# ---------------------------------------------------------------------------
+# Real filesystem integration via tmp_dir
+# ---------------------------------------------------------------------------
+
+
+def test_real_filesystem_move_creates_target_in_sandbox(tmp_path):
+    # Arrange
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    src_file = src_dir / "test.txt"
+    src_file.write_text("content")
+    sandbox = tmp_path / "sandbox"
+    sandbox.mkdir()
+    # Act
+    _mv_to_tmp(str(src_file), tmp_dir=str(sandbox))
+    # Assert
+    assert (sandbox / "src-test.txt").read_text() == "content"
+
+
+def test_real_filesystem_move_removes_source(tmp_path):
+    # Arrange
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    src_file = src_dir / "test.txt"
+    src_file.write_text("content")
+    sandbox = tmp_path / "sandbox"
+    sandbox.mkdir()
+    # Act
+    _mv_to_tmp(str(src_file), tmp_dir=str(sandbox))
+    # Assert
+    assert not src_file.exists()

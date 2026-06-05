@@ -102,6 +102,7 @@ def save(
     dry_run: bool = False,
     no_csv: bool = False,
     use_caller_path: bool = False,
+    env_detector=None,
     **kwargs,
 ) -> None:
     """Save ``obj`` by extension; ``specified_path`` is caller-anchored.
@@ -161,6 +162,13 @@ def save(
         Path to saved file on success, ``None``/``False`` on error.
     """
     try:
+        # ``track`` is a scitex-io / observer concept, NOT a format-handler
+        # argument. Pop it before any dispatch so it never reaches the
+        # per-format handlers (_save_yaml/_save_pickle take no extra
+        # kwargs and would raise on an unexpected ``track=``). It is handed
+        # back to the post-save hook below so clew can gate tracking on it.
+        track = kwargs.pop("track", True)
+
         if isinstance(specified_path, Path):
             specified_path = str(specified_path)
 
@@ -195,7 +203,9 @@ def save(
         else:
             from ._utils import detect_environment, get_notebook_info_simple
 
-            env_type = detect_environment()
+            if env_detector is None:
+                env_detector = detect_environment
+            env_type = env_detector()
 
             if env_type == "jupyter":
                 # Defensive: get_notebook_info_simple was historically a stub
@@ -266,7 +276,24 @@ def save(
         ########################################
 
         spath_cwd = _os.getcwd() + "/" + specified_path
-        spath_cwd = clean(spath_cwd)
+        # scitex-io#55: spath_cwd is the LITERAL location of the cwd
+        # anchor symlink we're about to (re)create — it must NOT be
+        # collapsed to whatever the existing symlink currently points
+        # to. ``clean()`` did ``Path.resolve()`` here, which on a second
+        # save() call followed call-1's symlink, silently shifted the
+        # anchor onto the target file, and made the subsequent rm
+        # delete the just-written artefact. Use ``normpath`` so the
+        # anchor stays where the caller asked for it.
+        spath_cwd = _os.path.normpath(spath_cwd)
+        # Defensive cleanup: if a previous (pre-fix) run left a broken
+        # or self-looping symlink at the anchor, remove it now so the
+        # downstream ``rm -f`` / ``ln -sfr`` aren't forced to interact
+        # with a path that ``Path.resolve()`` would refuse to follow.
+        if _os.path.islink(spath_cwd):
+            try:
+                _os.stat(spath_cwd)  # follow → raises on loop/broken
+            except OSError:
+                _os.unlink(spath_cwd)
 
         should_skip_deletion = spath_final.endswith(".csv") or (
             (spath_final.endswith(".hdf5") or spath_final.endswith(".h5"))
@@ -303,27 +330,82 @@ def save(
             **kwargs,
         )
 
-        _symlink(spath, spath_cwd, symlink_from_cwd, verbose)
+        _symlink(
+            spath, spath_cwd, symlink_from_cwd, verbose, spath_final=spath_final
+        )
         _symlink_to(spath_final, symlink_to, verbose)
-        return Path(spath)
+        saved_path = Path(spath)
+        # Notify any registered observers (clew, audit, …). See _hooks.
+        # Observers SELF-REGISTER on their own import — scitex_io never
+        # names them. Hooks never raise (best-effort fan-out).
+        from ._observers import fire_post_save
+
+        # Re-attach ``track`` so observers (clew) can honour it. It was
+        # popped above to keep it out of the format handlers.
+        fire_post_save(saved_path, obj, {**kwargs, "track": track})
+        return saved_path
 
     except Exception as e:
+        # Fail loud, fail early. Previously this branch logged the error
+        # and returned False, which let callers proceed as though the
+        # file had been written — downstream code then exploded much
+        # later (or, worse, kept running with stale/missing data and
+        # silently produced wrong results).
+        #
+        # Concrete real-world incident (paper-scitex-clew TRANSLATION
+        # _TEMPLATE rollout, 2026-06-01): on a WSL2 Ubuntu 22.04
+        # minimal container without libglib2 installed, every
+        # scitex_io.save() call raised
+        # `libgthread-2.0.so.0: cannot open shared object file` deep in
+        # an optional handler import. The old `return False` swallowed
+        # the ImportError, the agent's stage 1 logged "saved metrics.csv
+        # with 8 rows", and stage 2 then crashed with FileNotFoundError
+        # — three stages later than the actual fault. With the raise
+        # below the ImportError surfaces at the save call site, with
+        # the spath / specified_path debug trail intact.
         logger.error(
-            f"Error occurred while saving: {str(e)}\n"
-            f"Debug: Initial script_path = {inspect.stack()[1].filename}\n"
-            f"Debug: Final spath = {spath}\n"
-            f"Debug: specified_path type = {type(specified_path)}\n"
-            f"Debug: specified_path = {specified_path}"
+            f"scitex_io.save failed for {specified_path!r}: {e}\n"
+            f"  Initial script_path = {inspect.stack()[1].filename}\n"
+            f"  Final spath = {spath}\n"
+            f"  specified_path type = {type(specified_path)}"
         )
-        return False
+        raise
 
 
-def _symlink(spath, spath_cwd, symlink_from_cwd, verbose):
-    """Create a symbolic link from the current working directory."""
+def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
+    """Create a symbolic link from the current working directory.
+
+    Uses ``spath_final`` (the path normalised through ``clean()``) as
+    the link source when supplied; falls back to the raw ``spath`` for
+    backward compatibility with callers that don't yet pass it.
+
+    scitex-io#55: when ``spath`` contained ``./`` segments (the common
+    case for ``save(obj, "./x.csv", symlink_from_cwd=True)``), the
+    ``ln -sfr`` relative-target computation could collapse to the same
+    basename in the same dir, producing a ``./x.csv -> x.csv``
+    self-loop. We now:
+
+    1. Prefer the cleaned ``spath_final`` as the link source.
+    2. Compute the relative target ourselves and bail out (logging) if
+       it would equal ``basename(spath_cwd)`` in ``dirname(spath_cwd)``.
+    """
     if symlink_from_cwd and (spath != spath_cwd):
+        target = spath_final if spath_final is not None else spath
         _os.makedirs(_os.path.dirname(spath_cwd), exist_ok=True)
+        rel_target = _os.path.relpath(target, _os.path.dirname(spath_cwd))
+        if rel_target == _os.path.basename(spath_cwd):
+            # Defensive guard — refuse to create a self-loop. This
+            # should be unreachable now that spath_cwd uses normpath
+            # (not clean→resolve) upstream, but is kept as a belt-and-
+            # suspenders for any caller that passes already-resolved
+            # paths.
+            logger.error(
+                f"_symlink would self-loop {spath_cwd} -> {rel_target}; "
+                "skipping link creation (scitex-io#55)."
+            )
+            return
         sh(["rm", "-f", f"{spath_cwd}"], verbose=False)
-        sh(["ln", "-sfr", f"{spath}", f"{spath_cwd}"], verbose=False)
+        sh(["ln", "-sfr", f"{target}", f"{spath_cwd}"], verbose=False)
         if verbose:
             logger.success(color_text(f"(Symlinked to: {spath_cwd})", "yellow"))
 
@@ -360,6 +442,17 @@ def _save(
     # Special case: compound extension .pkl.gz
     if spath.endswith(".pkl.gz"):
         ext = ".pkl.gz"
+
+    # Compound extensions contributed by optional providers (e.g.
+    # figrecipe's .fig.zip / .plt.zip) — match the full suffix so they
+    # dispatch on their own handler instead of the bare ".zip".
+    from ._optional_providers import OPTIONAL_COMPOUND_EXTS
+
+    _spath_lower = spath.lower()
+    for _compound in OPTIONAL_COMPOUND_EXTS:
+        if _spath_lower.endswith(_compound):
+            ext = _compound
+            break
 
     if ext in _IMAGE_EXTS:
         handle_image_with_csv(

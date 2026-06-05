@@ -2,7 +2,17 @@
 # Time-stamp: "2025-06-02 17:15:00 (ywatanabe)"
 # File: ./scitex_repo/tests/scitex/io/_load_modules/test__optuna.py
 
-"""Comprehensive tests for Optuna study and YAML configuration loading functionality."""
+"""Tests for Optuna study and YAML configuration loading functionality.
+
+All previous mock-theater tests (MagicMock'd trial / patched _load_yaml)
+were deleted because they observed MagicMock call counts rather than
+production-state outcomes. The integration tree
+(`tests/integration/_load_modules/test__optuna_real.py`) covers the
+real end-to-end paths using a real `optuna.trial.FixedTrial` and real
+YAML files. The tests below exercise the public surface area
+(signatures, docstrings, availability flag, real round-trip through
+load_yaml_as_an_optuna_dict).
+"""
 
 import os
 import tempfile
@@ -13,837 +23,337 @@ import pytest
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
 # Optional dep for the optuna loader (`import optuna`).
-pytest.importorskip("optuna")
-from unittest.mock import MagicMock, patch
+optuna = pytest.importorskip("optuna")
 
 import yaml
 
 
-class TestLoadOptunaAvailableFlags:
-    """Test _AVAILABLE flags for optional dependencies."""
+def test_optuna_available_flag_is_bool():
+    # Arrange
+    from scitex_io._load_modules._optuna import OPTUNA_AVAILABLE
 
-    def test_optuna_available_flag_exists(self):
-        """Test that OPTUNA_AVAILABLE flag is exported."""
-        # Arrange
-        # Act
-        from scitex_io._load_modules._optuna import OPTUNA_AVAILABLE
-
-        # Assert
-        assert isinstance(OPTUNA_AVAILABLE, bool)
+    # Act
+    actual = OPTUNA_AVAILABLE
+    # Assert
+    assert isinstance(actual, bool)
 
 
-class TestLoadOptunaFunctions:
-    """Test suite for Optuna loading functions"""
+def test_load_yaml_as_optuna_dict_signature_has_fpath_yaml():
+    # Arrange
+    import inspect
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_categorical_result_optimizer_adam(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with categorical parameter
-        yaml_data = {
-            "optimizer": {
-                "distribution": "categorical",
-                "values": ["adam", "sgd", "rmsprop"],
-            },
-            "activation": {
-                "distribution": "categorical",
-                "values": ["relu", "tanh", "sigmoid"],
-            },
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.side_effect = lambda k, v: v[
-            0
-        ]  # Return first value
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify load was called
-        mock_load.assert_called_once_with("config.yaml")
-        # Verify trial.suggest_categorical was called correctly
-        mock_trial.suggest_categorical.assert_any_call(
-            "optimizer", ["adam", "sgd", "rmsprop"]
-        )
-        # Act
-        mock_trial.suggest_categorical.assert_any_call(
-            "activation", ["relu", "tanh", "sigmoid"]
-        )
-        # Act
-        # Assert
-        # Assert
-        assert result["optimizer"] == "adam"
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_categorical_result_activation_relu(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with categorical parameter
-        yaml_data = {
-            "optimizer": {
-                "distribution": "categorical",
-                "values": ["adam", "sgd", "rmsprop"],
-            },
-            "activation": {
-                "distribution": "categorical",
-                "values": ["relu", "tanh", "sigmoid"],
-            },
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.side_effect = lambda k, v: v[
-            0
-        ]  # Return first value
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify load was called
-        mock_load.assert_called_once_with("config.yaml")
-        # Verify trial.suggest_categorical was called correctly
-        mock_trial.suggest_categorical.assert_any_call(
-            "optimizer", ["adam", "sgd", "rmsprop"]
-        )
-        # Act
-        mock_trial.suggest_categorical.assert_any_call(
-            "activation", ["relu", "tanh", "sigmoid"]
-        )
-        # Act
-        # Assert
-        # Assert
-        assert result["activation"] == "relu"
+    # Act
+    sig = inspect.signature(load_yaml_as_an_optuna_dict)
+    # Assert
+    assert "fpath_yaml" in sig.parameters
 
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_uniform_result_batch_size_17(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with uniform parameter
-        yaml_data = {
-            "batch_size": {"distribution": "uniform", "min": 16, "max": 128},
-            "epochs": {"distribution": "uniform", "min": 10, "max": 100},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val: min_val + 1
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify trial.suggest_int was called correctly
-        mock_trial.suggest_int.assert_any_call("batch_size", 16.0, 128.0)
-        # Act
-        mock_trial.suggest_int.assert_any_call("epochs", 10.0, 100.0)
-        # Act
-        # Assert
-        # Assert
-        assert result["batch_size"] == 17  # min_val + 1
+def test_load_yaml_as_optuna_dict_signature_has_trial():
+    # Arrange
+    import inspect
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_uniform_result_epochs_11(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with uniform parameter
-        yaml_data = {
-            "batch_size": {"distribution": "uniform", "min": 16, "max": 128},
-            "epochs": {"distribution": "uniform", "min": 10, "max": 100},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val: min_val + 1
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify trial.suggest_int was called correctly
-        mock_trial.suggest_int.assert_any_call("batch_size", 16.0, 128.0)
-        # Act
-        mock_trial.suggest_int.assert_any_call("epochs", 10.0, 100.0)
-        # Act
-        # Assert
-        # Assert
-        assert result["epochs"] == 11  # min_val + 1
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    # Act
+    sig = inspect.signature(load_yaml_as_an_optuna_dict)
+    # Assert
+    assert "trial" in sig.parameters
 
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_loguniform_result_learning_rate_pytest_approx_0_0001(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with loguniform parameter
-        yaml_data = {
-            "learning_rate": {"distribution": "loguniform", "min": 1e-5, "max": 1e-1},
-            "weight_decay": {"distribution": "loguniform", "min": 1e-6, "max": 1e-3},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_loguniform.side_effect = (
-            lambda k, min_val, max_val: min_val * 10
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify trial.suggest_loguniform was called correctly
-        mock_trial.suggest_loguniform.assert_any_call("learning_rate", 1e-5, 1e-1)
-        # Act
-        mock_trial.suggest_loguniform.assert_any_call("weight_decay", 1e-6, 1e-3)
-        # Act
-        # Assert
-        # Assert
-        assert result["learning_rate"] == pytest.approx(1e-4)  # min_val * 10
+def test_load_study_rdb_signature_has_study_name():
+    # Arrange
+    import inspect
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_loguniform_result_weight_decay_pytest_approx_1e_05(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with loguniform parameter
-        yaml_data = {
-            "learning_rate": {"distribution": "loguniform", "min": 1e-5, "max": 1e-1},
-            "weight_decay": {"distribution": "loguniform", "min": 1e-6, "max": 1e-3},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_loguniform.side_effect = (
-            lambda k, min_val, max_val: min_val * 10
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify trial.suggest_loguniform was called correctly
-        mock_trial.suggest_loguniform.assert_any_call("learning_rate", 1e-5, 1e-1)
-        # Act
-        mock_trial.suggest_loguniform.assert_any_call("weight_decay", 1e-6, 1e-3)
-        # Act
-        # Assert
-        # Assert
-        assert result["weight_decay"] == pytest.approx(1e-5)  # min_val * 10
+    from scitex_io._load_modules import load_study_rdb
+
+    # Act
+    sig = inspect.signature(load_study_rdb)
+    # Assert
+    assert "study_name" in sig.parameters
 
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_intloguniform(self, mock_load):
-        """Test YAML to Optuna dict conversion with intloguniform parameters"""
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+def test_load_study_rdb_signature_has_rdb_raw_bytes_url():
+    # Arrange
+    import inspect
 
-        # Mock YAML data with intloguniform parameter
-        yaml_data = {
-            "hidden_size": {"distribution": "intloguniform", "min": 8, "max": 512}
-        }
-        mock_load.return_value = yaml_data
+    from scitex_io._load_modules import load_study_rdb
 
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val, log=False: int(
-            min_val * 2
-        )
-
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-
-        # Verify trial.suggest_int was called with log=True
-        # Act
-        mock_trial.suggest_int.assert_called_once_with(
-            "hidden_size", 8.0, 512.0, log=True
-        )
-
-        # Verify results
-        # Assert
-        assert result["hidden_size"] == 16  # int(min_val * 2)
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_mixed_parameters_mock_trial_suggest_int_call_count_2(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with mixed parameters
-        yaml_data = {
-            "optimizer": {"distribution": "categorical", "values": ["adam", "sgd"]},
-            "learning_rate": {"distribution": "loguniform", "min": 1e-4, "max": 1e-1},
-            "batch_size": {"distribution": "uniform", "min": 32, "max": 256},
-            "hidden_layers": {"distribution": "intloguniform", "min": 1, "max": 8},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.return_value = "adam"
-        mock_trial.suggest_loguniform.return_value = 0.001
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val, log=False: (
-            64 if not log else 2
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify all suggestion methods were called
-        mock_trial.suggest_categorical.assert_called_once()
-        # Act
-        mock_trial.suggest_loguniform.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert mock_trial.suggest_int.call_count == 2
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_mixed_parameters_result_optimizer_adam(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with mixed parameters
-        yaml_data = {
-            "optimizer": {"distribution": "categorical", "values": ["adam", "sgd"]},
-            "learning_rate": {"distribution": "loguniform", "min": 1e-4, "max": 1e-1},
-            "batch_size": {"distribution": "uniform", "min": 32, "max": 256},
-            "hidden_layers": {"distribution": "intloguniform", "min": 1, "max": 8},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.return_value = "adam"
-        mock_trial.suggest_loguniform.return_value = 0.001
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val, log=False: (
-            64 if not log else 2
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify all suggestion methods were called
-        mock_trial.suggest_categorical.assert_called_once()
-        # Act
-        mock_trial.suggest_loguniform.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert result["optimizer"] == "adam"
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_mixed_parameters_result_learning_rate_0_001(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with mixed parameters
-        yaml_data = {
-            "optimizer": {"distribution": "categorical", "values": ["adam", "sgd"]},
-            "learning_rate": {"distribution": "loguniform", "min": 1e-4, "max": 1e-1},
-            "batch_size": {"distribution": "uniform", "min": 32, "max": 256},
-            "hidden_layers": {"distribution": "intloguniform", "min": 1, "max": 8},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.return_value = "adam"
-        mock_trial.suggest_loguniform.return_value = 0.001
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val, log=False: (
-            64 if not log else 2
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify all suggestion methods were called
-        mock_trial.suggest_categorical.assert_called_once()
-        # Act
-        mock_trial.suggest_loguniform.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert result["learning_rate"] == 0.001
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_mixed_parameters_result_batch_size_64(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with mixed parameters
-        yaml_data = {
-            "optimizer": {"distribution": "categorical", "values": ["adam", "sgd"]},
-            "learning_rate": {"distribution": "loguniform", "min": 1e-4, "max": 1e-1},
-            "batch_size": {"distribution": "uniform", "min": 32, "max": 256},
-            "hidden_layers": {"distribution": "intloguniform", "min": 1, "max": 8},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.return_value = "adam"
-        mock_trial.suggest_loguniform.return_value = 0.001
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val, log=False: (
-            64 if not log else 2
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify all suggestion methods were called
-        mock_trial.suggest_categorical.assert_called_once()
-        # Act
-        mock_trial.suggest_loguniform.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert result["batch_size"] == 64
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_load_yaml_as_optuna_dict_mixed_parameters_result_hidden_layers_2(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Mock YAML data with mixed parameters
-        yaml_data = {
-            "optimizer": {"distribution": "categorical", "values": ["adam", "sgd"]},
-            "learning_rate": {"distribution": "loguniform", "min": 1e-4, "max": 1e-1},
-            "batch_size": {"distribution": "uniform", "min": 32, "max": 256},
-            "hidden_layers": {"distribution": "intloguniform", "min": 1, "max": 8},
-        }
-        mock_load.return_value = yaml_data
-        # Mock trial object
-        mock_trial = MagicMock()
-        mock_trial.suggest_categorical.return_value = "adam"
-        mock_trial.suggest_loguniform.return_value = 0.001
-        mock_trial.suggest_int.side_effect = lambda k, min_val, max_val, log=False: (
-            64 if not log else 2
-        )
-        # Call function
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-        # Verify all suggestion methods were called
-        mock_trial.suggest_categorical.assert_called_once()
-        # Act
-        mock_trial.suggest_loguniform.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert result["hidden_layers"] == 2
+    # Act
+    sig = inspect.signature(load_study_rdb)
+    # Assert
+    assert "rdb_raw_bytes_url" in sig.parameters
 
 
-    @patch("optuna.load_study")
-    @patch("optuna.storages.RDBStorage")
-    def test_load_study_rdb_basic(self, mock_rdb_storage, mock_load_study):
-        """Test loading Optuna study from RDB storage"""
-        # Arrange
-        from scitex_io._load_modules import load_study_rdb
+def test_load_yaml_as_optuna_dict_has_docstring():
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
 
-        # Mock storage and study
-        mock_storage = MagicMock()
-        mock_study = MagicMock()
-        mock_rdb_storage.return_value = mock_storage
-        mock_load_study.return_value = mock_study
-
-        # Call function
-        study_name = "test_study"
-        rdb_url = "sqlite:///test.db"
-        result = load_study_rdb(study_name, rdb_url)
-
-        # Verify storage creation
-        mock_rdb_storage.assert_called_once_with(url=rdb_url)
-
-        # Verify study loading
-        # Act
-        mock_load_study.assert_called_once_with(
-            study_name=study_name, storage=mock_storage
-        )
-
-        # Verify result
-        # Assert
-        assert result == mock_study
-
-    @patch("optuna.load_study")
-    @patch("optuna.storages.RDBStorage")
-    def test_load_study_rdb_different_storage_types(
-        self, mock_rdb_storage, mock_load_study
-    ):
-        """Test loading studies from different RDB storage types"""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules import load_study_rdb
-
-        mock_storage = MagicMock()
-        mock_study = MagicMock()
-        mock_rdb_storage.return_value = mock_storage
-        mock_load_study.return_value = mock_study
-
-        # Test different storage URLs
-        storage_urls = [
-            "sqlite:///path/to/study.db",
-            "postgresql://user:password@localhost/dbname",
-            "mysql://user:password@localhost/dbname",
-        ]
-
-        for url in storage_urls:
-            mock_rdb_storage.reset_mock()
-            mock_load_study.reset_mock()
-
-            result = load_study_rdb("test_study", url)
-
-            mock_rdb_storage.assert_called_once_with(url=url)
-            mock_load_study.assert_called_once_with(
-                study_name="test_study", storage=mock_storage
-            )
-            assert result == mock_study
-
-    @patch("optuna.load_study")
-    @patch("optuna.storages.RDBStorage")
-    def test_load_study_rdb_error_handling_raises_exception(self, mock_rdb_storage, mock_load_study):
-        # Arrange
-        # Arrange
-        import optuna
-        from scitex_io._load_modules import load_study_rdb
-        # Test storage creation error
-        # Act
-        mock_rdb_storage.side_effect = Exception("Invalid storage URL")
-        # Act
-        # Assert
-        # Assert
-        with pytest.raises(Exception, match="Invalid storage URL"):
-            load_study_rdb("test_study", "invalid://url")
-
-    @patch("optuna.load_study")
-    @patch("optuna.storages.RDBStorage")
-    def test_load_study_rdb_error_handling_raises_optuna_exceptions_storageinter(self, mock_rdb_storage, mock_load_study):
-        # Arrange
-        # Arrange
-        import optuna
-        from scitex_io._load_modules import load_study_rdb
-        # Test storage creation error
-        # Act
-        mock_rdb_storage.side_effect = Exception("Invalid storage URL")
-        # Assert
-        with pytest.raises(Exception, match="Invalid storage URL"):
-            load_study_rdb("test_study", "invalid://url")
-        # Reset and test study loading error
-        mock_rdb_storage.side_effect = None
-        mock_storage = MagicMock()
-        mock_rdb_storage.return_value = mock_storage
-        mock_load_study.side_effect = optuna.exceptions.StorageInternalError(
-            "Study not found"
-        )
-        # Act
-        # Assert
-        with pytest.raises(
-            optuna.exceptions.StorageInternalError, match="Study not found"
-        ):
-            load_study_rdb("nonexistent_study", "sqlite:///test.db")
+    # Act
+    doc = load_yaml_as_an_optuna_dict.__doc__
+    # Assert
+    assert doc is not None
 
 
-    @patch("optuna.load_study")
-    @patch("optuna.storages.RDBStorage")
-    @patch("builtins.print")
-    def test_load_study_rdb_prints_message(
-        self, mock_print, mock_rdb_storage, mock_load_study
-    ):
-        """Test that load_study_rdb prints loading message"""
-        # Arrange
-        from scitex_io._load_modules import load_study_rdb
+def test_load_yaml_as_optuna_dict_docstring_mentions_yaml():
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
 
-        mock_storage = MagicMock()
-        mock_study = MagicMock()
-        mock_rdb_storage.return_value = mock_storage
-        mock_load_study.return_value = mock_study
-
-        rdb_url = "sqlite:///test_study.db"
-        load_study_rdb("test_study", rdb_url)
-
-        # Verify print was called with the URL
-        mock_print.assert_called_once()
-        # Act
-        call_args = str(mock_print.call_args)
-        # Assert
-        assert rdb_url in call_args
-
-    def test_function_signatures_fpath_yaml_in_sig1_parameters(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Act
-        # Assert
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-
-    def test_function_signatures_trial_in_sig1_parameters(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Act
-        # Assert
-        # Assert
-        assert "trial" in sig1.parameters
-
-    def test_function_signatures_study_name_in_sig2_parameters(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert "study_name" in sig2.parameters
-
-    def test_function_signatures_rdb_raw_bytes_url_in_sig2_parameters(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert "rdb_raw_bytes_url" in sig2.parameters
-
-    def test_function_signatures_load_yaml_as_an_optuna_dict_doc_is_not_none(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert load_yaml_as_an_optuna_dict.__doc__ is not None
-
-    def test_function_signatures_yaml_in_load_yaml_as_an_optuna_dict_doc(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert "YAML" in load_yaml_as_an_optuna_dict.__doc__
-
-    def test_function_signatures_optuna_in_load_yaml_as_an_optuna_dict_doc(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert "Optuna" in load_yaml_as_an_optuna_dict.__doc__
-
-    def test_function_signatures_load_study_rdb_doc_is_not_none(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert load_study_rdb.__doc__ is not None
-
-    def test_function_signatures_study_in_load_study_rdb_doc_lower(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert "study" in load_study_rdb.__doc__.lower()
-
-    def test_function_signatures_rdb_in_load_study_rdb_doc(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules import load_study_rdb, load_yaml_as_an_optuna_dict
-        # Test load_yaml_as_an_optuna_dict signature
-        # Act
-        sig1 = inspect.signature(load_yaml_as_an_optuna_dict)
-        # Assert
-        assert "fpath_yaml" in sig1.parameters
-        assert "trial" in sig1.parameters
-        # Test load_study_rdb signature
-        sig2 = inspect.signature(load_study_rdb)
-        # Act
-        # Assert
-        assert "RDB" in load_study_rdb.__doc__
+    # Act
+    doc = load_yaml_as_an_optuna_dict.__doc__
+    # Assert
+    assert "YAML" in doc
 
 
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_yaml_parameter_edge_cases(self, mock_load):
-        """Test edge cases in YAML parameter processing"""
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+def test_load_yaml_as_optuna_dict_docstring_mentions_optuna():
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
 
-        # Test with string min/max values (should be converted to float)
-        yaml_data = {
-            "param1": {
-                "distribution": "uniform",
-                "min": "10",  # String value
-                "max": "100",  # String value
+    # Act
+    doc = load_yaml_as_an_optuna_dict.__doc__
+    # Assert
+    assert "Optuna" in doc
+
+
+def test_load_study_rdb_has_docstring():
+    # Arrange
+    from scitex_io._load_modules import load_study_rdb
+
+    # Act
+    doc = load_study_rdb.__doc__
+    # Assert
+    assert doc is not None
+
+
+def test_load_study_rdb_docstring_mentions_study():
+    # Arrange
+    from scitex_io._load_modules import load_study_rdb
+
+    # Act
+    doc = load_study_rdb.__doc__
+    # Assert
+    assert "study" in doc.lower()
+
+
+def test_load_study_rdb_docstring_mentions_rdb():
+    # Arrange
+    from scitex_io._load_modules import load_study_rdb
+
+    # Act
+    doc = load_study_rdb.__doc__
+    # Assert
+    assert "RDB" in doc
+
+
+@pytest.fixture
+def categorical_yaml_path(tmp_path):
+    # Arrange
+    p = tmp_path / "cfg.yaml"
+    p.write_text(
+        yaml.safe_dump(
+            {
+                "optimizer": {
+                    "distribution": "categorical",
+                    "values": ["adam", "sgd", "rmsprop"],
+                }
             }
-        }
-        mock_load.return_value = yaml_data
-
-        mock_trial = MagicMock()
-        mock_trial.suggest_int.return_value = 50
-
-        result = load_yaml_as_an_optuna_dict("config.yaml", mock_trial)
-
-        # Verify string values were converted to float
-        # Act
-        mock_trial.suggest_int.assert_called_once_with("param1", 10.0, 100.0)
-        # Assert
-        assert result["param1"] == 50
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_empty_yaml_handling_result_equals_case(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Empty YAML data
-        mock_load.return_value = {}
-        mock_trial = MagicMock()
-        # Act
-        result = load_yaml_as_an_optuna_dict("empty.yaml", mock_trial)
-        # Act
-        # Assert
-        # Assert
-        assert result == {}
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_empty_yaml_handling_not_mock_trial_suggest_categorical_called(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Empty YAML data
-        mock_load.return_value = {}
-        mock_trial = MagicMock()
-        # Act
-        result = load_yaml_as_an_optuna_dict("empty.yaml", mock_trial)
-        # Act
-        # Assert
-        # Assert
-        assert not mock_trial.suggest_categorical.called
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_empty_yaml_handling_not_mock_trial_suggest_int_called(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Empty YAML data
-        mock_load.return_value = {}
-        mock_trial = MagicMock()
-        # Act
-        result = load_yaml_as_an_optuna_dict("empty.yaml", mock_trial)
-        # Act
-        # Assert
-        # Assert
-        assert not mock_trial.suggest_int.called
-
-    @patch("scitex_io._load_modules._optuna._load_yaml")
-    def test_empty_yaml_handling_not_mock_trial_suggest_loguniform_called(self, mock_load):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
-        # Empty YAML data
-        mock_load.return_value = {}
-        mock_trial = MagicMock()
-        # Act
-        result = load_yaml_as_an_optuna_dict("empty.yaml", mock_trial)
-        # Act
-        # Assert
-        # Assert
-        assert not mock_trial.suggest_loguniform.called
+        )
+    )
+    return str(p)
 
 
-    def test_real_world_ml_hyperparameter_scenario(self):
-        """Test realistic ML hyperparameter optimization scenario"""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+def test_load_yaml_as_optuna_dict_categorical_returns_one_of_values(
+    categorical_yaml_path,
+):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
 
-        # Create realistic ML configuration
-        ml_config = {
-            "model_type": {
-                "distribution": "categorical",
-                "values": ["cnn", "rnn", "transformer"],
-            },
-            "learning_rate": {"distribution": "loguniform", "min": 1e-5, "max": 1e-1},
-            "batch_size": {"distribution": "uniform", "min": 16, "max": 128},
-            "num_layers": {"distribution": "intloguniform", "min": 1, "max": 10},
-            "dropout_rate": {"distribution": "uniform", "min": 0.0, "max": 0.5},
-        }
+    trial = optuna.trial.FixedTrial({"optimizer": "adam"})
+    # Act
+    result = load_yaml_as_an_optuna_dict(categorical_yaml_path, trial)
+    # Assert
+    assert result["optimizer"] == "adam"
 
-        # Create temporary YAML file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            yaml.dump(ml_config, f)
-            temp_yaml_path = f.name
 
-        try:
-            # Mock trial with realistic suggestions
-            mock_trial = MagicMock()
-            mock_trial.suggest_categorical.return_value = "transformer"
-            mock_trial.suggest_loguniform.return_value = 0.001
-            mock_trial.suggest_int.side_effect = (
-                lambda k, min_val, max_val, log=False: {
-                    "batch_size": 64,
-                    "num_layers": 4,
-                    "dropout_rate": 32,
-                }.get(k, 32)
-            )
+@pytest.fixture
+def uniform_yaml_path(tmp_path):
+    # Arrange
+    p = tmp_path / "uni.yaml"
+    p.write_text(
+        yaml.safe_dump(
+            {"batch_size": {"distribution": "uniform", "min": 16, "max": 128}}
+        )
+    )
+    return str(p)
 
-            # Load via the actual function (we need to patch the _load_yaml import)
-            with patch("scitex_io._load_modules._optuna._load_yaml") as mock_load:
-                mock_load.return_value = ml_config
 
-                result = load_yaml_as_an_optuna_dict(temp_yaml_path, mock_trial)
+def test_load_yaml_as_optuna_dict_uniform_returns_suggested_int(uniform_yaml_path):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
 
-                # Verify realistic ML parameters
-                assert result["model_type"] == "transformer"
-                assert result["learning_rate"] == 0.001
-                assert result["batch_size"] in [64, 32]  # Could be either based on mock
-                assert result["num_layers"] in [4, 32]  # Could be either based on mock
+    trial = optuna.trial.FixedTrial({"batch_size": 17})
+    # Act
+    result = load_yaml_as_an_optuna_dict(uniform_yaml_path, trial)
+    # Assert
+    assert result["batch_size"] == 17
 
-        finally:
-            os.unlink(temp_yaml_path)
+
+@pytest.fixture
+def loguniform_yaml_path(tmp_path):
+    # Arrange
+    p = tmp_path / "log.yaml"
+    p.write_text(
+        yaml.safe_dump(
+            {
+                "learning_rate": {
+                    "distribution": "loguniform",
+                    "min": 1e-5,
+                    "max": 1e-1,
+                }
+            }
+        )
+    )
+    return str(p)
+
+
+def test_load_yaml_as_optuna_dict_loguniform_returns_suggested_value(
+    loguniform_yaml_path,
+):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    trial = optuna.trial.FixedTrial({"learning_rate": 1e-4})
+    # Act
+    result = load_yaml_as_an_optuna_dict(loguniform_yaml_path, trial)
+    # Assert
+    assert result["learning_rate"] == pytest.approx(1e-4)
+
+
+@pytest.fixture
+def intloguniform_yaml_path(tmp_path):
+    # Arrange
+    p = tmp_path / "intlog.yaml"
+    p.write_text(
+        yaml.safe_dump(
+            {
+                "hidden_size": {
+                    "distribution": "intloguniform",
+                    "min": 8,
+                    "max": 512,
+                }
+            }
+        )
+    )
+    return str(p)
+
+
+def test_load_yaml_as_optuna_dict_intloguniform_returns_suggested_value(
+    intloguniform_yaml_path,
+):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    trial = optuna.trial.FixedTrial({"hidden_size": 16})
+    # Act
+    result = load_yaml_as_an_optuna_dict(intloguniform_yaml_path, trial)
+    # Assert
+    assert result["hidden_size"] == 16
+
+
+def test_load_yaml_as_optuna_dict_empty_yaml_raises_attributeerror(tmp_path):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    p = tmp_path / "empty.yaml"
+    p.write_text("")
+    trial = optuna.trial.FixedTrial({})
+    # Act
+    ctx = pytest.raises(AttributeError)
+    # Assert
+    with ctx:
+        # ``yaml.safe_load("")`` returns ``None``; the helper iterates the
+        # parsed mapping unconditionally, so empty input surfaces as an
+        # AttributeError. Pinning the current behaviour with a real test
+        # avoids the previous mock-based assumption that it returns {}.
+        load_yaml_as_an_optuna_dict(str(p), trial)
+
+
+def test_load_yaml_as_optuna_dict_string_min_max_converted_to_float(tmp_path):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    p = tmp_path / "strminmax.yaml"
+    p.write_text(
+        yaml.safe_dump(
+            {"param1": {"distribution": "uniform", "min": "10", "max": "100"}}
+        )
+    )
+    trial = optuna.trial.FixedTrial({"param1": 50})
+    # Act
+    result = load_yaml_as_an_optuna_dict(str(p), trial)
+    # Assert
+    assert result["param1"] == 50
+
+
+def test_load_yaml_as_optuna_dict_ml_scenario_picks_model_type(tmp_path):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    ml_config = {
+        "model_type": {
+            "distribution": "categorical",
+            "values": ["cnn", "rnn", "transformer"],
+        },
+        "learning_rate": {"distribution": "loguniform", "min": 1e-5, "max": 1e-1},
+    }
+    p = tmp_path / "ml.yaml"
+    p.write_text(yaml.safe_dump(ml_config))
+    trial = optuna.trial.FixedTrial(
+        {"model_type": "transformer", "learning_rate": 1e-3}
+    )
+    # Act
+    result = load_yaml_as_an_optuna_dict(str(p), trial)
+    # Assert
+    assert result["model_type"] == "transformer"
+
+
+def test_load_yaml_as_optuna_dict_ml_scenario_picks_learning_rate(tmp_path):
+    # Arrange
+    from scitex_io._load_modules import load_yaml_as_an_optuna_dict
+
+    ml_config = {
+        "learning_rate": {"distribution": "loguniform", "min": 1e-5, "max": 1e-1}
+    }
+    p = tmp_path / "ml2.yaml"
+    p.write_text(yaml.safe_dump(ml_config))
+    trial = optuna.trial.FixedTrial({"learning_rate": 1e-3})
+    # Act
+    result = load_yaml_as_an_optuna_dict(str(p), trial)
+    # Assert
+    assert result["learning_rate"] == pytest.approx(1e-3)
+
+
+def test_load_study_rdb_creates_study_in_real_sqlite(tmp_path):
+    """End-to-end real-collaborator test.
+
+    Creates a real Optuna study in a temporary sqlite RDB file, then
+    loads it back through ``load_study_rdb`` and asserts the study
+    name round-trips. Exercises the real ``RDBStorage`` + ``load_study``
+    code path that the prior mock-based tests only pretended to cover.
+    """
+    # Arrange
+    from scitex_io._load_modules import load_study_rdb
+
+    db_path = tmp_path / "real.db"
+    rdb_url = f"sqlite:///{db_path}"
+    storage = optuna.storages.RDBStorage(url=rdb_url)
+    optuna.create_study(study_name="real_study", storage=storage)
+
+    # Act
+    loaded = load_study_rdb("real_study", rdb_url)
+    # Assert
+    assert loaded.study_name == "real_study"
 
 
 if __name__ == "__main__":
@@ -852,123 +362,3 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_optuna.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # Time-stamp: "2024-11-14 07:55:45 (ywatanabe)"
-# # File: ./scitex_repo/src/scitex/io/_load_modules/_optuna.py
-#
-# from ._yaml import _load_yaml
-#
-# try:
-#     import optuna
-#
-#     OPTUNA_AVAILABLE = True
-# except ImportError:
-#     OPTUNA_AVAILABLE = False
-#     optuna = None
-#
-#
-# def load_yaml_as_an_optuna_dict(fpath_yaml, trial):
-#     """
-#     Load a YAML file and convert it to an Optuna-compatible dictionary.
-#
-#     This function reads a YAML file containing hyperparameter configurations
-#     and converts it to a dictionary suitable for use with Optuna trials.
-#
-#     Parameters:
-#     -----------
-#     fpath_yaml : str
-#         The file path to the YAML configuration file.
-#     trial : optuna.trial.Trial
-#         The Optuna trial object to use for suggesting hyperparameters.
-#
-#     Returns:
-#     --------
-#     dict
-#         A dictionary containing the hyperparameters with values suggested by Optuna.
-#
-#     Raises:
-#     -------
-#     FileNotFoundError
-#         If the specified YAML file does not exist.
-#     ValueError
-#         If the YAML file contains invalid configuration for Optuna.
-#     ImportError
-#         If Optuna is not installed.
-#     """
-#     if not OPTUNA_AVAILABLE:
-#         raise ImportError(
-#             "Optuna is not installed. Please install with: pip install optuna"
-#         )
-#
-#     _d = _load_yaml(fpath_yaml)
-#
-#     for k, v in _d.items():
-#         dist = v["distribution"]
-#
-#         if dist == "categorical":
-#             _d[k] = trial.suggest_categorical(k, v["values"])
-#
-#         elif dist == "uniform":
-#             _d[k] = trial.suggest_int(k, float(v["min"]), float(v["max"]))
-#
-#         elif dist == "loguniform":
-#             _d[k] = trial.suggest_loguniform(k, float(v["min"]), float(v["max"]))
-#
-#         elif dist == "intloguniform":
-#             _d[k] = trial.suggest_int(k, float(v["min"]), float(v["max"]), log=True)
-#
-#     return _d
-#
-#
-# def load_study_rdb(study_name, rdb_raw_bytes_url):
-#     """
-#     Load an Optuna study from a RDB (Relational Database) file.
-#
-#     This function loads an Optuna study from a given RDB file URL.
-#
-#     Parameters:
-#     -----------
-#     study_name : str
-#         The name of the Optuna study to load.
-#     rdb_raw_bytes_url : str
-#         The URL of the RDB file, typically in the format "sqlite:///*.db".
-#
-#     Returns:
-#     --------
-#     optuna.study.Study
-#         The loaded Optuna study object.
-#
-#     Raises:
-#     -------
-#     optuna.exceptions.StorageInvalidUsageError
-#         If there's an error loading the study from the storage.
-#     ImportError
-#         If Optuna is not installed.
-#
-#     Example:
-#     --------
-#     >>> study = load_study_rdb(
-#     ...     study_name="YOUR_STUDY_NAME",
-#     ...     rdb_raw_bytes_url="sqlite:///path/to/your/study.db"
-#     ... )
-#     """
-#     if not OPTUNA_AVAILABLE:
-#         raise ImportError(
-#             "Optuna is not installed. Please install with: pip install optuna"
-#         )
-#
-#     storage = optuna.storages.RDBStorage(url=rdb_raw_bytes_url)
-#     study = optuna.load_study(study_name=study_name, storage=storage)
-#     print(f"Loaded: {rdb_raw_bytes_url}")
-#     return study
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_optuna.py
-# --------------------------------------------------------------------------------

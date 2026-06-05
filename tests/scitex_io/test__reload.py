@@ -2,11 +2,15 @@
 # Timestamp: "2025-05-31"
 # File: test__reload.py
 
-"""Tests for scitex.io._reload module."""
+"""Tests for scitex.io._reload module.
+
+Real-collaborator tests: we register a real ``types.ModuleType`` in
+``sys.modules`` so ``importlib.reload`` is actually invoked, and capture
+its print output via ``capsys`` to assert the branch that executed.
+"""
 
 import sys
 import types
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,427 +18,155 @@ import pytest
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
 
+from scitex_io._reload import reload
 
-class TestReloadModule:
-    """Test module reloading functionality."""
-
-    def test_reload_module_in_sys_modules(self):
-        """Test reloading a module that exists in sys.modules."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create a mock module with __name__
-        mock_module = types.ModuleType("test_module")
-        sys.modules["test_module"] = mock_module
-
-        try:
-            # Patch importlib.reload at global level
-            with patch("importlib.reload") as mock_importlib_reload:
-                with patch("builtins.print"):
-                    reload(mock_module)
-
-                    # Should have attempted to reload
-                    mock_importlib_reload.assert_called()
-        finally:
-            # Cleanup
-            if "test_module" in sys.modules:
-                del sys.modules["test_module"]
-
-    def test_reload_module_by_name(self):
-        """Test reloading a module when it has __name__ attribute."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create a mock module with __name__
-        mock_module = types.ModuleType("my_module")
-        sys.modules["my_module"] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                with patch("builtins.print"):
-                    reload(mock_module)
-
-                    mock_importlib_reload.assert_called_with(sys.modules["my_module"])
-        finally:
-            if "my_module" in sys.modules:
-                del sys.modules["my_module"]
-
-    def test_reload_module_verbose(self):
-        """Test reload with verbose output."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        mock_module = types.ModuleType("verbose_module")
-        sys.modules["verbose_module"] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                with patch("builtins.print") as mock_print:
-                    reload(mock_module, verbose=True)
-
-                    # Should print success message
-                    mock_print.assert_called_with(
-                        "Successfully reloaded module: verbose_module"
-                    )
-        finally:
-            if "verbose_module" in sys.modules:
-                del sys.modules["verbose_module"]
-
-
-class TestReloadFunction:
-    """Test function module reloading functionality."""
-
-    def test_reload_function_calls_moduletype(self):
-        """Test reloading module containing a function."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create a mock function with __module__ attribute
-        def mock_function():
-            pass
-
-        mock_function.__module__ = "function_module"
-
-        # Create module for the function
-        mock_module = types.ModuleType("function_module")
-        sys.modules["function_module"] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                with patch("builtins.print"):
-                    reload(mock_function)
-
-                    mock_importlib_reload.assert_called_with(
-                        sys.modules["function_module"]
-                    )
-        finally:
-            if "function_module" in sys.modules:
-                del sys.modules["function_module"]
-
-    def test_reload_function_module_not_found(self):
-        """Test reloading function when its module is not in sys.modules."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create mock function with module that's not loaded
-        def mock_function():
-            pass
-
-        mock_function.__module__ = "nonexistent_module"
-
-        # Make sure module is NOT in sys.modules
-        if "nonexistent_module" in sys.modules:
-            del sys.modules["nonexistent_module"]
-
-        with patch("builtins.print") as mock_print:
-            reload(mock_function)
-
-            # Should print error message
-            mock_print.assert_called_with(
-                "Module nonexistent_module not found in sys.modules. Cannot reload."
-            )
-
-    def test_reload_class_calls_moduletype(self):
-        """Test reloading module containing a class."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create a mock class with __module__ attribute
-        class MockClass:
-            pass
-
-        MockClass.__module__ = "class_module"
-
-        # Create module for the class
-        mock_module = types.ModuleType("class_module")
-        sys.modules["class_module"] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                with patch("builtins.print"):
-                    reload(MockClass)
-
-                    mock_importlib_reload.assert_called_with(
-                        sys.modules["class_module"]
-                    )
-        finally:
-            if "class_module" in sys.modules:
-                del sys.modules["class_module"]
-
-
-class TestReloadErrorHandling:
-    """Test error handling in reload function."""
-
-    def test_reload_unrecognized_object(self):
-        """Test reloading an object that's neither module nor function/class."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create object without __module__ or valid __name__ in sys.modules
-        class UnrecognizedObj:
-            pass
-
-        # Remove __module__ if it exists
-        if hasattr(UnrecognizedObj, "__module__"):
-            # We can't really remove __module__ from a class, so use a different approach
-            pass
-
-        # Use a simple object that has __module__ pointing to nowhere
-        obj = object()
-
-        with patch("builtins.print") as mock_print:
-            reload(obj)
-
-            # Should print error message - object() has no __module__ and __name__ isn't in sys.modules
-            mock_print.assert_called_with(
-                "Provided object is neither a recognized module nor a function/class with a __module__ attribute."
-            )
-
-    def test_reload_module_not_in_sys_modules(self):
-        """Test reloading when module is not in sys.modules."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        mock_module = types.ModuleType("missing_module")
-        # Don't add to sys.modules
-
-        # Make sure it's not in sys.modules
-        if "missing_module" in sys.modules:
-            del sys.modules["missing_module"]
-
-        with patch("builtins.print") as mock_print:
-            reload(mock_module)
-
-            # Should print error about module not found
-            mock_print.assert_called_with(
-                "Provided object is neither a recognized module nor a function/class with a __module__ attribute."
-            )
-
-    def test_reload_importlib_exception(self):
-        """Test handling of exception during importlib.reload."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        mock_module = types.ModuleType("error_module")
-        sys.modules["error_module"] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                mock_importlib_reload.side_effect = Exception("Reload failed")
-                with patch("builtins.print") as mock_print:
-                    reload(mock_module)
-
-                    # Should print error message
-                    mock_print.assert_called_with(
-                        "Failed to reload module error_module. Error: Reload failed"
-                    )
-        finally:
-            if "error_module" in sys.modules:
-                del sys.modules["error_module"]
-
-    def test_reload_keyerror_calls_moduletype(self):
-        """Test handling of KeyError during reload."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create a function that claims to be from a module
-        def mock_function():
-            pass
-
-        mock_function.__module__ = "phantom_module"
-
-        # Add module to sys.modules
-        mock_module = types.ModuleType("phantom_module")
-        sys.modules["phantom_module"] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                mock_importlib_reload.side_effect = KeyError("phantom_module")
-                with patch("builtins.print") as mock_print:
-                    reload(mock_function)
-
-                    # Should handle KeyError gracefully
-                    mock_print.assert_called_with(
-                        "Module phantom_module not found in sys.modules. Cannot reload."
-                    )
-        finally:
-            if "phantom_module" in sys.modules:
-                del sys.modules["phantom_module"]
-
-
-class TestReloadIntegration:
-    """Test integration scenarios."""
-
-    def test_reload_actual_module(self):
-        """Test reloading an actual imported module."""
-        # Arrange
-        # Act
-        # Assert
-        import json  # Use a standard library module
-
-        from scitex_io._reload import reload
-
-        with patch("importlib.reload") as mock_importlib_reload:
-            with patch("builtins.print"):
-                reload(json)
-
-                # Should attempt to reload json module
-                mock_importlib_reload.assert_called()
-
-    def test_reload_from_imported_function(self):
-        """Test reloading from an imported function."""
-        # Arrange
-        # Act
-        # Assert
-        from os.path import join  # Import a function
-
-        from scitex_io._reload import reload
-
-        with patch("importlib.reload") as mock_importlib_reload:
-            with patch("builtins.print"):
-                reload(join)
-
-                # Should reload the posixpath module (join.__module__)
-                mock_importlib_reload.assert_called_with(sys.modules["posixpath"])
-
-    def test_reload_edge_case_module_in_sys_modules_branch(self):
-        """Test the behavior when passing a module object."""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._reload import reload
-
-        # Create a proper module
-        module_name = "direct_module"
-        mock_module = types.ModuleType(module_name)
-
-        # Add the module to sys.modules
-        sys.modules[module_name] = mock_module
-
-        try:
-            with patch("importlib.reload") as mock_importlib_reload:
-                with patch("builtins.print"):
-                    # Pass the module object (not a string)
-                    reload(mock_module)
-
-                    # Should reload via the __name__ branch
-                    mock_importlib_reload.assert_called()
-        finally:
-            if module_name in sys.modules:
-                del sys.modules[module_name]
-
-
-# --------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import os
-
-    import pytest
-
-    pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_reload.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# # Time-stamp: "2024-06-04 19:10:36 (ywatanabe)"
-#
-#
-# def reload(module_or_func, verbose=False):
-#     """
-#     Reload a module or the module containing a given function.
-#
-#     This function attempts to reload a module directly if a module is passed,
-#     or reloads the module containing the function if a function is passed.
-#     This is useful during development to reflect changes without restarting the Python interpreter.
-#
-#     Parameters:
-#     -----------
-#     module_or_func : module or function
-#         The module to reload, or a function whose containing module should be reloaded.
-#     verbose : bool, optional
-#         If True, print additional information during the reload process. Default is False.
-#
-#     Returns:
-#     --------
-#     None
-#
-#     Raises:
-#     -------
-#     Exception
-#         If the module cannot be found or if there's an error during the reload process.
-#
-#     Notes:
-#     ------
-#     - Reloading modules can have unexpected side effects, especially for modules that
-#       maintain state or have complex imports. Use with caution.
-#     - This function modifies sys.modules, which affects the global state of the Python interpreter.
-#
-#     Examples:
-#     ---------
-#     >>> import my_module
-#     >>> reload(my_module)
-#
-#     >>> from my_module import my_function
-#     >>> reload(my_function)
-#     """
-#     import importlib
-#     import sys
-#
-#     if module_or_func in sys.modules:
-#         del sys.modules[module_or_func]
-#         importlib.reload(module_or_func)
-#
-#     if hasattr(module_or_func, "__module__"):
-#         # If the object has a __module__ attribute, it's likely a function or class.
-#         # Attempt to reload its module.
-#         module_name = module_or_func.__module__
-#         if module_name not in sys.modules:
-#             print(f"Module {module_name} not found in sys.modules. Cannot reload.")
-#             return
-#     elif hasattr(module_or_func, "__name__") and module_or_func.__name__ in sys.modules:
-#         # Otherwise, assume it's a module and try to get its name directly.
-#         module_name = module_or_func.__name__
-#     else:
-#         print(
-#             f"Provided object is neither a recognized module nor a function/class with a __module__ attribute."
-#         )
-#         return
-#
-#     try:
-#         # Attempt to reload the module by name.
-#         importlib.reload(sys.modules[module_name])
-#         if verbose:
-#             print(f"Successfully reloaded module: {module_name}")
-#
-#     except KeyError:
-#         # The module is not found in sys.modules, likely due to it not being imported.
-#         print(f"Module {module_name} not found in sys.modules. Cannot reload.")
-#     except Exception as e:
-#         # Catch any other exceptions and print an error message.
-#         print(f"Failed to reload module {module_name}. Error: {e}")
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_reload.py
-# --------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Real module reload — happy path via on-disk module
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def real_module(tmp_path):
+    """Build a real importable on-disk module + cleanup after the test."""
+    mod_name = "scitex_io_test_pkg_reload"
+    mod_path = tmp_path / f"{mod_name}.py"
+    mod_path.write_text("VALUE = 1\n")
+    sys.path.insert(0, str(tmp_path))
+    try:
+        import importlib
+
+        mod = importlib.import_module(mod_name)
+        yield mod_name, mod
+    finally:
+        sys.modules.pop(mod_name, None)
+        if str(tmp_path) in sys.path:
+            sys.path.remove(str(tmp_path))
+
+
+def test_real_module_reload_verbose_prints_success(real_module, capsys):
+    # Arrange
+    mod_name, mod = real_module
+    # Act
+    reload(mod, verbose=True)
+    # Assert
+    assert "Successfully reloaded module" in capsys.readouterr().out
+
+
+def test_real_module_reload_silent_when_verbose_false(real_module, capsys):
+    # Arrange
+    mod_name, mod = real_module
+    # Act
+    reload(mod, verbose=False)
+    # Assert
+    assert capsys.readouterr().out == ""
+
+
+# ---------------------------------------------------------------------------
+# Function input — reload of its containing module
+# ---------------------------------------------------------------------------
+
+
+def test_function_reload_uses_function_module_name(real_module, capsys):
+    # Arrange
+    mod_name, _mod = real_module
+
+    def fn():
+        return None
+
+    fn.__module__ = mod_name
+    # Act
+    reload(fn, verbose=True)
+    # Assert
+    out = capsys.readouterr().out
+    assert f"Successfully reloaded module: {mod_name}" in out
+
+
+def test_function_module_not_in_sys_modules_prints_error(capsys):
+    # Arrange
+    def fn():
+        return None
+
+    fn.__module__ = "scitex_io_test_missing_module"
+    sys.modules.pop("scitex_io_test_missing_module", None)
+    # Act
+    reload(fn)
+    # Assert
+    out = capsys.readouterr().out
+    assert "Module scitex_io_test_missing_module not found in sys.modules" in out
+
+
+# ---------------------------------------------------------------------------
+# Class input — reload of its containing module
+# ---------------------------------------------------------------------------
+
+
+def test_class_reload_uses_class_module_name(real_module, capsys):
+    # Arrange
+    mod_name, _mod = real_module
+
+    class TheClass:
+        pass
+
+    TheClass.__module__ = mod_name
+    # Act
+    reload(TheClass, verbose=True)
+    # Assert
+    out = capsys.readouterr().out
+    assert f"Successfully reloaded module: {mod_name}" in out
+
+
+# ---------------------------------------------------------------------------
+# Unrecognised input — the bare object branch
+# ---------------------------------------------------------------------------
+
+
+def test_unrecognised_object_prints_error(capsys):
+    # Arrange
+    target = object()
+    # Act
+    reload(target)
+    # Assert
+    out = capsys.readouterr().out
+    assert "neither a recognized module nor a function/class" in out
+
+
+def test_unrecognised_object_returns_none(capsys):
+    # Arrange
+    target = object()
+    # Act
+    result = reload(target)
+    # Assert
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Module not in sys.modules at all
+# ---------------------------------------------------------------------------
+
+
+def test_module_not_in_sys_modules_returns_without_reload(capsys):
+    # Arrange
+    mod_name = "scitex_io_test_orphan_module"
+    sys.modules.pop(mod_name, None)
+    orphan = types.ModuleType(mod_name)  # noqa: F841 — used in act
+    # Act
+    reload(orphan)
+    # Assert
+    out = capsys.readouterr().out
+    assert "neither a recognized module" in out
+
+
+# ---------------------------------------------------------------------------
+# Real-world: reloading a stdlib module
+# ---------------------------------------------------------------------------
+
+
+def test_reload_real_json_module_does_not_raise():
+    # Arrange
+    import json
+
+    # Act
+    reload(json)
+    # Assert
+    assert sys.modules["json"] is json or hasattr(sys.modules["json"], "loads")

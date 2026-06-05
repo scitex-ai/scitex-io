@@ -33,18 +33,15 @@ class TestSaveParquet:
         back = pd.read_parquet(str(out))
         pd.testing.assert_frame_equal(back, df)
 
-    def test_dict_coerced_to_dataframe(self, tmp_path):
+    def test_dict_coerced_to_dataframe_preserves_values(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
-        # Arrange
-        # Act
-        # Assert
         d = {"a": [1, 2, 3], "b": ["x", "y", "z"]}
         out = tmp_path / "data.parquet"
         _save_parquet(d, str(out))
+        # Act
         back = pd.read_parquet(str(out))
-        pd.testing.assert_frame_equal(back, pd.DataFrame(d))
+        # Assert
+        assert back.equals(pd.DataFrame(d))
 
     def test_ndarray_coerced_to_dataframe_back_shape_equals_n_2_3(self, tmp_path):
         # Arrange

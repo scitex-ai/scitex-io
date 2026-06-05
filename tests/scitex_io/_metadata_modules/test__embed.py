@@ -109,34 +109,29 @@ class TestEmbedMetadataDispatcher:
         finally:
             os.unlink(png_path)
 
-    def test_roundtrip_all_formats(self):
-        """Test metadata roundtrip for all supported formats."""
+    def test_roundtrip_png_preserves_metadata(self, tmp_path):
         # Arrange
-        # Act
-        # Assert
         metadata = {"roundtrip": True, "number": 123}
+        png_path = tmp_path / "roundtrip.png"
+        img = Image.new("RGB", (10, 10), "white")
+        img.save(str(png_path))
+        img.close()
+        embed_metadata(str(png_path), metadata)
+        # Act
+        readback = read_metadata(str(png_path))
+        # Assert
+        assert readback == metadata
 
-        # PNG
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            png_path = f.name
-        try:
-            img = Image.new("RGB", (10, 10), "white")
-            img.save(png_path)
-            img.close()
-            embed_metadata(png_path, metadata)
-            assert read_metadata(png_path) == metadata
-        finally:
-            os.unlink(png_path)
-
-        # SVG
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".svg", delete=False) as f:
-            f.write('<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>')
-            svg_path = f.name
-        try:
-            embed_metadata(svg_path, metadata)
-            assert read_metadata(svg_path) == metadata
-        finally:
-            os.unlink(svg_path)
+    def test_roundtrip_svg_preserves_metadata(self, tmp_path):
+        # Arrange
+        metadata = {"roundtrip": True, "number": 123}
+        svg_path = tmp_path / "roundtrip.svg"
+        svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>')
+        embed_metadata(str(svg_path), metadata)
+        # Act
+        readback = read_metadata(str(svg_path))
+        # Assert
+        assert readback == metadata
 
 
 if __name__ == "__main__":

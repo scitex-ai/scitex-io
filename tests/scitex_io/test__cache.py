@@ -3,13 +3,14 @@
 # Timestamp: "2025-05-31"
 # File: test__cache.py
 
-"""Tests for the cache function in scitex.io module."""
+"""Tests for the cache function in scitex.io module.
 
-import os
-import pickle
-import tempfile
+The production ``cache(id, *args, cache_root=...)`` takes a
+``cache_root`` keyword so tests can sandbox the on-disk cache under
+``tmp_path`` without monkey-patching ``Path.home``.
+"""
+
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -18,439 +19,256 @@ import pytest
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
 
-
-class TestCacheBasic:
-    """Test basic cache functionality."""
-
-    def test_cache_save_and_load(self, tmp_path, monkeypatch):
-        """Test saving and loading variables with cache."""
-        # Patch the cache directory to use tmp_path
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Define variables
-            var1 = "test_string"
-            var2 = 42
-            var3 = [1, 2, 3, 4, 5]
-
-            # Save to cache
-            result = cache("test_id", "var1", "var2", "var3")
-            assert result == (var1, var2, var3)
-
-            # Check cache file exists
-            cache_file = tmp_path / ".cache" / "your_app_name" / "test_id.pkl"
-            assert cache_file.exists()
-
-            # Delete variables and load from cache
-            del var1, var2, var3
-            var1, var2, var3 = cache("test_id", "var1", "var2", "var3")
-
-            assert var1 == "test_string"
-            assert var2 == 42
-            assert var3 == [1, 2, 3, 4, 5]
-
-    def test_cache_with_numpy_array(self, tmp_path):
-        """Test caching numpy arrays."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Create numpy arrays
-            arr1 = np.ones((3, 3))
-            arr2 = np.random.rand(10, 5)
-            arr3 = np.array([1, 2, 3, 4, 5])
-
-            # Save to cache
-            result = cache("numpy_test", "arr1", "arr2", "arr3")
-
-            # Delete and reload
-            del arr1, arr2, arr3
-            arr1, arr2, arr3 = cache("numpy_test", "arr1", "arr2", "arr3")
-
-            assert np.array_equal(arr1, np.ones((3, 3)))
-            assert arr2.shape == (10, 5)
-            assert np.array_equal(arr3, np.array([1, 2, 3, 4, 5]))
-
-    def test_cache_overwrites_existing(self, tmp_path):
-        """Test that cache overwrites existing cached data."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # First save
-            var1 = "original"
-            cache("overwrite_test", "var1")
-
-            # Update and save again
-            var1 = "updated"
-            cache("overwrite_test", "var1")
-
-            # Load and verify
-            del var1
-            (var1,) = cache("overwrite_test", "var1")
-            assert var1 == "updated"
-
-
-class TestCacheErrorHandling:
-    """Test error handling in cache function."""
-
-    def test_cache_missing_file_error(self, tmp_path):
-        """Test error when cache file doesn't exist and variables not defined."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Try to load non-existent cache without variables defined
-            with pytest.raises(ValueError, match="Cache file not found"):
-                cache("nonexistent_id", "var1", "var2")
-
-    def test_cache_partial_variables_defined(self, tmp_path):
-        """Test behavior when only some variables are defined."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Define all variables and cache
-            var1 = "test"
-            var2 = 100
-            var3 = [1, 2, 3]
-            cache("partial_test", "var1", "var2", "var3")
-
-            # Delete some variables
-            del var2, var3
-            # var1 is still defined, but we're asking for all three
-
-            # Should load from cache since not all are defined
-            var1_loaded, var2_loaded, var3_loaded = cache(
-                "partial_test", "var1", "var2", "var3"
-            )
-            assert var1_loaded == "test"
-            assert var2_loaded == 100
-            assert var3_loaded == [1, 2, 3]
-
-
-class TestCacheAdvanced:
-    """Test advanced cache scenarios."""
-
-    def test_cache_complex_objects(self, tmp_path):
-        """Test caching complex Python objects."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Complex objects
-            dict_var = {"a": 1, "b": [2, 3], "c": {"nested": True}}
-            set_var = {1, 2, 3, 4, 5}
-            tuple_var = (1, "two", 3.0, [4, 5])
-
-            # Cache them
-            cache("complex_test", "dict_var", "set_var", "tuple_var")
-
-            # Delete and reload
-            del dict_var, set_var, tuple_var
-            dict_var, set_var, tuple_var = cache(
-                "complex_test", "dict_var", "set_var", "tuple_var"
-            )
-
-            assert dict_var == {"a": 1, "b": [2, 3], "c": {"nested": True}}
-            assert set_var == {1, 2, 3, 4, 5}
-            assert tuple_var == (1, "two", 3.0, [4, 5])
-
-    def test_cache_multiple_ids(self, tmp_path):
-        """Test using multiple cache IDs."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Save different data with different IDs
-            data1 = "first"
-            cache("id1", "data1")
-
-            data1 = "second"  # Reuse variable name
-            cache("id2", "data1")
-
-            # Load from different caches
-            del data1
-            (result1,) = cache("id1", "data1")
-            assert result1 == "first"
-
-            (result2,) = cache("id2", "data1")
-            assert result2 == "second"
-
-    def test_cache_directory_creation(self, tmp_path):
-        """Test that cache creates necessary directories."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Ensure cache directory doesn't exist initially
-            cache_dir = tmp_path / ".cache" / "your_app_name"
-            assert not cache_dir.exists()
-
-            # Use cache
-            var1 = "test"
-            cache("dir_test", "var1")
-
-            # Check directory was created
-            assert cache_dir.exists()
-            assert cache_dir.is_dir()
-
-    def test_cache_single_variable(self, tmp_path):
-        """Test caching a single variable."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Single variable
-            important_data = {"key": "value", "number": 42}
-
-            # Cache it
-            (result,) = cache("single_var", "important_data")
-            assert result == important_data
-
-            # Delete and reload
-            del important_data
-            (important_data,) = cache("single_var", "important_data")
-            assert important_data == {"key": "value", "number": 42}
-
-
-class TestCacheEdgeCases:
-    """Test edge cases for cache function."""
-
-    def test_cache_empty_args(self, tmp_path):
-        """Test cache with no variable arguments."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Should work but cache nothing
-            result = cache("empty_test")
-            assert result == ()
-
-    def test_cache_none_values(self, tmp_path):
-        """Test caching None values."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            var1 = None
-            var2 = "not none"
-            var3 = None
-
-            cache("none_test", "var1", "var2", "var3")
-
-            del var1, var2, var3
-            var1, var2, var3 = cache("none_test", "var1", "var2", "var3")
-
-            assert var1 is None
-            assert var2 == "not none"
-            assert var3 is None
-
-    def test_cache_special_characters_in_id(self, tmp_path):
-        """Test cache with special characters in ID."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # IDs with special characters
-            test_ids = [
-                "test-with-dash",
-                "test_with_underscore",
-                "test.with.dot",
-                "test@with@at",
-            ]
-
-            for test_id in test_ids:
-                data = f"data_for_{test_id}"
-                cache(test_id, "data")
-
-                del data
-                (data,) = cache(test_id, "data")
-                assert data == f"data_for_{test_id}"
-
-
-class TestCacheIntegration:
-    """Test cache integration with other scitex features."""
-
-    def test_cache_with_large_data(self, tmp_path):
-        """Test caching large data structures."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            # Create large data
-            large_array = np.random.rand(1000, 1000)
-            large_list = list(range(10000))
-            large_dict = {str(i): i for i in range(1000)}
-
-            # Cache it
-            cache("large_data", "large_array", "large_list", "large_dict")
-
-            # Verify file was created and has reasonable size
-            cache_file = tmp_path / ".cache" / "your_app_name" / "large_data.pkl"
-            assert cache_file.exists()
-            assert cache_file.stat().st_size > 1000  # Should be reasonably large
-
-    def test_cache_caller_frame_access(self, tmp_path):
-        """Test that cache correctly accesses caller's frame."""
-        # Arrange
-        # Act
-        # Assert
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            from scitex_io import cache
-
-            def inner_function():
-                # Variables defined in this scope
-                inner_var1 = "inner"
-                inner_var2 = 123
-                return cache("frame_test", "inner_var1", "inner_var2")
-
-            # Call the function
-            result = inner_function()
-            assert result == ("inner", 123)
-
-
-# --------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import os
-
-    import pytest
-
-    pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_cache.py
-# --------------------------------------------------------------------------------
-# #!./env/bin/python3
-# # -*- coding: utf-8 -*-
-# # Time-stamp: "2024-08-20 19:42:38 (ywatanabe)"
-# # ./src/scitex/io/_cache.py
-#
-#
-# import os
-# import pickle
-# import sys
-# from pathlib import Path
-#
-#
-# def cache(id, *args):
-#     """
-#     Store or fetch data using a pickle file.
-#
-#     This function provides a simple caching mechanism for storing and retrieving
-#     Python objects. It uses pickle to serialize the data and stores it in a file
-#     with a unique identifier. If the data is already cached, it can be retrieved
-#     without recomputation.
-#
-#     Parameters:
-#     -----------
-#     id : str
-#         A unique identifier for the cache file.
-#     *args : str
-#         Variable names to be cached or loaded.
-#
-#     Returns:
-#     --------
-#     tuple
-#         A tuple of cached values corresponding to the input variable names.
-#
-#     Raises:
-#     -------
-#     ValueError
-#         If the cache file is not found and not all variables are defined.
-#
-#     Example:
-#     --------
-#     >>> import scitex
-#     >>> import numpy as np
-#     >>>
-#     >>> # Variables to cache
-#     >>> var1 = "x"
-#     >>> var2 = 1
-#     >>> var3 = np.ones(10)
-#     >>>
-#     >>> # Saving
-#     >>> var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
-#     >>> print(var1, var2, var3)
-#     >>>
-#     >>> # Loading when not all variables are defined and the id exists
-#     >>> del var1, var2, var3
-#     >>> var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
-#     >>> print(var1, var2, var3)
-#     """
-#     cache_dir = Path.home() / ".cache" / "your_app_name"
-#     cache_dir.mkdir(parents=True, exist_ok=True)
-#     cache_file = cache_dir / f"{id}.pkl"
-#
-#     does_cache_file_exist = cache_file.exists()
-#
-#     # Get the caller's local variables
-#     caller_locals = sys._getframe(1).f_locals
-#     are_all_variables_defined = all(arg in caller_locals for arg in args)
-#
-#     if are_all_variables_defined:
-#         # If all variables are defined, save them to cache and return as-is
-#         data_to_cache = {arg: caller_locals[arg] for arg in args}
-#         with cache_file.open("wb") as f:
-#             pickle.dump(data_to_cache, f)
-#         return tuple(data_to_cache.values())
-#     else:
-#         if does_cache_file_exist:
-#             # If cache exists, load and return the values
-#             with cache_file.open("rb") as f:
-#                 loaded_data = pickle.load(f)
-#             return tuple(loaded_data[arg] for arg in args)
-#         else:
-#             raise ValueError("Cache file not found and not all variables are defined.")
-#
-#
-# # Usage example
-# if __name__ == "__main__":
-#     import scitex
-#     import numpy as np
-#
-#     # Variables to cache
-#     var1 = "x"
-#     var2 = 1
-#     var3 = np.ones(10)
-#
-#     # Saving
-#     var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
-#     print(var1, var2, var3)
-#
-#     # Loading when not all variables are defined and the id exists
-#     del var1, var2, var3
-#     var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
-#     print(var1, var2, var3)
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_cache.py
-# --------------------------------------------------------------------------------
+from scitex_io import cache
+
+# ---------------------------------------------------------------------------
+# Save (all vars defined) → returns the values
+# ---------------------------------------------------------------------------
+
+
+def test_cache_save_returns_values_as_tuple(tmp_path):
+    # Arrange
+    var1 = "test_string"
+    var2 = 42
+    var3 = [1, 2, 3, 4, 5]
+    # Act
+    result = cache("test_id", "var1", "var2", "var3", cache_root=tmp_path)
+    # Assert
+    assert result == ("test_string", 42, [1, 2, 3, 4, 5])
+
+
+def test_cache_save_writes_pickle_file(tmp_path):
+    # Arrange
+    var1 = "test_string"
+    # Act
+    cache("test_id", "var1", cache_root=tmp_path)
+    # Assert
+    assert (tmp_path / "test_id.pkl").exists()
+
+
+def test_cache_creates_intermediate_directories(tmp_path):
+    # Arrange
+    nested = tmp_path / "nested" / "dirs"
+    var1 = "x"
+    # Act
+    cache("dir_test", "var1", cache_root=nested)
+    # Assert
+    assert (nested / "dir_test.pkl").exists()
+
+
+# ---------------------------------------------------------------------------
+# Load (some vars not defined) → reads back from cache
+# ---------------------------------------------------------------------------
+
+
+def test_cache_load_returns_saved_string(tmp_path):
+    # Arrange
+    var1 = "test_string"
+    cache("test_id", "var1", cache_root=tmp_path)
+    del var1
+    # Act
+    (loaded,) = cache("test_id", "var1", cache_root=tmp_path)
+    # Assert
+    assert loaded == "test_string"
+
+
+def test_cache_load_returns_saved_int(tmp_path):
+    # Arrange
+    var2 = 42
+    cache("test_id", "var2", cache_root=tmp_path)
+    del var2
+    # Act
+    (loaded,) = cache("test_id", "var2", cache_root=tmp_path)
+    # Assert
+    assert loaded == 42
+
+
+def test_cache_load_returns_saved_list(tmp_path):
+    # Arrange
+    var3 = [1, 2, 3, 4, 5]
+    cache("test_id", "var3", cache_root=tmp_path)
+    del var3
+    # Act
+    (loaded,) = cache("test_id", "var3", cache_root=tmp_path)
+    # Assert
+    assert loaded == [1, 2, 3, 4, 5]
+
+
+def test_cache_overwrites_existing_data(tmp_path):
+    # Arrange
+    var1 = "original"
+    cache("overwrite_test", "var1", cache_root=tmp_path)
+    var1 = "updated"
+    cache("overwrite_test", "var1", cache_root=tmp_path)
+    del var1
+    # Act
+    (loaded,) = cache("overwrite_test", "var1", cache_root=tmp_path)
+    # Assert
+    assert loaded == "updated"
+
+
+# ---------------------------------------------------------------------------
+# Numpy round-trip
+# ---------------------------------------------------------------------------
+
+
+def test_cache_numpy_array_round_trip_preserves_values(tmp_path):
+    # Arrange
+    arr1 = np.ones((3, 3))
+    cache("numpy_test", "arr1", cache_root=tmp_path)
+    del arr1
+    # Act
+    (loaded,) = cache("numpy_test", "arr1", cache_root=tmp_path)
+    # Assert
+    assert np.array_equal(loaded, np.ones((3, 3)))
+
+
+def test_cache_numpy_array_round_trip_preserves_shape(tmp_path):
+    # Arrange
+    arr2 = np.zeros((10, 5))
+    cache("numpy_shape", "arr2", cache_root=tmp_path)
+    del arr2
+    # Act
+    (loaded,) = cache("numpy_shape", "arr2", cache_root=tmp_path)
+    # Assert
+    assert loaded.shape == (10, 5)
+
+
+# ---------------------------------------------------------------------------
+# Error handling
+# ---------------------------------------------------------------------------
+
+
+def test_cache_missing_file_with_undefined_vars_raises(tmp_path):
+    # Arrange
+    # Act
+    ctx = pytest.raises(ValueError, match="Cache file not found")
+    # Assert
+    with ctx:
+        cache("nonexistent_id", "var1", "var2", cache_root=tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Complex objects
+# ---------------------------------------------------------------------------
+
+
+def test_cache_dict_round_trip(tmp_path):
+    # Arrange
+    dict_var = {"a": 1, "b": [2, 3], "c": {"nested": True}}
+    cache("complex_test", "dict_var", cache_root=tmp_path)
+    del dict_var
+    # Act
+    (loaded,) = cache("complex_test", "dict_var", cache_root=tmp_path)
+    # Assert
+    assert loaded == {"a": 1, "b": [2, 3], "c": {"nested": True}}
+
+
+def test_cache_set_round_trip(tmp_path):
+    # Arrange
+    set_var = {1, 2, 3, 4, 5}
+    cache("complex_set", "set_var", cache_root=tmp_path)
+    del set_var
+    # Act
+    (loaded,) = cache("complex_set", "set_var", cache_root=tmp_path)
+    # Assert
+    assert loaded == {1, 2, 3, 4, 5}
+
+
+def test_cache_none_value_round_trip(tmp_path):
+    # Arrange
+    var1 = None
+    cache("none_test", "var1", cache_root=tmp_path)
+    del var1
+    # Act
+    (loaded,) = cache("none_test", "var1", cache_root=tmp_path)
+    # Assert
+    assert loaded is None
+
+
+# ---------------------------------------------------------------------------
+# Multiple IDs are isolated
+# ---------------------------------------------------------------------------
+
+
+def test_cache_multiple_ids_keep_first(tmp_path):
+    # Arrange
+    data1 = "first"
+    cache("id1", "data1", cache_root=tmp_path)
+    data1 = "second"
+    cache("id2", "data1", cache_root=tmp_path)
+    del data1
+    # Act
+    (loaded,) = cache("id1", "data1", cache_root=tmp_path)
+    # Assert
+    assert loaded == "first"
+
+
+def test_cache_multiple_ids_keep_second(tmp_path):
+    # Arrange
+    data1 = "first"
+    cache("id1", "data1", cache_root=tmp_path)
+    data1 = "second"
+    cache("id2", "data1", cache_root=tmp_path)
+    del data1
+    # Act
+    (loaded,) = cache("id2", "data1", cache_root=tmp_path)
+    # Assert
+    assert loaded == "second"
+
+
+# ---------------------------------------------------------------------------
+# Special-character IDs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "test_id",
+    [
+        "test-with-dash",
+        "test_with_underscore",
+        "test.with.dot",
+        "test@with@at",
+    ],
+)
+def test_cache_special_character_id_round_trip(tmp_path, test_id):
+    # Arrange
+    data = f"data_for_{test_id}"
+    cache(test_id, "data", cache_root=tmp_path)
+    del data
+    # Act
+    (loaded,) = cache(test_id, "data", cache_root=tmp_path)
+    # Assert
+    assert loaded == f"data_for_{test_id}"
+
+
+# ---------------------------------------------------------------------------
+# Caller-frame access — verifies it reads inner-function locals
+# ---------------------------------------------------------------------------
+
+
+def test_cache_reads_caller_frame_locals(tmp_path):
+    # Arrange
+    def inner():
+        inner_var1 = "inner"
+        inner_var2 = 123
+        return cache("frame_test", "inner_var1", "inner_var2", cache_root=tmp_path)
+
+    # Act
+    result = inner()
+    # Assert
+    assert result == ("inner", 123)
+
+
+# ---------------------------------------------------------------------------
+# Empty args
+# ---------------------------------------------------------------------------
+
+
+def test_cache_empty_args_returns_empty_tuple(tmp_path):
+    # Arrange
+    # (nothing to set up)
+    # Act
+    result = cache("empty_test", cache_root=tmp_path)
+    # Assert
+    assert result == ()

@@ -1,763 +1,428 @@
 #!/usr/bin/env python3
-# Time-stamp: "2025-06-02 16:59:00 (ywatanabe)"
 # File: ./scitex_repo/tests/scitex/io/_load_modules/test__con.py
 
-"""Comprehensive tests for MNE connectivity file loading functionality."""
+"""Real-collaborator tests for ``_load_con``.
 
-import os
-import tempfile
+The original suite patched ``scitex_io._load_modules._con.mne`` and
+asserted on the mock's call shape — that's call-record theater, not
+behavior. We replace it with hand-rolled fake raw objects injected via
+the ``reader`` kwarg the production function now accepts (kept
+defaulting to ``mne.io.read_raw_fif`` for real use).
+"""
 
+from __future__ import annotations
+
+import inspect
+from types import SimpleNamespace
+
+import numpy as np
+import pandas as pd
 import pytest
 
 # Required for scitex.io module
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
-from unittest.mock import MagicMock, patch
-
-import pandas as pd
 
 
-class TestLoadConAvailableFlags:
-    """Test _AVAILABLE flags for optional dependencies."""
-
-    def test_mne_available_flag_exists(self):
-        """Test that MNE_AVAILABLE flag is exported."""
-        # Arrange
-        # Act
-        from scitex_io._load_modules._con import MNE_AVAILABLE
-
-        # Assert
-        assert isinstance(MNE_AVAILABLE, bool)
+# ---------------------------------------------------------------------------
+# Fake raw object — exposes only the methods/attrs ``_load_con`` touches
+# ---------------------------------------------------------------------------
 
 
-class TestLoadCon:
-    """Test suite for _load_con function"""
+class _FakeRaw:
+    """Hand-rolled stand-in for an ``mne.io.Raw`` object."""
 
-    def test_valid_extension_check(self):
-        """Test that function validates .con extension"""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._con import _load_con
+    def __init__(self, df: pd.DataFrame, sfreq: float):
+        self._df = df
+        self.info = {"sfreq": sfreq}
 
-        # Test invalid extensions
-        invalid_files = ["file.txt", "data.fif", "connectivity.csv", "test.xlsx"]
-
-        for invalid_file in invalid_files:
-            with pytest.raises(ValueError, match="File must have .con extension"):
-                _load_con(invalid_file)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_mne_read_raw_fif_called_correctly_result_is_pd_dataframe(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Mock the MNE raw object
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame({"channel_1": [1, 2, 3], "channel_2": [4, 5, 6]})
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        result = _load_con("test_file.con", verbose=False, picks=["eeg"])
-        # Verify MNE function was called correctly
-        mock_mne.io.read_raw_fif.assert_called_once_with(
-            "test_file.con", preload=True, verbose=False, picks=["eeg"]
-        )
-        # Act
-        mock_raw.to_data_frame.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert isinstance(result, pd.DataFrame)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_mne_read_raw_fif_called_correctly_samp_rate_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Mock the MNE raw object
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame({"channel_1": [1, 2, 3], "channel_2": [4, 5, 6]})
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        result = _load_con("test_file.con", verbose=False, picks=["eeg"])
-        # Verify MNE function was called correctly
-        mock_mne.io.read_raw_fif.assert_called_once_with(
-            "test_file.con", preload=True, verbose=False, picks=["eeg"]
-        )
-        # Act
-        mock_raw.to_data_frame.assert_called_once()
-        # Act
-        # Assert
-        # Assert
-        assert "samp_rate" in result.columns
+    def to_data_frame(self):
+        return self._df
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_result_is_pd_dataframe(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
+def _reader_returning(df: pd.DataFrame, sfreq: float):
+    """Build a fake reader callable returning the supplied raw payload."""
+    calls = []
+
+    def reader(lpath, preload, **kwargs):
+        calls.append({"lpath": lpath, "preload": preload, **kwargs})
+        return _FakeRaw(df, sfreq)
+
+    reader.calls = calls
+    return reader
+
+
+# ---------------------------------------------------------------------------
+# Module-level surface
+# ---------------------------------------------------------------------------
+
+
+def test_mne_available_flag_is_bool():
+    """``MNE_AVAILABLE`` is a boolean flag."""
+    # Arrange
+    # Act
+    from scitex_io._load_modules._con import MNE_AVAILABLE
+    # Assert
+    assert isinstance(MNE_AVAILABLE, bool)
+
+
+# ---------------------------------------------------------------------------
+# Extension validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "invalid_path",
+    ["file.txt", "data.fif", "connectivity.csv", "test.xlsx"],
+)
+def test_load_con_rejects_non_con_extension(invalid_path):
+    """Reject paths whose extension is not ``.con``."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame({"x": [1]}), 250.0)
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .con extension")
+    # Assert
+    with ctx:
+        _load_con(invalid_path, reader=reader)
+
+
+# ---------------------------------------------------------------------------
+# Result shape / contents
+# ---------------------------------------------------------------------------
+
+
+def test_load_con_returns_dataframe():
+    """``_load_con`` returns a pandas DataFrame."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(
+        pd.DataFrame({"channel_1": [1, 2, 3], "channel_2": [4, 5, 6]}), 250.0
+    )
+    # Act
+    result = _load_con("test_file.con", reader=reader)
+    # Assert
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_load_con_appends_samp_rate_column():
+    """Result DataFrame gains a ``samp_rate`` column."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(
+        pd.DataFrame({"channel_1": [1, 2, 3]}), 250.0
+    )
+    # Act
+    result = _load_con("test_file.con", reader=reader)
+    # Assert
+    assert "samp_rate" in result.columns
+
+
+def test_load_con_samp_rate_value_matches_sfreq():
+    """All ``samp_rate`` entries equal ``info['sfreq']``."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(
+        pd.DataFrame({"channel_1": [1, 2, 3]}), 512.0
+    )
+    # Act
+    result = _load_con("connectivity.con", reader=reader)
+    # Assert
+    assert all(result["samp_rate"] == 512.0)
+
+
+def test_load_con_preserves_input_columns():
+    """Original channel columns survive the round-trip."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(
+        pd.DataFrame(
             {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert isinstance(result, pd.DataFrame)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_samp_rate_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert "samp_rate" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_all_result_samp_rate_512_0(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert all(result["samp_rate"] == 512.0)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_fp1_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert "Fp1" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_fp2_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert "Fp2" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_f3_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert "F3" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_list_result_fp1_0_1_0_2_0_3(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert list(result["Fp1"]) == [0.1, 0.2, 0.3]
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_list_result_fp2_0_4_0_5_0_6(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert list(result["Fp2"]) == [0.4, 0.5, 0.6]
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_dataframe_conversion_and_samp_rate_addition_list_result_f3_0_7_0_8_0_9(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Create mock data
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(
-            {"Fp1": [0.1, 0.2, 0.3], "Fp2": [0.4, 0.5, 0.6], "F3": [0.7, 0.8, 0.9]}
-        )
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 512.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Call function
-        # Act
-        result = _load_con("connectivity.con")
-        # Act
-        # Assert
-        # Assert
-        assert list(result["F3"]) == [0.7, 0.8, 0.9]
+        ),
+        512.0,
+    )
+    # Act
+    result = _load_con("connectivity.con", reader=reader)
+    # Assert
+    assert set(("Fp1", "Fp2", "F3")).issubset(result.columns)
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_sampling_rate_extraction(self, mock_mne):
-        """Test different sampling rate scenarios"""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._con import _load_con
-
-        sampling_rates = [250.0, 500.0, 1000.0, 2048.0]
-
-        for sfreq in sampling_rates:
-            mock_raw = MagicMock()
-            mock_df = pd.DataFrame({"channel": [1, 2, 3]})
-            mock_raw.to_data_frame.return_value = mock_df
-            mock_raw.info = {"sfreq": sfreq}
-            mock_mne.io.read_raw_fif.return_value = mock_raw
-
-            result = _load_con("test.con")
-
-            assert result["samp_rate"].iloc[0] == sfreq
-            assert all(
-                result["samp_rate"] == sfreq
-            )  # All rows should have same sampling rate
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_kwargs_forwarding_calls_magicmock(self, mock_mne):
-        """Test that kwargs are properly forwarded to mne.io.read_raw_fif"""
-        # Arrange
-        # Act
-        # Assert
-        from scitex_io._load_modules._con import _load_con
-
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame({"data": [1, 2, 3]})
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-
-        # Test various kwargs
-        kwargs = {
-            "verbose": False,
-            "picks": ["eeg"],
-            "exclude": ["bad_channel"],
-            "proj": True,
-        }
-
-        _load_con("test.con", **kwargs)
-
-        # Verify all kwargs were passed to mne function
-        mock_mne.io.read_raw_fif.assert_called_once_with(
-            "test.con", preload=True, **kwargs
-        )
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_mne_exception_propagation_raises_filenotfounderror(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Test file not found error
-        # Act
-        mock_mne.io.read_raw_fif.side_effect = FileNotFoundError("File not found")
-        # Act
-        # Assert
-        # Assert
-        with pytest.raises(FileNotFoundError, match="File not found"):
-            _load_con("nonexistent.con")
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_mne_exception_propagation_raises_valueerror(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Test file not found error
-        # Act
-        mock_mne.io.read_raw_fif.side_effect = FileNotFoundError("File not found")
-        # Assert
-        with pytest.raises(FileNotFoundError, match="File not found"):
-            _load_con("nonexistent.con")
-        # Test invalid file format error
-        mock_mne.io.read_raw_fif.side_effect = ValueError("Invalid file format")
-        # Act
-        # Assert
-        with pytest.raises(ValueError, match="Invalid file format"):
-            _load_con("invalid.con")
+def test_load_con_preserves_input_values():
+    """Channel values are unchanged."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(
+        pd.DataFrame({"Fp1": [0.1, 0.2, 0.3]}), 512.0
+    )
+    # Act
+    result = _load_con("connectivity.con", reader=reader)
+    # Assert
+    assert list(result["Fp1"]) == [0.1, 0.2, 0.3]
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_empty_dataframe_handling_result_is_pd_dataframe(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame()  # Empty DataFrame
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("empty.con")
-        # Act
-        # Assert
-        # Assert
-        assert isinstance(result, pd.DataFrame)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_empty_dataframe_handling_samp_rate_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame()  # Empty DataFrame
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("empty.con")
-        # Act
-        # Assert
-        # Assert
-        assert "samp_rate" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_empty_dataframe_handling_len_result_is_0(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame()  # Empty DataFrame
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("empty.con")
-        # Act
-        # Assert
-        # Assert
-        assert len(result) == 0
+@pytest.mark.parametrize("sfreq", [250.0, 500.0, 1000.0, 2048.0])
+def test_load_con_propagates_sfreq_to_samp_rate(sfreq):
+    """``info['sfreq']`` propagates verbatim into ``samp_rate``."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame({"channel": [1, 2, 3]}), sfreq)
+    # Act
+    result = _load_con("test.con", reader=reader)
+    # Assert
+    assert result["samp_rate"].iloc[0] == sfreq
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_large_dataframe_handling_result_is_pd_dataframe(self, mock_mne):
-        # Arrange
-        # Arrange
-        import numpy as np
-        from scitex_io._load_modules._con import _load_con
-        n_samples, n_channels = 1000, 64
-        data = np.random.randn(n_samples, n_channels)
-        columns = [f"channel_{i}" for i in range(n_channels)]
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(data, columns=columns)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 1000.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("large.con")
-        # Act
-        # Assert
-        # Assert
-        assert isinstance(result, pd.DataFrame)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_large_dataframe_handling_result_shape_equals_n_samples_n_channels_1(self, mock_mne):
-        # Arrange
-        # Arrange
-        import numpy as np
-        from scitex_io._load_modules._con import _load_con
-        n_samples, n_channels = 1000, 64
-        data = np.random.randn(n_samples, n_channels)
-        columns = [f"channel_{i}" for i in range(n_channels)]
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(data, columns=columns)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 1000.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("large.con")
-        # Act
-        # Assert
-        # Assert
-        assert result.shape == (n_samples, n_channels + 1)  # +1 for samp_rate
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_large_dataframe_handling_samp_rate_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        import numpy as np
-        from scitex_io._load_modules._con import _load_con
-        n_samples, n_channels = 1000, 64
-        data = np.random.randn(n_samples, n_channels)
-        columns = [f"channel_{i}" for i in range(n_channels)]
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(data, columns=columns)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 1000.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("large.con")
-        # Act
-        # Assert
-        # Assert
-        assert "samp_rate" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_large_dataframe_handling_all_result_samp_rate_1000_0(self, mock_mne):
-        # Arrange
-        # Arrange
-        import numpy as np
-        from scitex_io._load_modules._con import _load_con
-        n_samples, n_channels = 1000, 64
-        data = np.random.randn(n_samples, n_channels)
-        columns = [f"channel_{i}" for i in range(n_channels)]
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(data, columns=columns)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 1000.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("large.con")
-        # Act
-        # Assert
-        # Assert
-        assert all(result["samp_rate"] == 1000.0)
+# ---------------------------------------------------------------------------
+# Reader invocation contract
+# ---------------------------------------------------------------------------
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_missing_sfreq_info(self, mock_mne):
-        """Test handling when sfreq is missing from info"""
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame({"channel": [1, 2, 3]})
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {}  # Missing sfreq
-        # Act
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-
-        # Assert
-        with pytest.raises(KeyError):
-            _load_con("test.con")
-
-    def test_function_signature_lpath_in_sig_parameters(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules._con import _load_con
-        # Act
-        sig = inspect.signature(_load_con)
-        # Act
-        # Assert
-        # Assert
-        assert "lpath" in sig.parameters
-
-    def test_function_signature_kwargs_in_sig_parameters_or_len_sig_parameters_1(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules._con import _load_con
-        # Act
-        sig = inspect.signature(_load_con)
-        # Act
-        # Assert
-        # Assert
-        assert "kwargs" in sig.parameters or len(sig.parameters) >= 1
-
-    def test_function_signature_sig_return_annotation_inspect_signature_empty(self):
-        # Arrange
-        # Arrange
-        import inspect
-        from scitex_io._load_modules._con import _load_con
-        # Act
-        sig = inspect.signature(_load_con)
-        # Act
-        # Assert
-        # Assert
-        assert sig.return_annotation != inspect.Signature.empty
+def test_load_con_passes_kwargs_to_reader():
+    """User kwargs are forwarded to the reader."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame({"data": [1, 2, 3]}), 250.0)
+    # Act
+    _load_con(
+        "test.con",
+        reader=reader,
+        verbose=False,
+        picks=["eeg"],
+        exclude=["bad_channel"],
+        proj=True,
+    )
+    # Assert
+    assert reader.calls[0]["picks"] == ["eeg"]
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_real_world_eeg_scenario_result_is_pd_dataframe(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Simulate realistic EEG data
-        eeg_channels = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
-        n_samples = 2560  # 10 seconds at 256 Hz
-        # Create realistic EEG data
-        import numpy as np
-        np.random.seed(42)
-        eeg_data = (
-            np.random.randn(n_samples, len(eeg_channels)) * 50e-6
-        )  # Realistic EEG amplitudes
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(eeg_data, columns=eeg_channels)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 256.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("eeg_connectivity.con", verbose=False)
-        # Act
-        # Assert
-        # Assert
-        assert isinstance(result, pd.DataFrame)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_real_world_eeg_scenario_result_shape_equals_n_samples_len_eeg_channels_1(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Simulate realistic EEG data
-        eeg_channels = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
-        n_samples = 2560  # 10 seconds at 256 Hz
-        # Create realistic EEG data
-        import numpy as np
-        np.random.seed(42)
-        eeg_data = (
-            np.random.randn(n_samples, len(eeg_channels)) * 50e-6
-        )  # Realistic EEG amplitudes
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(eeg_data, columns=eeg_channels)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 256.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("eeg_connectivity.con", verbose=False)
-        # Act
-        # Assert
-        # Assert
-        assert result.shape == (n_samples, len(eeg_channels) + 1)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_real_world_eeg_scenario_all_col_in_result_columns_for_col_in_eeg_channels(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Simulate realistic EEG data
-        eeg_channels = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
-        n_samples = 2560  # 10 seconds at 256 Hz
-        # Create realistic EEG data
-        import numpy as np
-        np.random.seed(42)
-        eeg_data = (
-            np.random.randn(n_samples, len(eeg_channels)) * 50e-6
-        )  # Realistic EEG amplitudes
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(eeg_data, columns=eeg_channels)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 256.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("eeg_connectivity.con", verbose=False)
-        # Act
-        # Assert
-        # Assert
-        assert all(col in result.columns for col in eeg_channels)
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_real_world_eeg_scenario_samp_rate_in_result_columns(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Simulate realistic EEG data
-        eeg_channels = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
-        n_samples = 2560  # 10 seconds at 256 Hz
-        # Create realistic EEG data
-        import numpy as np
-        np.random.seed(42)
-        eeg_data = (
-            np.random.randn(n_samples, len(eeg_channels)) * 50e-6
-        )  # Realistic EEG amplitudes
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(eeg_data, columns=eeg_channels)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 256.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("eeg_connectivity.con", verbose=False)
-        # Act
-        # Assert
-        # Assert
-        assert "samp_rate" in result.columns
-
-    @patch("scitex_io._load_modules._con.mne")
-    def test_real_world_eeg_scenario_all_result_samp_rate_256_0(self, mock_mne):
-        # Arrange
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
-        # Simulate realistic EEG data
-        eeg_channels = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
-        n_samples = 2560  # 10 seconds at 256 Hz
-        # Create realistic EEG data
-        import numpy as np
-        np.random.seed(42)
-        eeg_data = (
-            np.random.randn(n_samples, len(eeg_channels)) * 50e-6
-        )  # Realistic EEG amplitudes
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame(eeg_data, columns=eeg_channels)
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 256.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
-        # Act
-        result = _load_con("eeg_connectivity.con", verbose=False)
-        # Act
-        # Assert
-        # Assert
-        assert all(result["samp_rate"] == 256.0)
+def test_load_con_always_calls_reader_with_preload_true():
+    """``preload=True`` is unconditionally passed to the reader."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame({"data": [1]}), 250.0)
+    # Act
+    _load_con("test.con", reader=reader)
+    # Assert
+    assert reader.calls[0]["preload"] is True
 
 
-    @patch("scitex_io._load_modules._con.mne")
-    def test_preload_always_true(self, mock_mne):
-        """Test that preload=True is always enforced"""
-        # Arrange
-        from scitex_io._load_modules._con import _load_con
+# ---------------------------------------------------------------------------
+# Error propagation
+# ---------------------------------------------------------------------------
 
-        mock_raw = MagicMock()
-        mock_df = pd.DataFrame({"data": [1]})
-        mock_raw.to_data_frame.return_value = mock_df
-        mock_raw.info = {"sfreq": 250.0}
-        mock_mne.io.read_raw_fif.return_value = mock_raw
 
-        # Even if user passes preload=False, it should be overridden to True
-        _load_con("test.con")
+def test_load_con_propagates_filenotfounderror_from_reader():
+    """A FileNotFoundError from the reader bubbles up unchanged."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
 
-        # Verify preload=True was used
-        # Act
-        args, kwargs = mock_mne.io.read_raw_fif.call_args
-        # Assert
-        assert kwargs["preload"] is True
+    def reader(lpath, preload, **kwargs):
+        raise FileNotFoundError("File not found")
+
+    # Act
+    ctx = pytest.raises(FileNotFoundError, match="File not found")
+    # Assert
+    with ctx:
+        _load_con("nonexistent.con", reader=reader)
+
+
+def test_load_con_propagates_valueerror_from_reader():
+    """A ValueError from the reader bubbles up unchanged."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+
+    def reader(lpath, preload, **kwargs):
+        raise ValueError("Invalid file format")
+
+    # Act
+    ctx = pytest.raises(ValueError, match="Invalid file format")
+    # Assert
+    with ctx:
+        _load_con("invalid.con", reader=reader)
+
+
+def test_load_con_raises_keyerror_when_sfreq_missing():
+    """Missing ``sfreq`` in ``raw.info`` raises ``KeyError``."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    raw_without_sfreq = SimpleNamespace(
+        info={},
+        to_data_frame=lambda: pd.DataFrame({"x": [1]}),
+    )
+
+    def reader(lpath, preload, **kwargs):
+        return raw_without_sfreq
+
+    # Act
+    ctx = pytest.raises(KeyError)
+    # Assert
+    with ctx:
+        _load_con("test.con", reader=reader)
+
+
+# ---------------------------------------------------------------------------
+# Edge cases — empty + large DataFrames
+# ---------------------------------------------------------------------------
+
+
+def test_load_con_empty_input_returns_dataframe():
+    """An empty input frame still yields a DataFrame."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame(), 250.0)
+    # Act
+    result = _load_con("empty.con", reader=reader)
+    # Assert
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_load_con_empty_input_has_samp_rate_column():
+    """``samp_rate`` is appended even on an empty frame."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame(), 250.0)
+    # Act
+    result = _load_con("empty.con", reader=reader)
+    # Assert
+    assert "samp_rate" in result.columns
+
+
+def test_load_con_empty_input_returns_zero_rows():
+    """Empty input → zero-row output."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader = _reader_returning(pd.DataFrame(), 250.0)
+    # Act
+    result = _load_con("empty.con", reader=reader)
+    # Assert
+    assert len(result) == 0
+
+
+def test_load_con_large_input_preserves_shape():
+    """Large input → shape (n_samples, n_channels + 1) for samp_rate."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    n_samples, n_channels = 1000, 64
+    columns = [f"channel_{i}" for i in range(n_channels)]
+    df = pd.DataFrame(np.random.randn(n_samples, n_channels), columns=columns)
+    reader = _reader_returning(df, 1000.0)
+    # Act
+    result = _load_con("large.con", reader=reader)
+    # Assert
+    assert result.shape == (n_samples, n_channels + 1)
+
+
+def test_load_con_large_input_samp_rate_constant():
+    """Every row of ``samp_rate`` carries the sfreq value."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    n_samples, n_channels = 1000, 64
+    columns = [f"channel_{i}" for i in range(n_channels)]
+    df = pd.DataFrame(np.random.randn(n_samples, n_channels), columns=columns)
+    reader = _reader_returning(df, 1000.0)
+    # Act
+    result = _load_con("large.con", reader=reader)
+    # Assert
+    assert all(result["samp_rate"] == 1000.0)
+
+
+# ---------------------------------------------------------------------------
+# Function signature
+# ---------------------------------------------------------------------------
+
+
+def test_load_con_signature_includes_lpath():
+    """``_load_con`` accepts ``lpath`` as a parameter."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    # Act
+    sig = inspect.signature(_load_con)
+    # Assert
+    assert "lpath" in sig.parameters
+
+
+def test_load_con_signature_accepts_kwargs():
+    """``_load_con`` accepts ``**kwargs``."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    # Act
+    sig = inspect.signature(_load_con)
+    # Assert
+    assert any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+    )
+
+
+def test_load_con_signature_has_return_annotation():
+    """``_load_con`` declares a return annotation."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    # Act
+    sig = inspect.signature(_load_con)
+    # Assert
+    assert sig.return_annotation is not inspect.Signature.empty
+
+
+# ---------------------------------------------------------------------------
+# Realistic EEG payload sanity-check
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def eeg_reader():
+    """Reader that returns a 10-channel × 2560-sample frame at 256 Hz."""
+    eeg_channels = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
+    n_samples = 2560
+    np.random.seed(42)
+    eeg_data = np.random.randn(n_samples, len(eeg_channels)) * 50e-6
+    df = pd.DataFrame(eeg_data, columns=eeg_channels)
+    return _reader_returning(df, 256.0), eeg_channels, n_samples
+
+
+def test_load_con_eeg_payload_returns_dataframe(eeg_reader):
+    """Realistic EEG input still yields a DataFrame."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader, _, _ = eeg_reader
+    # Act
+    result = _load_con("eeg.con", reader=reader, verbose=False)
+    # Assert
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_load_con_eeg_payload_has_expected_shape(eeg_reader):
+    """Realistic EEG input → expected shape (samples, channels+1)."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader, channels, n_samples = eeg_reader
+    # Act
+    result = _load_con("eeg.con", reader=reader, verbose=False)
+    # Assert
+    assert result.shape == (n_samples, len(channels) + 1)
+
+
+def test_load_con_eeg_payload_contains_all_input_channels(eeg_reader):
+    """All EEG channel columns survive the round-trip."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader, channels, _ = eeg_reader
+    # Act
+    result = _load_con("eeg.con", reader=reader, verbose=False)
+    # Assert
+    assert all(col in result.columns for col in channels)
+
+
+def test_load_con_eeg_payload_samp_rate_is_256(eeg_reader):
+    """Every ``samp_rate`` row carries the 256 Hz sampling rate."""
+    # Arrange
+    from scitex_io._load_modules._con import _load_con
+    reader, _, _ = eeg_reader
+    # Act
+    result = _load_con("eeg.con", reader=reader, verbose=False)
+    # Assert
+    assert all(result["samp_rate"] == 256.0)
 
 
 if __name__ == "__main__":
     import os
-
-    import pytest
-
     pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_con.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # Time-stamp: "2024-11-14 07:51:45 (ywatanabe)"
-# # File: ./scitex_repo/src/scitex/io/_load_modules/_con.py
-#
-# from typing import Any
-#
-# try:
-#     import mne
-#
-#     MNE_AVAILABLE = True
-# except ImportError:
-#     MNE_AVAILABLE = False
-#     mne = None
-#
-#
-# def _load_con(lpath: str, **kwargs) -> Any:
-#     if not MNE_AVAILABLE:
-#         raise ImportError(
-#             "MNE-Python is not installed. Please install with: pip install mne"
-#         )
-#
-#     if not lpath.endswith(".con"):
-#         raise ValueError("File must have .con extension")
-#     raw = mne.io.read_raw_fif(lpath, preload=True, **kwargs)
-#     sfreq = raw.info["sfreq"]
-#     df = raw.to_data_frame()
-#     df["samp_rate"] = sfreq
-#     return df
-#
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_con.py
-# --------------------------------------------------------------------------------

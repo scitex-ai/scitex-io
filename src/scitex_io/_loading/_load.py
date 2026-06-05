@@ -31,6 +31,33 @@ def load(
     cache: bool = True,
     **kwargs,
 ) -> Any:
+    """Public wrapper around :func:`_load_impl` that fires post-load hooks.
+
+    Glob expansion is handled inside ``_load_impl``; the inner
+    per-file recursion already routes through ``load`` so each match
+    fires its own hook. Only the outer non-glob path fires once here.
+    """
+    result = _load_impl(
+        lpath, ext=ext, show=show, verbose=verbose, cache=cache, **kwargs
+    )
+    # Notify observers (clew, audit, …) for non-glob loads. Glob calls
+    # recurse through load() and fire per-file. See _hooks.
+    is_glob = isinstance(lpath, str) and ("*" in lpath or "?" in lpath or "[" in lpath)
+    if not is_glob:
+        from .._observers import fire_post_load
+
+        fire_post_load(Path(lpath), result)
+    return result
+
+
+def _load_impl(
+    lpath: Union[str, Path],
+    ext: str = None,
+    show: bool = False,
+    verbose: bool = False,
+    cache: bool = True,
+    **kwargs,
+) -> Any:
     """
     Load data from various file formats.
 
@@ -138,17 +165,31 @@ def load(
             return cached_data
 
     # Determine extension: use explicit ext parameter or detect from filename
+    compound_ext = None
     if ext is not None:
         detected_ext = ext.lstrip(".")
     else:
+        # Compound extensions contributed by optional providers (e.g.
+        # figrecipe's .fig.zip / .plt.zip) take precedence over the bare
+        # last-segment extension.
+        from .._optional_providers import OPTIONAL_COMPOUND_EXTS
+
+        _lpath_lower = lpath.lower()
+        for _compound in OPTIONAL_COMPOUND_EXTS:
+            if _lpath_lower.endswith(_compound):
+                compound_ext = _compound
+                break
         detected_ext = lpath.split(".")[-1] if "." in lpath else ""
 
     # Special handling for numpy files with caching
     if cache and detected_ext in ["npy", "npz"]:
         return load_npy_cached(lpath, **kwargs)
 
-    # Registry lookup (normalized with dot)
-    loader = get_loader(f".{detected_ext}" if detected_ext else "")
+    # Registry lookup (normalized with dot). Compound exts win.
+    if compound_ext is not None:
+        loader = get_loader(compound_ext)
+    else:
+        loader = get_loader(f".{detected_ext}" if detected_ext else "")
     if loader is None:
         raise ValueError(
             f"No load handler registered for '.{detected_ext}'. "

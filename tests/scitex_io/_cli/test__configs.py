@@ -24,165 +24,119 @@ def config_dir(tmp_path: Path) -> Path:
 
 
 class TestLoadConfigs:
-    def test_help_res_exit_code_equals_n_0(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(load_configs_cmd, ["--help"])
-        # Act
-        # Assert
-        # Assert
-        assert res.exit_code == 0
+    @pytest.fixture
+    def help_res(self, runner):
+        return runner.invoke(load_configs_cmd, ["--help"])
 
-    def test_help_usage_in_res_output(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(load_configs_cmd, ["--help"])
-        # Act
-        # Assert
-        # Assert
-        assert "Usage:" in res.output
+    @pytest.fixture
+    def pretty_res(self, runner, config_dir):
+        return runner.invoke(load_configs_cmd, ["-d", str(config_dir)])
 
-    def test_help_yaml_in_res_output_or_configuration_in_res_output(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(load_configs_cmd, ["--help"])
-        # Act
-        # Assert
-        # Assert
-        assert "YAML" in res.output or "configuration" in res.output
+    @pytest.fixture
+    def json_res(self, runner, config_dir):
+        return runner.invoke(load_configs_cmd, ["-d", str(config_dir), "--json"])
 
+    @pytest.fixture
+    def json_payload(self, json_res):
+        return json.loads(json_res.output)
 
-    def test_default_pretty_res_exit_code_equals_n_0(self, runner, config_dir):
-        # Arrange
+    def test_help_flag_exits_with_zero_status(self, help_res):
         # Arrange
         # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir)])
-        # Act
         # Assert
-        # Assert
-        assert res.exit_code == 0, res.output
+        assert help_res.exit_code == 0
 
-    def test_default_pretty_config_dir_in_res_output(self, runner, config_dir):
-        # Arrange
+    def test_help_flag_output_has_usage_line(self, help_res):
         # Arrange
         # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir)])
-        # Act
         # Assert
-        # Assert
-        assert "Config dir:" in res.output
+        assert "Usage:" in help_res.output
 
-    def test_default_pretty_namespaces_in_res_output(self, runner, config_dir):
-        # Arrange
+    def test_help_flag_mentions_yaml_or_configuration(self, help_res):
         # Arrange
         # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir)])
-        # Act
         # Assert
-        # Assert
-        assert "Namespaces:" in res.output
+        assert "YAML" in help_res.output or "configuration" in help_res.output
 
-    def test_default_pretty_path_in_res_output_or_params_in_res_output(self, runner, config_dir):
-        # Arrange
+    def test_pretty_run_exits_with_zero_status(self, pretty_res):
         # Arrange
         # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir)])
-        # Act
         # Assert
-        # Assert
-        assert "PATH" in res.output or "PARAMS" in res.output
+        assert pretty_res.exit_code == 0, pretty_res.output
 
+    def test_pretty_run_shows_config_dir_label(self, pretty_res):
+        # Arrange
+        # Act
+        # Assert
+        assert "Config dir:" in pretty_res.output
 
-    def test_json_output_res_exit_code_equals_n_0(self, runner, config_dir):
-        # Arrange
+    def test_pretty_run_shows_namespaces_label(self, pretty_res):
         # Arrange
         # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir), "--json"])
-        # Act
         # Assert
-        # Assert
-        assert res.exit_code == 0, res.output
+        assert "Namespaces:" in pretty_res.output
 
-    def test_json_output_payload_is_dict(self, runner, config_dir):
-        # Arrange
+    def test_pretty_run_mentions_at_least_one_known_namespace(self, pretty_res):
         # Arrange
         # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir), "--json"])
         # Assert
-        assert res.exit_code == 0, res.output
-        payload = json.loads(res.output)
-        # Act
-        # Assert
-        assert isinstance(payload, dict)
+        assert "PATH" in pretty_res.output or "PARAMS" in pretty_res.output
 
-    def test_json_output_path_in_payload_or_params_in_payload(self, runner, config_dir):
+    def test_json_run_exits_with_zero_status(self, json_res):
         # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(load_configs_cmd, ["-d", str(config_dir), "--json"])
-        # Assert
-        assert res.exit_code == 0, res.output
-        payload = json.loads(res.output)
         # Act
         # Assert
-        assert "PATH" in payload or "PARAMS" in payload
+        assert json_res.exit_code == 0, json_res.output
 
-
-    def test_verbose_debug_res_exit_code_equals_n_0(self, runner, config_dir):
+    def test_json_payload_is_dict_type(self, json_payload):
         # Arrange
         # Act
+        # Assert
+        assert isinstance(json_payload, dict)
+
+    def test_json_payload_has_at_least_one_known_namespace(self, json_payload):
+        # Arrange
+        # Act
+        # Assert
+        assert "PATH" in json_payload or "PARAMS" in json_payload
+
+    def test_verbose_debug_run_exits_with_zero_status(self, runner, config_dir):
         # Arrange
         # Act
         res = runner.invoke(load_configs_cmd, ["-d", str(config_dir), "--debug", "-v"])
         # Assert
-        # Assert
         assert res.exit_code == 0, res.output
 
-    def test_no_debug_flag(self, runner, config_dir):
-        # Arrange
-        # Act
+    def test_no_debug_flag_run_exits_with_zero_status(self, runner, config_dir):
         # Arrange
         # Act
         res = runner.invoke(load_configs_cmd, ["-d", str(config_dir), "--no-debug"])
         # Assert
-        # Assert
         assert res.exit_code == 0, res.output
 
     def test_missing_dir_does_not_crash(self, runner, tmp_path):
-        # load_configs tolerates missing dir (returns empty); cmd should still exit 0
-        # Arrange
         # Arrange
         missing = tmp_path / "nope"
         # Act
-        # Act
         res = runner.invoke(load_configs_cmd, ["-d", str(missing)])
-        # Either succeeds with empty namespaces, or surfaces error — both acceptable
         # Assert
-        # Assert
+        # Either succeeds with empty namespaces, or surfaces error — both acceptable.
         assert res.exit_code in (0, 1, 2)
 
 
 class TestConfigsDeprecated:
-    def test_emits_redirect_and_exit_2_res_exit_code_equals_n_2(self, runner):
-        # Arrange
-        # Arrange
-        # Act
-        res = runner.invoke(configs_deprecated, [])
-        # Act
-        # Assert
-        # Assert
-        assert res.exit_code == 2
+    @pytest.fixture
+    def deprecated_res(self, runner):
+        return runner.invoke(configs_deprecated, [])
 
-    def test_emits_redirect_and_exit_2_load_configs_in_res_output(self, runner):
-        # Arrange
+    def test_deprecated_invoke_exits_with_status_2(self, deprecated_res):
         # Arrange
         # Act
-        res = runner.invoke(configs_deprecated, [])
-        # Act
         # Assert
-        # Assert
-        assert "load-configs" in res.output
+        assert deprecated_res.exit_code == 2
 
+    def test_deprecated_invoke_redirects_to_load_configs(self, deprecated_res):
+        # Arrange
+        # Act
+        # Assert
+        assert "load-configs" in deprecated_res.output

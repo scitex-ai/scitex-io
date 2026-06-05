@@ -4,40 +4,52 @@
 # ./src/scitex/io/_cache.py
 
 
-import os
+import os as _os
 import pickle
 import sys
 from pathlib import Path
 
 
-def cache(id, *args):
+def _default_cache_dir() -> Path:
+    """Canonical cache directory for scitex-io.
+
+    Returns ``$SCITEX_DIR/io/runtime/cache/`` (defaulting to
+    ``~/.scitex/io/runtime/cache/``), creating it on first use.
+    Follows the scitex local-state-directories convention — see
+    scitex-dev skills/general ``01_ecosystem/06_local-state-directories.md`` §4c.
     """
-    Store or fetch data using a pickle file.
+    scitex_dir = _os.environ.get(
+        "SCITEX_DIR",
+        _os.path.join(_os.path.expanduser("~"), ".scitex"),
+    )
+    d = Path(scitex_dir) / "io" / "runtime" / "cache"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
-    This function provides a simple caching mechanism for storing and retrieving
-    Python objects. It uses pickle to serialize the data and stores it in a file
-    with a unique identifier. If the data is already cached, it can be retrieved
-    without recomputation.
 
-    Parameters:
-    -----------
-    id : str
-        A unique identifier for the cache file.
-    *args : str
-        Variable names to be cached or loaded.
+def cache(id, *args, cache_root=None):
+    """Store or fetch data using a pickle file.
 
-    Returns:
-    --------
-    tuple
-        A tuple of cached values corresponding to the input variable names.
+    This function provides a simple caching mechanism for storing and
+    retrieving Python objects. It uses pickle to serialize the data
+    and stores it in a file with a unique identifier. If the data is
+    already cached, it can be retrieved without recomputation.
 
-    Raises:
+    :param id: A unique identifier for the cache file.
+    :type id: str
+    :param \\*args: Variable names to be cached or loaded.
+    :type \\*args: str
+    :param cache_root: Explicit cache directory. Defaults to
+        ``$SCITEX_DIR/io/runtime/cache/`` (``~/.scitex/io/runtime/cache/``
+        fallback), honouring the canonical scitex local-state convention.
+    :type cache_root: Path or None, optional
+    :returns: A tuple of cached values corresponding to the input variable names.
+    :rtype: tuple
+    :raises ValueError: If the cache file is not found and not all variables
+        are defined.
+
+    Example
     -------
-    ValueError
-        If the cache file is not found and not all variables are defined.
-
-    Example:
-    --------
     >>> import scitex
     >>> import numpy as np
     >>>
@@ -55,7 +67,10 @@ def cache(id, *args):
     >>> var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
     >>> print(var1, var2, var3)
     """
-    cache_dir = Path.home() / ".cache" / "your_app_name"
+    if cache_root is not None:
+        cache_dir = Path(cache_root)
+    else:
+        cache_dir = _default_cache_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"{id}.pkl"
 
@@ -83,8 +98,8 @@ def cache(id, *args):
 
 # Usage example
 if __name__ == "__main__":
-    import scitex
     import numpy as np
+    import scitex
 
     # Variables to cache
     var1 = "x"

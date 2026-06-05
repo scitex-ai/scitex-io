@@ -1,12 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Image save handler with CSV data export and legend separation."""
+"""Image save handler with CSV data export and legend separation.
+
+The ``save_image`` callable lives in ``_save_modules._image`` and pulls
+PIL/matplotlib at import. To keep ``import scitex_io`` (and JSON-only
+``save`` paths) free of those heavy imports, the handler is resolved
+lazily here via :func:`_get_save_image` — it is only ever called by
+:func:`handle_image_with_csv`, which itself only runs when the user
+saves an image extension.
+"""
 
 import os as _os
 import warnings
 
-from ._save_modules import save_image
 from ._utils import color_text, getsize, readable_bytes
+
+
+def _get_save_image():
+    """Import ``save_image`` on first use; cache locally for speed."""
+    from ._save_modules._image import save_image
+
+    return save_image
 
 
 def _get_figure_with_data(obj):
@@ -107,7 +121,7 @@ def _save_separate_legends(obj, spath, symlink_from_cwd=False, dry_run=False, **
         legend_fig.tight_layout()
 
         legend_filename = f"{base_path}_{legend_params['axis_id']}_legend{ext}"
-        save_image(legend_fig, legend_filename, **kwargs)
+        _get_save_image()(legend_fig, legend_filename, **kwargs)
         plt.close(legend_fig)
 
         if not dry_run and _os.path.exists(legend_filename):
@@ -146,7 +160,7 @@ def handle_image_with_csv(
     if dry_run:
         return
 
-    save_image(obj, spath, **kwargs)
+    _get_save_image()(obj, spath, **kwargs)
 
     _save_separate_legends(
         obj, spath, symlink_from_cwd=symlink_from_cwd, dry_run=dry_run, **kwargs

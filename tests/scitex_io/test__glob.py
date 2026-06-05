@@ -7,8 +7,6 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 # Required for scitex.io module
@@ -730,27 +728,35 @@ class TestGlobIntegration:
         # Assert
         assert len(parsed) == 6
 
-    def test_glob_parse_integration_n_2022_in_years_and_2023_in_years(self, tmp_path):
-        # Arrange
+    def test_glob_parse_integration_2022_in_years(self, tmp_path):
         # Arrange
         from scitex_io import glob
-        # Create structured data
         for year in [2022, 2023]:
             for month in [1, 2, 12]:
                 dir_path = tmp_path / f"data_{year}_{month:02d}"
                 dir_path.mkdir()
                 (dir_path / "report.txt").touch()
-        # Parse structured pattern
         pattern = str(tmp_path / "data_{year}_{month}" / "report.txt")
         # Act
-        paths, parsed = glob(pattern, parse=True)
-        # Assert
-        assert len(parsed) == 6
-        # Check parsing worked correctly - parser converts to integers
+        _paths, parsed = glob(pattern, parse=True)
         years = [p["year"] for p in parsed]
-        # Act
         # Assert
-        assert 2022 in years and 2023 in years
+        assert 2022 in years
+
+    def test_glob_parse_integration_2023_in_years(self, tmp_path):
+        # Arrange
+        from scitex_io import glob
+        for year in [2022, 2023]:
+            for month in [1, 2, 12]:
+                dir_path = tmp_path / f"data_{year}_{month:02d}"
+                dir_path.mkdir()
+                (dir_path / "report.txt").touch()
+        pattern = str(tmp_path / "data_{year}_{month}" / "report.txt")
+        # Act
+        _paths, parsed = glob(pattern, parse=True)
+        years = [p["year"] for p in parsed]
+        # Assert
+        assert 2023 in years
 
 
     def test_glob_empty_directory(self, tmp_path):

@@ -17,31 +17,35 @@ from scitex_io._metadata_modules.embed_metadata_png import embed_metadata_png
 class TestEmbedMetadataPng:
     """Tests for embed_metadata_png function."""
 
-    def test_embed_simple_metadata(self):
-        """Test embedding simple metadata into PNG."""
+    def test_embed_simple_metadata_writes_scitex_chunk(self, tmp_path):
+        """The embedded chunk is present under the expected key."""
         # Arrange
+        png_path = tmp_path / "simple.png"
+        img = Image.new("RGB", (100, 100), "red")
+        img.save(str(png_path))
+        img.close()
+        metadata = {"test": "value", "number": 42}
+        embed_metadata_png(str(png_path), json.dumps(metadata))
         # Act
+        with Image.open(str(png_path)) as img:
+            keys = list(img.info)
         # Assert
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            png_path = f.name
+        assert "scitex_metadata" in keys
 
-        try:
-            # Create test image
-            img = Image.new("RGB", (100, 100), "red")
-            img.save(png_path)
-            img.close()
-
-            # Embed metadata
-            metadata = {"test": "value", "number": 42}
-            metadata_json = json.dumps(metadata)
-            embed_metadata_png(png_path, metadata_json)
-
-            # Verify metadata was embedded
-            with Image.open(png_path) as img:
-                assert "scitex_metadata" in img.info
-                assert json.loads(img.info["scitex_metadata"]) == metadata
-        finally:
-            os.unlink(png_path)
+    def test_embed_simple_metadata_chunk_decodes_to_input(self, tmp_path):
+        """The embedded chunk round-trips back to the original dict."""
+        # Arrange
+        png_path = tmp_path / "simple.png"
+        img = Image.new("RGB", (100, 100), "red")
+        img.save(str(png_path))
+        img.close()
+        metadata = {"test": "value", "number": 42}
+        embed_metadata_png(str(png_path), json.dumps(metadata))
+        # Act
+        with Image.open(str(png_path)) as img:
+            decoded = json.loads(img.info["scitex_metadata"])
+        # Assert
+        assert decoded == metadata
 
     def test_embed_overwrites_existing_metadata(self):
         """Test that new metadata overwrites existing metadata."""

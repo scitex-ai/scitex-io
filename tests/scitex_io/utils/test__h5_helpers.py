@@ -416,20 +416,16 @@ def test_migrate_dataset_numeric_out_is_not_none(tmp_path):
 
 def test_migrate_dataset_numeric_out_dtype_equals_np_float32(tmp_path):
     # Arrange
-    # Arrange
     p = _make_h5(
         tmp_path, lambda f: f.create_dataset("d", data=np.arange(20, dtype="float32"))
     )
     z_store = zarr.open(str(tmp_path / "dst.zarr"), mode="w")
-    # Act
     with h5py.File(p, "r") as f:
         out = migrate_dataset(f["d"], z_store, "d", compressor=None, chunks=True)
-    # Assert
-    assert out is not None
-    np.testing.assert_array_equal(out[:], np.arange(20, dtype="float32"))
     # Act
+    result = out.dtype
     # Assert
-    assert out.dtype == np.float32
+    assert result == np.float32
 
 
 
@@ -549,7 +545,6 @@ def test_migrate_dataset_object_string_array_out_is_not_none(tmp_path):
 
 def test_migrate_dataset_object_string_array_vals_equals_a_bb_ccc(tmp_path):
     # Arrange
-    # Arrange
     def build(f):
         data = np.array(["a", "bb", "ccc"], dtype=object)
         f.create_dataset(
@@ -559,13 +554,10 @@ def test_migrate_dataset_object_string_array_vals_equals_a_bb_ccc(tmp_path):
         )
     p = _make_h5(tmp_path, build)
     z_store = zarr.open(str(tmp_path / "dst.zarr"), mode="w")
-    # Act
     with h5py.File(p, "r") as f:
         out = migrate_dataset(f["arr"], z_store, "arr", compressor=None)
-    # Assert
-    assert out is not None
-    vals = list(out[:])
     # Act
+    vals = list(out[:])
     # Assert
     assert vals == ["a", "bb", "ccc"]
 
@@ -634,7 +626,6 @@ def test_migrate_group_with_nested_z_store_attrs_root_attr_root(tmp_path):
 
 def test_migrate_group_with_nested_z_store_g_attrs_ga_7(tmp_path):
     # Arrange
-    # Arrange
     p = tmp_path / "nested.h5"
     with h5py.File(p, "w") as f:
         f.attrs["root_attr"] = "root"
@@ -646,15 +637,12 @@ def test_migrate_group_with_nested_z_store_g_attrs_ga_7(tmp_path):
         h.create_dataset("deep", data=np.array([[1.0, 2.0]]))
     z_path = tmp_path / "nested.zarr"
     z_store = zarr.open(str(z_path), mode="w")
-    # Act
     with h5py.File(p, "r") as f:
         migrate_group(f, z_store, compressor=None, chunks=True, show_progress=True)
-    # Assert
-    assert z_store.attrs["root_attr"] == "root"
-    np.testing.assert_array_equal(z_store["a"][:], np.arange(5))
     # Act
+    result = z_store["g"].attrs["ga"]
     # Assert
-    assert z_store["g"].attrs["ga"] == 7
+    assert result == 7
 
 
 
@@ -664,11 +652,6 @@ def test_migrate_group_with_nested_z_store_g_attrs_ga_7(tmp_path):
 # -----------------------------
 def test_validate_migration_passes(tmp_path):
     # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
     p = tmp_path / "v.h5"
     with h5py.File(p, "w") as f:
         f.create_dataset("a", data=np.arange(10))
@@ -677,9 +660,14 @@ def test_validate_migration_passes(tmp_path):
 
     z_path = tmp_path / "v.zarr"
     z_store = zarr.open(str(z_path), mode="w")
+    completed = False
+    # Act
     with h5py.File(p, "r") as f:
         migrate_group(f, z_store, compressor=None, chunks=True)
         validate_migration(f, z_store, show_progress=True)
+    completed = True
+    # Assert
+    assert completed
 
 
 def test_validate_migration_shape_mismatch_raises(tmp_path):
@@ -765,21 +753,17 @@ def test_migrate_dataset_large_show_progress_out_is_not_none(tmp_path, capsys):
 
 def test_migrate_dataset_large_show_progress_migrating_large_dataset_in_captured_out(tmp_path, capsys):
     # Arrange
-    # Arrange
     p = tmp_path / "big.h5"
     with h5py.File(p, "w") as f:
         # ~1.1M elements > 1e6 threshold
         f.create_dataset("big", data=np.zeros((1_200, 1_000), dtype="float32"))
     z_store = zarr.open(str(tmp_path / "big.zarr"), mode="w")
-    # Act
     with h5py.File(p, "r") as f:
-        out = migrate_dataset(
+        migrate_dataset(
             f["big"], z_store, "big", compressor=None, chunks=True, show_progress=True
         )
-    # Assert
-    assert out is not None
-    captured = capsys.readouterr()
     # Act
+    captured = capsys.readouterr()
     # Assert
     assert "Migrating large dataset" in captured.out
 

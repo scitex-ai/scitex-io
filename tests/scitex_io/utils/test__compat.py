@@ -124,18 +124,17 @@ def test_real_path_not_found_raises(tmp_path):
 
 def test_real_check_file_exists_on_existing_file(tmp_path):
     # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
     from scitex_io.utils import _compat
 
     importlib.reload(_compat)
     p = tmp_path / "x.txt"
     p.write_text("hi")
-    # Should not raise
+    completed = False
+    # Act
     _compat.check_file_exists(str(p))
+    completed = True
+    # Assert
+    assert completed
 
 
 def test_real_warn_data_loss_emits_warning():
@@ -158,12 +157,9 @@ def test_real_warn_data_loss_emits_warning():
         assert any("dset_x" in str(w.message) for w in caught) or len(caught) > 0
 
 
-def test_fallback_branch_via_module_blocking():
-    """Force the ImportError branch by hiding scitex_logging in sys.modules."""
-    # Snapshot
-    # Arrange
-    # Act
-    # Assert
+@pytest.fixture
+def fallback_compat():
+    """Reload _compat with scitex_logging blocked, yielding the fallback module."""
     saved_scitex_logging = {
         k: sys.modules[k] for k in list(sys.modules) if k.startswith("scitex_logging")
     }
@@ -174,46 +170,14 @@ def test_fallback_branch_via_module_blocking():
         if k == "scitex_logging" or k.startswith("scitex_logging."):
             del sys.modules[k]
 
-    # Insert sentinels that raise on attribute access -- simpler: use a
-    # MetaPathFinder. But the easiest is to set sys.modules entries to None,
-    # which causes ImportError on import.
+    # Setting a sys.modules entry to None causes ImportError on import.
     sys.modules["scitex_logging"] = None  # type: ignore[assignment]
 
     try:
         compat = importlib.import_module("scitex_io.utils._compat")
         importlib.reload(compat)
-
-        assert compat.SCITEX_ERRORS_AVAILABLE is False
-
-        # Exercise fallback SciTeXIOError
-        err = compat.SciTeXIOError("boom", context={"a": 1}, suggestion="try again")
-        assert "boom" in str(err)
-        assert isinstance(err, Exception)
-
-        # Exercise fallback FileFormatError
-        ferr = compat.FileFormatError("/p", expected_format="hdf5", actual_format="x")
-        assert "/p" in str(ferr)
-
-        # Exercise fallback PathNotFoundError
-        assert issubclass(compat.PathNotFoundError, FileNotFoundError)
-
-        # Exercise fallback check_file_exists raising
-        with pytest.raises(FileNotFoundError):
-            compat.check_file_exists("/definitely/does/not/exist/zzz")
-
-        # Existing path: no raise
-        compat.check_file_exists(__file__)
-
-        # check_path: no-op
-        assert compat.check_path("/anywhere") is None
-
-        # warn_data_loss: emits a warning
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            compat.warn_data_loss("D", "lose it")
-        assert any("D" in str(w.message) for w in caught)
+        yield compat
     finally:
-        # Restore
         sys.modules.pop("scitex_logging", None)
         for k, v in saved_scitex_logging.items():
             sys.modules[k] = v
@@ -224,3 +188,89 @@ def test_fallback_branch_via_module_blocking():
         # Reload to restore real branch for other tests
         importlib.import_module("scitex_io.utils._compat")
         importlib.reload(sys.modules["scitex_io.utils._compat"])
+
+
+def test_fallback_branch_sets_scitex_errors_available_false(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    flag = compat.SCITEX_ERRORS_AVAILABLE
+    # Assert
+    assert flag is False
+
+
+def test_fallback_scitex_io_error_includes_message(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    err = compat.SciTeXIOError("boom", context={"a": 1}, suggestion="try again")
+    # Assert
+    assert "boom" in str(err)
+
+
+def test_fallback_scitex_io_error_is_exception(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    err = compat.SciTeXIOError("boom", context={"a": 1}, suggestion="try again")
+    # Assert
+    assert isinstance(err, Exception)
+
+
+def test_fallback_file_format_error_includes_path(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    ferr = compat.FileFormatError("/p", expected_format="hdf5", actual_format="x")
+    # Assert
+    assert "/p" in str(ferr)
+
+
+def test_fallback_path_not_found_error_subclasses_file_not_found(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    cls = compat.PathNotFoundError
+    # Assert
+    assert issubclass(cls, FileNotFoundError)
+
+
+def test_fallback_check_file_exists_raises_for_missing_path(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    ctx = pytest.raises(FileNotFoundError)
+    # Assert
+    with ctx:
+        compat.check_file_exists("/definitely/does/not/exist/zzz")
+
+
+def test_fallback_check_file_exists_does_not_raise_for_existing_path(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    completed = False
+    # Act
+    compat.check_file_exists(__file__)
+    completed = True
+    # Assert
+    assert completed
+
+
+def test_fallback_check_path_returns_none(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    result = compat.check_path("/anywhere")
+    # Assert
+    assert result is None
+
+
+def test_fallback_warn_data_loss_mentions_dataset_name(fallback_compat):
+    # Arrange
+    compat = fallback_compat
+    # Act
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        compat.warn_data_loss("D", "lose it")
+    # Assert
+    assert any("D" in str(w.message) for w in caught)

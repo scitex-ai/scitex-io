@@ -265,8 +265,7 @@ def test_save_bibtex_list_of_entries_len_entries_out_is_2(tmp_path):
     assert len(entries_out) == 2
 
 
-def test_save_bibtex_list_of_entries_a1_in_keys_and_b1_in_keys(tmp_path):
-    # Arrange
+def test_save_bibtex_list_of_entries_preserves_keys(tmp_path):
     # Arrange
     p = str(tmp_path / "b.bib")
     entries_in = [
@@ -276,10 +275,7 @@ def test_save_bibtex_list_of_entries_a1_in_keys_and_b1_in_keys(tmp_path):
     save_bibtex(entries_in, p)
     # Act
     entries_out = _load_bibtex(p)
-    # Assert
-    assert len(entries_out) == 2
     keys = [e["key"] for e in entries_out]
-    # Act
     # Assert
     assert "a1" in keys and "b1" in keys
 
