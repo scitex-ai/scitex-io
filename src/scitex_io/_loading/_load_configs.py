@@ -160,7 +160,22 @@ def load_configs(
             return config
 
         for key, value in list(config.items()):
-            if key.startswith(("DEBUG_", "debug_")):
+            # YAML mapping keys can be non-string (ints, etc.) — e.g.
+            # SEIZURE.yaml's INT2STR / INT2COLOR carry literal integer
+            # event-code keys. `str.startswith` would raise
+            # `AttributeError: 'int' object has no attribute 'startswith'`
+            # on those, the outer try in `load_configs` would swallow it
+            # as `Error loading configs: ...` and return an empty
+            # DotDict — and the user sees the cryptic downstream
+            # `'DotDict' object has no attribute 'PAC'`. Only the
+            # `DEBUG_<key>` / `debug_<key>` promotion rule applies to
+            # strings; non-string keys are silently recursed into when
+            # they nest another mapping but never pattern-matched.
+            is_debug_prefixed = (
+                isinstance(key, str)
+                and key.startswith(("DEBUG_", "debug_"))
+            )
+            if is_debug_prefixed:
                 dk_wo_debug_prefix = key.split("_", 1)[1]
                 config[dk_wo_debug_prefix] = value
                 if show or verbose:

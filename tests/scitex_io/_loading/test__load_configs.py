@@ -470,6 +470,75 @@ class TestDebugPromotion:
         # Assert
         assert "DEBUG_param -> param" in capsys.readouterr().out
 
+    def test_debug_mode_preserves_int_key_in_nested_mapping(
+        self, config_dir, ci_env_unset
+    ):
+        """Regression: nested mappings with int keys must not crash the
+        debug-promotion pass.
+
+        ``apply_debug_values`` iterates ``config.items()`` and calls
+        ``key.startswith(...)`` on each key. YAML lets a mapping carry
+        non-string keys (a literal ``-1:`` or ``1:`` becomes an int);
+        the prior implementation would raise
+        ``AttributeError: 'int' object has no attribute 'startswith'``
+        as soon as the recursion reached such a mapping with
+        ``IS_DEBUG=True``. The outer ``try`` in ``load_configs`` swallows
+        that as ``Error loading configs: ...`` and returns an empty
+        ``DotDict``, surfacing in user code as a baffling
+        ``'DotDict' object has no attribute 'X'`` (where ``X`` is the
+        filename stem the user expected).
+
+        With the guard in place we keep every key — including the int
+        ones — and the surrounding ``DEBUG_<KEY>`` promotion still works
+        on sibling string keys. This test asserts the int-keyed entry
+        survives the load; the sibling debug-promotion behaviour is
+        covered separately by
+        ``test_debug_mode_still_promotes_sibling_string_key_alongside_int_keys``.
+        """
+        # Arrange
+        _write_configs(
+            config_dir,
+            {
+                "seizure": {
+                    "INT2STR": {-1: "interictal", 1: "seizure", 2: "sle"},
+                    "param": "normal_value",
+                    "DEBUG_param": "debug_value",
+                },
+            },
+        )
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
+        # Assert — the int key survived the load.
+        assert result.SEIZURE.INT2STR[1] == "seizure"
+
+    def test_debug_mode_still_promotes_sibling_string_key_alongside_int_keys(
+        self, config_dir, ci_env_unset
+    ):
+        """The int-key guard must not regress the ``DEBUG_<KEY>``
+        promotion on sibling string keys.
+
+        Companion to
+        ``test_debug_mode_preserves_int_key_in_nested_mapping``: when an
+        int-keyed nested mapping and a string ``DEBUG_<KEY>`` live under
+        the same parent, the int key is left alone *and* the debug
+        promotion still fires.
+        """
+        # Arrange
+        _write_configs(
+            config_dir,
+            {
+                "seizure": {
+                    "INT2STR": {-1: "interictal", 1: "seizure", 2: "sle"},
+                    "param": "normal_value",
+                    "DEBUG_param": "debug_value",
+                },
+            },
+        )
+        # Act
+        result = load_configs(IS_DEBUG=True, config_dir=config_dir)
+        # Assert — the sibling DEBUG_param promoted PARAM as expected.
+        assert result.SEIZURE.PARAM == "debug_value"
+
 
 class TestEdgeCases:
     def test_empty_file_returns_empty_dotdict(self, config_dir, ci_env_unset):
