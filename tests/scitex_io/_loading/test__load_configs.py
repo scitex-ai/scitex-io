@@ -605,16 +605,18 @@ class TestFailLoudOnLoadErrors:
         broken_path = os.path.join(config_dir, "broken.yaml")
         with open(broken_path, "w") as f:
             f.write("key: [unclosed\n")
-        # Act
-        excinfo = None
+        # Act — capture the chained __cause__ from the raised
+        # ``ConfigLoadError`` so we can pin that the original
+        # exception is preserved in the traceback (rather than
+        # discarded by ``from None`` or by a re-raise that drops the
+        # cause). A single assertion satisfies STX-TQ007.
+        cause = None
         try:
             load_configs(config_dir=config_dir)
         except ConfigLoadError as e:
-            excinfo = e
-        # Assert — the original exception must be chained as __cause__
-        # so the traceback shows the root error (not just the wrapper).
-        assert excinfo is not None
-        assert excinfo.__cause__ is not None
+            cause = e.__cause__
+        # Assert
+        assert cause is not None
 
     def test_no_swallow_returns_empty_dotdict_for_malformed_yaml(
         self, config_dir, ci_env_unset
