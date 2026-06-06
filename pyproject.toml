@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-io"
-version = "0.3.0"
+version = "0.3.1"
 description = "Universal scientific data I/O with plugin registry"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -37,7 +37,16 @@ dependencies = [
     "tqdm",
     "PyYAML",
     "ruamel.yaml",
-    "mne",
+    # mne is INTENTIONALLY OMITTED from core deps. Bare `pip install
+    # scitex-io` must not pull ~150MB of mne + its sklearn / pooch /
+    # decorator chain when the only mne-using surface is two niche
+    # loader modules (`.con` / `.eeg`). Modules that require mne
+    # (`_load_modules/_con.py`, `_load_modules/_eeg.py`) already
+    # import optionally and raise a clear ImportError naming the
+    # extra. Install with `pip install 'scitex-io[mne]'` to
+    # opt back in. See proj-paper-ripple-wm's SIF dogfood signal
+    # (2026-06-07) for the broader motivation (scitex-gen v0.1.13
+    # applied the same pattern with torch).
     "numpy",
     "pandas",
     "click>=8.0.0",
@@ -55,6 +64,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# mne is OPTIONAL — the loaders in src/scitex_io/_load_modules/_con.py
+# and _eeg.py import it lazily and raise a clear ImportError naming
+# the extra when called without it installed. Keep the literal
+# package name here so `pip install 'scitex-io[mne]'` resolves both
+# at runtime and during editable installs.
+mne = [
+    "mne",
+]
 mcp = [
     "fastmcp>=2.0",
 ]
@@ -96,6 +113,15 @@ dev = [
     # users opt in via `pip install scitex-io[<extra>]`. See
     # _skills/general/01_ecosystem_02_dependency-and-version-pinning.md
     # `[dev]` extras completeness.
+    #
+    # IMPORTANT: list deps LITERALLY here (not via the
+    # `scitex-io[mcp]` etc. self-reference). pip cannot resolve the
+    # package's own name during ``pip install -e .[dev]`` because the
+    # package isn't on PyPI at install time. Same lesson as
+    # scitex-gen v0.1.13's torch move (and the structural-only publish
+    # gate added in the same release). The invariant: [dev] ⊇ [all]
+    # by enumeration — every extra's deps must also appear here.
+    "mne",                # tested via _load_modules/_con + _eeg
     "fastmcp>=2.0",       # tested via scitex_io._mcp_server
     "numcodecs",          # tested via [scientific] zarr/blosc paths
     "pymatreader",        # tested via _load_modules/_matlab fallback path
@@ -115,6 +141,9 @@ dev = [
     "kaleido",            # plotly static image export (png/jpeg/svg/pdf)
     "python-docx",        # .docx loader tests
     "optuna",             # tested via _load_modules/_optuna + _save_modules/_optuna_study
+    "scipy",              # [scientific] core
+    "h5py",               # [scientific] hdf5
+    "zarr>=3",            # [scientific] zarr
     "figrecipe>=0.28",    # optional synergy: .fig.zip/.plt.zip bundle dispatch
     "scitex-stats>=0.2.22",  # optional synergy: .stats.zip + Stats schema (scitex_stats._dataclasses.Stats, published in 0.2.22)
     "scitex-db>=0.1.11",   # optional synergy: .db dispatch via SQLite3 wrapper
@@ -126,11 +155,26 @@ docs = [
     "sphinx-copybutton>=0.5",
     "sphinx-autodoc-typehints>=1.25",
 ]
+# `[all]` aggregates every optional dep so a user opting in to "every
+# feature" lands at the maximum-functionality install. Lists deps
+# LITERALLY (not via the `scitex-io[mcp]` etc. self-reference, which
+# fails to resolve during editable installs because the package isn't
+# on PyPI yet at install time). Mirrors the union of `[mne]`,
+# `[mcp]`, `[scientific]`, `[optuna]`, `[figrecipe]`, `[db]`.
+# Invariant: `[dev]` ⊇ `[all]` (the test suite must cover every
+# optional-dep code path) — keep both in sync when adding a new
+# optional dep.
 all = [
-    "scitex-io[mcp]",
-    "scitex-io[scientific]",
-    "scitex-io[figrecipe]",
-    "scitex-io[db]",
+    "mne",
+    "fastmcp>=2.0",
+    "scipy",
+    "h5py",
+    "zarr>=3",
+    "numcodecs",
+    "matplotlib",
+    "optuna",
+    "figrecipe>=0.28",
+    "scitex-db>=0.1.11",
 ]
 
 [project.scripts]
@@ -161,6 +205,14 @@ library_dirs = ["src", "tests", "examples"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+# Dump every thread's stack if a test runs longer than 120s. Pytest
+# never finishes silently — if something deadlocks (waiting on torch
+# init, matplotlib backend probe, subprocess coverage handshake,
+# audit-all subprocess walk), faulthandler names the exact test +
+# line in the CI log instead of leaving us reading the runner clock.
+# Same hygiene as scitex-gen v0.1.13. Cost: zero on green runs;
+# ground-truth diagnostic on hangs.
+faulthandler_timeout = 120
 
 [tool.ruff]
 line-length = 88

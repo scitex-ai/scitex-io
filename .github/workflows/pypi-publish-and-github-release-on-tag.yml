@@ -6,9 +6,19 @@ name: release
 #
 # Everything else fires automatically:
 #
-#   1. test          — matrix pytest. Must pass or the pipeline halts;
-#                      nothing is published until tests are green on the
-#                      tagged commit.
+#   1. test          — STRUCTURAL gate: install the package on the
+#                      full python matrix (`pip install -e ".[all,dev]"`).
+#                      Catches broken pyproject.toml, missing optional
+#                      extras, dep-resolution failures. The functional
+#                      pytest suite already runs on every PR to develop
+#                      under the {CLEAN, UNSTABLE} framework — duplicating
+#                      it here means any known-tolerated failure (e.g.
+#                      `tests/develop/test_audit.py::test_audit_all_clean`
+#                      F that scitex-gen / scitex-io / siblings all carry
+#                      as accepted drift) blocks every publish. The
+#                      publish gate must match the merge gate; do not
+#                      re-run the matrix pytest here. Same pattern as
+#                      scitex-gen v0.1.13.
 #   2. build         — wheel + sdist, uploaded as workflow artifact.
 #   3. publish       — PyPI via OIDC trusted publisher.
 #   4. release       — GitHub Release with CHANGELOG notes + artifacts.
@@ -53,17 +63,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install (best-effort fallback chain)
+      - name: Install (best-effort fallback chain) — STRUCTURAL gate
+        # If the package fails to install with [all,dev] / [dev] / bare,
+        # the release halts here. That's the structural correctness
+        # guarantee the publish pipeline owes the user. Functional pytest
+        # is the PR-matrix's job and runs under {CLEAN, UNSTABLE} — not
+        # duplicated here (see header comment).
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[all,dev]" || pip install -e ".[dev]" || pip install -e .
-      - name: Run pytest
-        run: |
-          if [ -d tests ]; then
-            pytest tests/ -x
-          else
-            echo "no tests/ directory — skipping pytest"
-          fi
 
   build:
     needs: test

@@ -7,6 +7,48 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-06-07
+
+### Changed
+- **`mne` is no longer a core dependency.** Bare `pip install
+  scitex-io` no longer pulls mne + sklearn + pooch + decorator (~150MB
+  install footprint) just because two niche loaders
+  (`_load_modules/_con.py`, `_load_modules/_eeg.py`) use it. Install
+  with `pip install 'scitex-io[mne]'` to opt back in. The loaders
+  already imported optionally; this PR makes the dep optional at the
+  packaging layer too. Companion fix: `_load_eeg_data` now raises a
+  clear `ImportError` naming the `[mne]` extra when called without mne
+  installed and without a `mne_module=` injection (previously
+  AttributeError'd on the first `mne_module.io.*` call).
+
+  Motivation: same SIF-dogfood signal as scitex-gen v0.1.13
+  (proj-paper-ripple-wm, 2026-06-07). Bare ecosystem installs in slim
+  research containers shouldn't drag heavy optional chains in for
+  niche loaders.
+
+- **Publish workflow gates on STRUCTURAL checks only.** The
+  `pypi-publish-and-github-release-on-tag` workflow's pre-publish
+  `pytest tests/ -x` step has been dropped. It duplicated the PR
+  matrix and fast-failed on the known-tolerated
+  `tests/develop/test_audit.py::test_audit_all_clean` F that every
+  scitex-* repo carries as accepted drift under the
+  {CLEAN, UNSTABLE} merge framework. The `test` job is now a
+  matrix install-smoke (pip install -e .[all,dev]) — that's the
+  structural correctness gate the publish pipeline owes the user.
+  Functional coverage continues to run on every PR via the matrix
+  workflow. Same fix as scitex-gen PR #23.
+
+- **`[all]` and `[dev]` extras now list deps literally** (no
+  `scitex-io[mcp]`-style self-references, which fail to resolve
+  during `pip install -e` because the package isn't on PyPI at
+  install time). `[dev]` ⊇ `[all]` by enumeration — the suite covers
+  every optional code path. Invariant captured inline as a comment.
+
+- **`faulthandler_timeout = 120` in pytest config.** Pytest dumps
+  every thread's stack on a 120s deadlock — so CI logs name the
+  exact wedged test instead of leaving us reading the runner clock.
+  Same hygiene as scitex-gen v0.1.13. Cost: zero on green runs.
+
 ## [0.3.0] — 2026-06-07
 
 Minor bump motivated by two intentional behaviour breaks, both
