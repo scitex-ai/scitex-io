@@ -7,6 +7,24 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-07
+
+### Added (port from `scitex-gen` — Phase B retirement wave)
+- `xml2dict`, `XmlDictConfig`, `XmlListConfig` (stdlib XML helpers) —
+  ported from `scitex_gen._introspect._xml2dict`.
+- `mat2dict`, `mat2npa`, `mat2npy`, `dir2npy`, `save_npa`, `keys2npa`,
+  `public_keys` (MATLAB .mat helpers) — ported from
+  `scitex_gen._introspect._mat2py`. Registered as optional lazy
+  attributes (`h5py` + `scipy.io` already in the `[scientific]` extra).
+  Stray `import pdb; pdb.set_trace()` traps in the original
+  `keys2npa` / `mat2npa` have been removed.
+- `print_config`, `print_config_main` (CLI for printing config values)
+  — ported from `scitex_gen._fs._print_config`. The original referenced
+  the umbrella `scitex.io.load_configs` and `scitex.gen.utils._DotDict`;
+  both now live in `scitex_io`, so the port uses local imports.
+
+After this lands, `scitex_gen` keeps no shims for these symbols.
+
 ## [0.2.21] — 2026-06-04
 
 ### Fixed

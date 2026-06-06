@@ -91,6 +91,13 @@ _LAZY_ATTRS: dict[str, str] = {
     "clear_load_cache": "._loading",  # aliased below
     # Dict utilities
     "DotDict": "._utils",
+    # XML (stdlib) — ported from scitex_gen._introspect._xml2dict (B2).
+    "xml2dict": "._xml2dict",
+    "XmlDictConfig": "._xml2dict",
+    "XmlListConfig": "._xml2dict",
+    # CLI for printing config values — ported from scitex_gen._fs._print_config (B2).
+    "print_config": "._print_config",
+    "print_config_main": "._print_config",
     # Observer hook registry (R6 — observers self-register here;
     # scitex_io itself never names them). See _hooks.py.
     "register_post_save_hook": "._observers",
@@ -126,6 +133,15 @@ _OPTIONAL_ATTRS: dict[str, tuple[str, str]] = {
     "embed_metadata": ("._metadata", "embed_metadata"),
     "read_metadata": ("._metadata", "read_metadata"),
     "has_metadata": ("._metadata", "has_metadata"),
+    # MATLAB .mat helpers — ported from scitex_gen._introspect._mat2py (B2).
+    # Needs h5py + scipy.io; both already optional via [scientific] extra.
+    "mat2dict": ("._mat2py", "mat2dict"),
+    "mat2npa": ("._mat2py", "mat2npa"),
+    "mat2npy": ("._mat2py", "mat2npy"),
+    "dir2npy": ("._mat2py", "dir2npy"),
+    "save_npa": ("._mat2py", "save_npa"),
+    "keys2npa": ("._mat2py", "keys2npa"),
+    "public_keys": ("._mat2py", "public_keys"),
 }
 
 
