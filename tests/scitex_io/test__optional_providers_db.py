@@ -40,13 +40,16 @@ def _ensure_registered():
 @pytest.fixture
 def empty_db_path(tmp_path):
     # Arrange: an on-disk SQLite file with a trivial table so SQLite3
-    # has something to open.
+    # has something to open. The connection is opened-and-closed inside
+    # the fixture so we only `yield` the path string — `yield` (not
+    # `return`) satisfies STX-TQ005 because the fixture body touches a
+    # resource-acquiring call (`sqlite3.connect(...)`).
     path = os.path.join(str(tmp_path), "test.db")
     conn = sqlite3.connect(path)
     conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, v REAL)")
     conn.commit()
     conn.close()
-    return path
+    yield path
 
 
 class TestScitexDbPresent:
@@ -85,14 +88,11 @@ class TestGracefulAbsent:
         # Assert
         assert registered is False
 
-    def test_absent_provider_does_not_register_a_loader(self):
-        # Arrange
-        from scitex_io._registry import _LOADERS, unregister_loader
-
-        # Snapshot then unregister so we can confirm absent-provider doesn't re-add.
-        had_db = ".db" in _LOADERS
-        if had_db:
-            unregister_loader(".db")
+    def test_absent_provider_does_not_change_the_loader(self):
+        # Arrange: capture the currently-resolved `.db` loader (set by the
+        # autouse fixture that runs `list_formats()` -> the scitex-db
+        # provider has already registered the real loader).
+        before = get_loader(".db")
 
         def absent_importer():
             return None
@@ -100,10 +100,6 @@ class TestGracefulAbsent:
         # Act
         _optional_providers._register_scitex_db(importer=absent_importer)
 
-        # Assert: an absent provider never mutates the registry.
-        try:
-            assert get_loader(".db") is None
-        finally:
-            # Restore the real loader for downstream tests.
-            if had_db:
-                _optional_providers._register_scitex_db()
+        # Assert: an absent provider never mutates the registry. The same
+        # loader is still in place.
+        assert get_loader(".db") is before
