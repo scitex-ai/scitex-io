@@ -7,6 +7,79 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-07
+
+Minor bump motivated by two intentional behaviour breaks, both
+no-silent-failure antipattern removals. Both surfaces are also the
+documented release reason — the changes were lead-mandated and
+called out in commit messages before the version bump.
+
+### Removed
+- **Silent-fallback `.db` loader stub (#59).** Deleted
+  `src/scitex_io/_load_modules/_sqlite3.py` — the 8-line primitive
+  `SQLite3` class that wrapped a raw `sqlite3.Connection` and
+  shadowed `scitex_db`'s full SQLite3 wrapper. Calling
+  `stx.io.load("foo.db")` used to return that raw Connection wrapped
+  in the stub; user code lost access to `get_rows` / `load_array` /
+  `save_array` and silently bypassed scitex-db's compression / array
+  / blob / transaction layer. Replaced by the existing
+  optional-provider mechanism (`_optional_providers.py`,
+  `_register_scitex_db()` via
+  `scitex_dev.try_import_optional("scitex_db", extra="db",
+  pkg="scitex-io")`).
+  - When **scitex-db is installed**: `stx.io.load("foo.db")`
+    delegates to `scitex_db.SQLite3(path, **kwargs)`; kwargs flow
+    through to support `mode='ro'` / `timeout=` (companion
+    `scitex-db v0.1.12`).
+  - When **scitex-db is absent**: registration silently no-ops and
+    `stx.io.load("foo.db")` fails through the standard registry
+    error path: `ValueError("No load handler registered for
+    '.db'. Use register_loader('.db', your_fn) to add one.")`.
+    Install `scitex-io[db]` to get the scitex-db dispatch.
+  - **Breaking** for any caller relying on the silent stub return
+    value. Umbrella consumers are not affected (the `scitex`
+    umbrella core-pins `scitex-db>=0.1.11` already, so the dispatch
+    is always active there).
+- **Silent-empty `load_configs` fallback on processing errors
+  (#65).** Removed the outer `try/except Exception: print(...);
+  return DotDict({})` from
+  `src/scitex_io/_loading/_load_configs.py`. The swallow turned
+  every YAML processing bug — malformed YAML, an int-keyed mapping
+  crashing the debug-promotion walker, a missing required file
+  under `categories/` — into a silent empty `DotDict({})` and a
+  cryptic downstream `'DotDict' object has no attribute 'X'` three
+  frames away from the actual failure.
+
+### Changed
+- **`load_configs` raises `ConfigLoadError` on processing errors
+  (#65).** New `scitex_io._loading._load_configs.ConfigLoadError`
+  exception class. Each error names the offending YAML file in the
+  message and chains the original exception as `__cause__`. The
+  `IS_DEBUG.yaml` read is wrapped the same way so a malformed flag
+  file surfaces with its path in the error. Case-collision
+  `ValueError` from `_normalize_to_upper` keeps propagating as
+  before — no behaviour change for that path. **Breaking** for any
+  caller depending on the silent-empty return value (the
+  documented antipattern being removed); the typical consumer
+  pattern of `CONFIG = load_configs(); CONFIG.MODEL.HIDDEN_DIM` is
+  unchanged on the happy path.
+
+### Fixed
+- **`apply_debug_values` no longer crashes on non-string YAML keys
+  (#64).** YAML mapping keys can be non-string — neurovista's
+  `SEIZURE.yaml` carries literal integer event-code tables
+  (`INT2STR: {-1: interictal, 1: seizure, 2: sle}`). When
+  `load_configs` ran with `IS_DEBUG=True` (any of: explicit kwarg,
+  `CI=True`, or `IS_DEBUG.yaml` with `IS_DEBUG: true`), the inner
+  `apply_debug_values` walker raised
+  `AttributeError: 'int' object has no attribute 'startswith'` on
+  the first int key. Now guards with `isinstance(key, str)` before
+  `key.startswith(("DEBUG_", "debug_"))` — the `DEBUG_<KEY>` rule
+  only applies to string keys by definition. Combined with the
+  `load_configs` fail-loud rewrite above, every config bug now
+  surfaces at load time with the offending file + root exception
+  in the traceback instead of as a downstream `AttributeError`.
+
 ## [0.2.21] — 2026-06-04
 
 ### Fixed
