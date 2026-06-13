@@ -33,16 +33,21 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      - name: Fetch develop ref for --new-only baseline
+        run: git fetch origin develop:develop
+
       - name: Install package + audit tooling
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-          pip install "scitex-dev[cli-audit]"
+          pip install "scitex-dev[cli-audit]>=0.17.14"
 
       - name: Run scitex-dev ecosystem audit-all
         run: scitex-dev ecosystem audit-all scitex-io --no-version-check
