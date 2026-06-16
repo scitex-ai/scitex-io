@@ -232,7 +232,6 @@
 <span class="sd">&quot;&quot;&quot;Imports&quot;&quot;&quot;</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 
@@ -240,6 +239,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._image_csv_handler</span><span class="w"> </span><span class="kn">import</span> <span class="n">handle_image_with_csv</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_saver</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._symlink</span><span class="w"> </span><span class="kn">import</span> <span class="n">_symlink</span><span class="p">,</span> <span class="n">_symlink_to</span><span class="p">,</span> <span class="n">sh</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">clean</span><span class="p">,</span> <span class="n">clean_path</span><span class="p">,</span> <span class="n">color_text</span><span class="p">,</span> <span class="n">getsize</span><span class="p">,</span> <span class="n">readable_bytes</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">_getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -280,18 +280,6 @@
         <span class="s2">&quot;  (This message prints at most once per process.)&quot;</span>
     <span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="nb">__import__</span><span class="p">(</span><span class="s2">&quot;sys&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">sh</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run ``command`` (a list of argv tokens) and return success boolean.</span>
-
-<span class="sd">    Bug fix: previously this used ``shell=True`` with a list, which on</span>
-<span class="sd">    POSIX runs only ``command[0]`` and silently discards the rest —</span>
-<span class="sd">    ``sh([&quot;ln&quot;, &quot;-sfr&quot;, src, dst])`` was effectively just ``sh -c ln``.</span>
-<span class="sd">    Switch to ``shell=False`` so the argv list is passed as-is.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span>
 
 
 <div class="viewcode-block" id="save">
@@ -454,9 +442,7 @@
                 <span class="k">if</span> <span class="n">use_caller_path</span><span class="p">:</span>
                     <span class="n">script_path</span> <span class="o">=</span> <span class="kc">None</span>
                     <span class="k">for</span> <span class="n">frame_info</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]:</span>
-                        <span class="n">mod_name</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="n">frame_info</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">f_globals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;__name__&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
-                        <span class="p">)</span>
+                        <span class="n">mod_name</span> <span class="o">=</span> <span class="n">frame_info</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">f_globals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;__name__&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span>
                         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
                             <span class="n">mod_name</span> <span class="o">==</span> <span class="s2">&quot;scitex&quot;</span>
                             <span class="ow">or</span> <span class="n">mod_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;scitex.&quot;</span><span class="p">)</span>
@@ -569,9 +555,7 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">_symlink</span><span class="p">(</span>
-            <span class="n">spath</span><span class="p">,</span> <span class="n">spath_cwd</span><span class="p">,</span> <span class="n">symlink_from_cwd</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">spath_final</span><span class="o">=</span><span class="n">spath_final</span>
-        <span class="p">)</span>
+        <span class="n">_symlink</span><span class="p">(</span><span class="n">spath</span><span class="p">,</span> <span class="n">spath_cwd</span><span class="p">,</span> <span class="n">symlink_from_cwd</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">spath_final</span><span class="o">=</span><span class="n">spath_final</span><span class="p">)</span>
         <span class="n">_symlink_to</span><span class="p">(</span><span class="n">spath_final</span><span class="p">,</span> <span class="n">symlink_to</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
         <span class="n">saved_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">spath</span><span class="p">)</span>
         <span class="c1"># Notify any registered observers (clew, audit, …). See _hooks.</span>
@@ -610,57 +594,6 @@
         <span class="p">)</span>
         <span class="k">raise</span></div>
 
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_symlink</span><span class="p">(</span><span class="n">spath</span><span class="p">,</span> <span class="n">spath_cwd</span><span class="p">,</span> <span class="n">symlink_from_cwd</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">spath_final</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a symbolic link from the current working directory.</span>
-
-<span class="sd">    Uses ``spath_final`` (the path normalised through ``clean()``) as</span>
-<span class="sd">    the link source when supplied; falls back to the raw ``spath`` for</span>
-<span class="sd">    backward compatibility with callers that don&#39;t yet pass it.</span>
-
-<span class="sd">    scitex-io#55: when ``spath`` contained ``./`` segments (the common</span>
-<span class="sd">    case for ``save(obj, &quot;./x.csv&quot;, symlink_from_cwd=True)``), the</span>
-<span class="sd">    ``ln -sfr`` relative-target computation could collapse to the same</span>
-<span class="sd">    basename in the same dir, producing a ``./x.csv -&gt; x.csv``</span>
-<span class="sd">    self-loop. We now:</span>
-
-<span class="sd">    1. Prefer the cleaned ``spath_final`` as the link source.</span>
-<span class="sd">    2. Compute the relative target ourselves and bail out (logging) if</span>
-<span class="sd">       it would equal ``basename(spath_cwd)`` in ``dirname(spath_cwd)``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">symlink_from_cwd</span> <span class="ow">and</span> <span class="p">(</span><span class="n">spath</span> <span class="o">!=</span> <span class="n">spath_cwd</span><span class="p">):</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="n">spath_final</span> <span class="k">if</span> <span class="n">spath_final</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">spath</span>
-        <span class="n">_os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">spath_cwd</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">rel_target</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">spath_cwd</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">rel_target</span> <span class="o">==</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">spath_cwd</span><span class="p">):</span>
-            <span class="c1"># Defensive guard — refuse to create a self-loop. This</span>
-            <span class="c1"># should be unreachable now that spath_cwd uses normpath</span>
-            <span class="c1"># (not clean→resolve) upstream, but is kept as a belt-and-</span>
-            <span class="c1"># suspenders for any caller that passes already-resolved</span>
-            <span class="c1"># paths.</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;_symlink would self-loop </span><span class="si">{</span><span class="n">spath_cwd</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">rel_target</span><span class="si">}</span><span class="s2">; &quot;</span>
-                <span class="s2">&quot;skipping link creation (scitex-io#55).&quot;</span>
-            <span class="p">)</span>
-            <span class="k">return</span>
-        <span class="n">sh</span><span class="p">([</span><span class="s2">&quot;rm&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spath_cwd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">sh</span><span class="p">([</span><span class="s2">&quot;ln&quot;</span><span class="p">,</span> <span class="s2">&quot;-sfr&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spath_cwd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">color_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Symlinked to: </span><span class="si">{</span><span class="n">spath_cwd</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="s2">&quot;yellow&quot;</span><span class="p">))</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_symlink_to</span><span class="p">(</span><span class="n">spath_final</span><span class="p">,</span> <span class="n">symlink_to</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a symbolic link at the specified path pointing to the saved file.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">symlink_to</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">symlink_to</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
-            <span class="n">symlink_to</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">symlink_to</span><span class="p">)</span>
-        <span class="n">symlink_to</span> <span class="o">=</span> <span class="n">clean</span><span class="p">(</span><span class="n">symlink_to</span><span class="p">)</span>
-        <span class="n">_os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">symlink_to</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">sh</span><span class="p">([</span><span class="s2">&quot;rm&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">symlink_to</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">sh</span><span class="p">([</span><span class="s2">&quot;ln&quot;</span><span class="p">,</span> <span class="s2">&quot;-sfr&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spath_final</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">symlink_to</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">color_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">(Symlinked to: </span><span class="si">{</span><span class="n">symlink_to</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="s2">&quot;yellow&quot;</span><span class="p">))</span>
 
 
 <span class="n">_IMAGE_EXTS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;.png&quot;</span><span class="p">,</span> <span class="s2">&quot;.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;.jpeg&quot;</span><span class="p">,</span> <span class="s2">&quot;.gif&quot;</span><span class="p">,</span> <span class="s2">&quot;.tiff&quot;</span><span class="p">,</span> <span class="s2">&quot;.tif&quot;</span><span class="p">,</span> <span class="s2">&quot;.svg&quot;</span><span class="p">,</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">}</span>
