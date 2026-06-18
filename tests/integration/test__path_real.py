@@ -1,13 +1,13 @@
-"""Tests for scitex_io._path helpers."""
-
+"""Tests for scitex_io._path_modules._path helpers."""
 
 from __future__ import annotations
+
 import os
 from pathlib import Path
 
 import pytest
 
-from scitex_io._path import (
+from scitex_io._path_modules._path import (
     find,
     find_latest,
     find_the_git_root_dir,
@@ -52,8 +52,6 @@ def test_split_fpath_basic_e_equals_txt():
     assert e == ".txt"
 
 
-
-
 def test_split_fpath_no_extension_d_equals_a():
     # Arrange
     # Arrange
@@ -85,8 +83,6 @@ def test_split_fpath_no_extension_e_equals_case():
     # Assert
     # Assert
     assert e == ""
-
-
 
 
 def test_split_fpath_relative_d_equals_rel_dir():
@@ -122,8 +118,6 @@ def test_split_fpath_relative_e_equals_mat():
     assert e == ".mat"
 
 
-
-
 # -----------------------------
 # touch
 # -----------------------------
@@ -145,8 +139,6 @@ def test_touch_creates_file_p_exists_after_call(tmp_path):
     touch(str(p))
     # Assert
     assert p.exists()
-
-
 
 
 def test_touch_updates_mtime(tmp_path):
@@ -213,8 +205,6 @@ def test_find_directories_f_txt_not_in_names(tmp_path):
     # Assert
     # Assert
     assert "f.txt" not in names
-
-
 
 
 def test_find_all_types(tmp_path):
@@ -285,8 +275,6 @@ def test_find_latest_picks_highest_version_latest_endswith_data_v5_txt(tmp_path)
     # Assert
     # Assert
     assert latest.endswith("data_v5.txt")
-
-
 
 
 def test_find_latest_returns_none_when_missing(tmp_path):

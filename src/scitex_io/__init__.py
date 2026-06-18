@@ -115,8 +115,8 @@ _OPTIONAL_ATTRS: dict[str, tuple[str, str]] = {
         "._save_modules",
         "save_optuna_study_as_csv_and_pngs",
     ),
-    "path": ("._path", "path"),
-    "mv_to_tmp": ("._mv_to_tmp", "mv_to_tmp"),
+    "path": ("._path_modules._path", "path"),
+    "mv_to_tmp": ("._path_modules._mv_to_tmp", "mv_to_tmp"),
     # HDF5 gzip re-compression (needs optional h5py). Migrated from the
     # scitex umbrella; h5py is imported lazily inside the function.
     "compress_hdf5": (".utils", "compress_hdf5"),

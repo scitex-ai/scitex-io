@@ -36,8 +36,8 @@ from typing import Any, Union
 from scitex_logging import getLogger as _getLogger
 
 from ._image_csv_handler import handle_image_with_csv  # noqa: F401
+from ._path_modules._symlink import _symlink, _symlink_to, sh  # noqa: F401
 from ._registry import get_saver  # noqa: F401
-from ._symlink import _symlink, _symlink_to, sh  # noqa: F401
 from ._utils import clean, clean_path, color_text, getsize, readable_bytes
 
 logger = _getLogger(__name__)

@@ -8,8 +8,8 @@ wrapper used to run ``ln``/``rm``; ``_symlink`` / ``_symlink_to`` create the
 convenience links that ``save(..., symlink_from_cwd=...)`` / ``symlink_to=...``
 request. ``_save`` re-imports all three, so existing references keep working.
 
-No import cycle: this module imports only ``._utils`` and ``scitex_logging``,
-never ``._save``.
+No import cycle: this module imports only ``.._utils`` and ``scitex_logging``,
+never ``.._save``.
 """
 
 import os as _os
@@ -18,7 +18,7 @@ from pathlib import Path
 
 from scitex_logging import getLogger as _getLogger
 
-from ._utils import clean
+from .._utils import clean
 
 logger = _getLogger(__name__)
 
