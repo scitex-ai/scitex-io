@@ -7,6 +7,25 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-06-20
+
+### Changed
+- **CI workflows realigned to the canonical fleet-standard explicit
+  set.** The transitional `ci.yml` / `release.yml` (and the
+  `pr-ci.yml` / `release-ci.yml` brought in by the L1–L5 speedup) are
+  replaced by the per-concern workflow set used across the ecosystem:
+  `pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml`,
+  `import-smoke-on-ubuntu-py3-12.yml`,
+  `pypi-publish-and-github-release-on-tag.yml`,
+  `rtd-sphinx-build-on-ubuntu-latest.yml`,
+  `newb-docs-quality-on-ubuntu-latest.yml`,
+  `auto-merge-to-develop.yaml`, and a leaf-scoped
+  `scitex-io-quality-audit-on-ubuntu-latest.yml`. The pytest-matrix job
+  preserves the required status-check names
+  (`pytest-matrix-on-ubuntu-py3.11/3.12/3.13`) and the per-job-HOME
+  codecov-race guard so the matrix legs do not contend on a shared
+  `~/.gitconfig`. `cla.yml` (PS-168 owner-bypass variant) is unchanged.
+
 ## [0.3.1] — 2026-06-07
 
 ### Changed
