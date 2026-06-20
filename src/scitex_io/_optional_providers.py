@@ -125,9 +125,62 @@ def _register_scitex_stats(importer=_import_scitex_stats) -> bool:
     return True
 
 
+def _import_scitex_db():
+    """Return the scitex_db module, or ``None`` when it is not installed."""
+    return try_import_optional("scitex_db", extra="db", pkg="scitex-io")
+
+
+def _register_scitex_db(importer=_import_scitex_db) -> bool:
+    """Register the ``.db`` loader if scitex-db is installed.
+
+    DB loading is delegated to scitex-db's ``SQLite3`` wrapper — the
+    full class with mixins (``get_rows``, ``load_array``,
+    ``save_array``, etc.), not the primitive sqlite3.Connection
+    fallback that used to live in ``_load_modules/_sqlite3.py``. The
+    silent-fallback antipattern (returning a raw Connection wrapped in
+    a stub) was removed during the scitex-db standardization; if
+    scitex-db is NOT installed, ``stx.io.load("foo.db")`` raises a
+    clear ``ValueError("No load handler registered for '.db'. …")``
+    via the standard registry error path, which prompts users to
+    ``pip install scitex-io[db]``.
+
+    Parameters
+    ----------
+    importer : callable, optional
+        Returns the scitex_db module or ``None``. Injectable so callers
+        can substitute a real-but-absent importer in tests without
+        patching production internals.
+
+    Returns
+    -------
+    bool
+        ``True`` when the ``.db`` handler was registered, ``False``
+        when scitex-db is absent (graceful no-op — the registry stays
+        empty for ``.db`` so the standard "no handler" error fires).
+    """
+    scitex_db = importer()
+    if scitex_db is None:
+        return False
+
+    def _load_db(path, **kwargs):
+        # scitex_db.SQLite3 forwards **kwargs into sqlite3.connect via
+        # the wrapper — e.g. mode='ro' / timeout=5.0 from a future
+        # scitex-db release. Callers write
+        # ``stx.io.load("foo.db", mode='ro')`` and the kwargs flow
+        # through unchanged.
+        return scitex_db.SQLite3(path, **kwargs)
+
+    register_loader(".db", _load_db, builtin=True)
+    return True
+
+
 # Provider registry: name → callable returning bool(registered?). Add new
 # ecosystem providers here; each must be independently gated.
-_PROVIDERS = (_register_figrecipe, _register_scitex_stats)
+_PROVIDERS = (
+    _register_figrecipe,
+    _register_scitex_stats,
+    _register_scitex_db,
+)
 
 
 def register_optional_providers() -> None:

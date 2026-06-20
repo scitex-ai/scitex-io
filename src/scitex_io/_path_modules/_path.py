@@ -8,7 +8,7 @@ import os
 import re
 from glob import glob as _glob
 
-from ._utils import split, this_path
+from .._utils import split, this_path
 
 ################################################################################
 ## PATH

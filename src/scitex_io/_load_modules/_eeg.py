@@ -58,6 +58,12 @@ def _load_eeg_data(
     based on the file extension and uses the appropriate MNE function to load the data.
     """
     if mne_module is None:
+        if not MNE_AVAILABLE:
+            raise ImportError(
+                "Loading EEG files (.vhdr / .edf / .bdf / .gdf / .cnt "
+                "/ .egi / .eeg / .set) requires the 'mne' package. "
+                "Install with: pip install 'scitex-io[mne]'"
+            )
         mne_module = mne
     if isfile is None:
         isfile = os.path.isfile

@@ -2,7 +2,7 @@
 # Timestamp: "2025-05-31"
 # File: test__mv_to_tmp.py
 
-"""Tests for scitex_io._mv_to_tmp module.
+"""Tests for scitex_io._path_modules._mv_to_tmp module.
 
 The production function takes ``move_fn`` and ``tmp_dir`` keyword
 parameters so tests can pass a recording callable and a sandbox
@@ -17,7 +17,7 @@ import pytest
 pytest.importorskip("h5py")
 pytest.importorskip("zarr")
 
-from scitex_io._mv_to_tmp import _mv_to_tmp
+from scitex_io._path_modules._mv_to_tmp import _mv_to_tmp
 
 
 def _recording_move_fn():

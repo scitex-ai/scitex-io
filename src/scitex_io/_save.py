@@ -30,13 +30,13 @@ __FILE__ = __file__
 """Imports"""
 import inspect
 import os as _os
-import subprocess
 from pathlib import Path
 from typing import Any, Union
 
 from scitex_logging import getLogger as _getLogger
 
 from ._image_csv_handler import handle_image_with_csv  # noqa: F401
+from ._path_modules._symlink import _symlink, _symlink_to, sh  # noqa: F401
 from ._registry import get_saver  # noqa: F401
 from ._utils import clean, clean_path, color_text, getsize, readable_bytes
 
@@ -80,18 +80,6 @@ def _warn_notebook_path_unresolved_once(fallback_sdir: str) -> None:
     print(msg, file=__import__("sys").stderr, flush=True)
 
 
-def sh(command, *args, **kwargs):
-    """Run ``command`` (a list of argv tokens) and return success boolean.
-
-    Bug fix: previously this used ``shell=True`` with a list, which on
-    POSIX runs only ``command[0]`` and silently discards the rest —
-    ``sh(["ln", "-sfr", src, dst])`` was effectively just ``sh -c ln``.
-    Switch to ``shell=False`` so the argv list is passed as-is.
-    """
-    result = subprocess.run(command, capture_output=True, text=True)
-    return result.returncode == 0
-
-
 def save(
     obj: Any,
     specified_path: Union[str, Path],
@@ -101,7 +89,7 @@ def save(
     symlink_to: Union[str, Path] = None,
     dry_run: bool = False,
     no_csv: bool = False,
-    use_caller_path: bool = False,
+    use_caller_path: bool = True,
     env_detector=None,
     **kwargs,
 ) -> None:
@@ -229,16 +217,34 @@ def save(
                 spath = _os.path.join(sdir, specified_path)
 
             elif env_type == "script":
+                # use_caller_path defaults to True so a save under
+                # `@stx.session` (or any other scitex wrapper) walks past
+                # the scitex frames in inspect.stack() to the real user
+                # script. Direct (unwrapped) callers also work: no scitex
+                # frames are present so the walk falls through to
+                # frame[1] = the user script.
+                #
+                # We detect scitex frames by MODULE NAME (any
+                # ``scitex_*`` package), NOT by directory prefix —
+                # because scitex_io and scitex_dev may live in different
+                # site-packages locations (PYTHONPATH overlay, editable
+                # install of one but not the other, etc.) and a parent-
+                # path comparison would silently miss the wrapper frame.
+                # 2026-06-13 operator dogfood: a script saved via
+                # ``stx.io.save`` landed inside
+                # ``scitex_dev/_core/decorators_out/`` because the
+                # parent-path scan didn't match scitex_dev's path → the
+                # walker treated the wrapper frame as the user script.
                 if use_caller_path:
                     script_path = None
-                    scitex_src_path = _os.path.join(
-                        _os.path.dirname(__file__), "..", ".."
-                    )
-                    scitex_src_path = _os.path.abspath(scitex_src_path)
                     for frame_info in inspect.stack()[1:]:
-                        frame_path = _os.path.abspath(frame_info.filename)
-                        if not frame_path.startswith(scitex_src_path):
-                            script_path = frame_path
+                        mod_name = frame_info.frame.f_globals.get("__name__", "") or ""
+                        if not (
+                            mod_name == "scitex"
+                            or mod_name.startswith("scitex.")
+                            or mod_name.startswith("scitex_")
+                        ):
+                            script_path = _os.path.abspath(frame_info.filename)
                             break
                     if script_path is None:
                         script_path = inspect.stack()[1].filename
@@ -248,29 +254,44 @@ def save(
                 sdir = clean_path(_os.path.splitext(script_path)[0] + "_out")
                 spath = _os.path.join(sdir, specified_path)
 
-            else:
-                script_path = inspect.stack()[1].filename
-                if (
-                    ("ipython" in script_path)
-                    or ("<stdin>" in script_path)
-                    or env_type in ["ipython", "interactive"]
-                ):
-                    # Interactive sessions (IPython / REPL / `python -i`)
-                    # have no script to anchor _out/ to, so route writes
-                    # into the canonical scitex local-state cache:
-                    #   $SCITEX_DIR/io/runtime/cache/  (default ~/.scitex)
-                    # See scitex-dev skills/general/
-                    #   01_ecosystem_06_local-state-directories.md
-                    _scitex_dir = _os.environ.get(
-                        "SCITEX_DIR",
-                        _os.path.join(_os.path.expanduser("~"), ".scitex"),
-                    )
-                    sdir = _os.path.join(_scitex_dir, "io", "runtime", "cache")
-                    _os.makedirs(sdir, exist_ok=True)
-                    script_path = sdir
-                else:
-                    sdir = _os.path.join(_os.getcwd(), "output")
+            elif env_type in ("ipython", "interactive"):
+                # Interactive sessions (IPython terminal REPL / bare
+                # `python` / `python -i` / `python -c`) have no script
+                # path to anchor `_out/` to, so route writes into the
+                # canonical scitex local-state cache:
+                #   $SCITEX_DIR/io/runtime/cache/  (default ~/.scitex)
+                # See scitex-dev skills/general/
+                #   01_ecosystem_06_local-state-directories.md
+                _scitex_dir = _os.environ.get(
+                    "SCITEX_DIR",
+                    _os.path.join(_os.path.expanduser("~"), ".scitex"),
+                )
+                sdir = _os.path.join(_scitex_dir, "io", "runtime", "cache")
+                _os.makedirs(sdir, exist_ok=True)
                 spath = _os.path.join(sdir, specified_path)
+
+            else:
+                # Fail fast, fail loud: NO silent `<cwd>/output/` fallback.
+                # An unrecognised env_type means detect_environment() (or
+                # a caller-supplied env_detector) returned something
+                # outside the documented vocabulary; guessing an output
+                # path here is exactly the quiet-wrong-place bug this
+                # branch used to cause. Operator directive 2026-06-13:
+                # "no else pattern accepted" — raise with a clear
+                # diagnostic + the documented vocabulary so the caller
+                # can fix detect_environment / their env_detector
+                # contract.
+                raise ValueError(
+                    "scitex.io.save: unrecognised execution environment "
+                    f"{env_type!r}. Expected one of "
+                    "'jupyter' (Jupyter kernel), "
+                    "'ipython' (IPython terminal REPL), "
+                    "'script' (a `.py` run), or "
+                    "'interactive' (bare `python` / `-i` / `-c`). "
+                    "See scitex_io._utils.detect_environment for the "
+                    "canonical contract. Refusing to guess an output "
+                    "directory."
+                )
 
         spath_final = clean(spath)
         ########################################
@@ -330,9 +351,7 @@ def save(
             **kwargs,
         )
 
-        _symlink(
-            spath, spath_cwd, symlink_from_cwd, verbose, spath_final=spath_final
-        )
+        _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=spath_final)
         _symlink_to(spath_final, symlink_to, verbose)
         saved_path = Path(spath)
         # Notify any registered observers (clew, audit, …). See _hooks.
@@ -370,57 +389,6 @@ def save(
             f"  specified_path type = {type(specified_path)}"
         )
         raise
-
-
-def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
-    """Create a symbolic link from the current working directory.
-
-    Uses ``spath_final`` (the path normalised through ``clean()``) as
-    the link source when supplied; falls back to the raw ``spath`` for
-    backward compatibility with callers that don't yet pass it.
-
-    scitex-io#55: when ``spath`` contained ``./`` segments (the common
-    case for ``save(obj, "./x.csv", symlink_from_cwd=True)``), the
-    ``ln -sfr`` relative-target computation could collapse to the same
-    basename in the same dir, producing a ``./x.csv -> x.csv``
-    self-loop. We now:
-
-    1. Prefer the cleaned ``spath_final`` as the link source.
-    2. Compute the relative target ourselves and bail out (logging) if
-       it would equal ``basename(spath_cwd)`` in ``dirname(spath_cwd)``.
-    """
-    if symlink_from_cwd and (spath != spath_cwd):
-        target = spath_final if spath_final is not None else spath
-        _os.makedirs(_os.path.dirname(spath_cwd), exist_ok=True)
-        rel_target = _os.path.relpath(target, _os.path.dirname(spath_cwd))
-        if rel_target == _os.path.basename(spath_cwd):
-            # Defensive guard — refuse to create a self-loop. This
-            # should be unreachable now that spath_cwd uses normpath
-            # (not clean→resolve) upstream, but is kept as a belt-and-
-            # suspenders for any caller that passes already-resolved
-            # paths.
-            logger.error(
-                f"_symlink would self-loop {spath_cwd} -> {rel_target}; "
-                "skipping link creation (scitex-io#55)."
-            )
-            return
-        sh(["rm", "-f", f"{spath_cwd}"], verbose=False)
-        sh(["ln", "-sfr", f"{target}", f"{spath_cwd}"], verbose=False)
-        if verbose:
-            logger.success(color_text(f"(Symlinked to: {spath_cwd})", "yellow"))
-
-
-def _symlink_to(spath_final, symlink_to, verbose):
-    """Create a symbolic link at the specified path pointing to the saved file."""
-    if symlink_to:
-        if isinstance(symlink_to, Path):
-            symlink_to = str(symlink_to)
-        symlink_to = clean(symlink_to)
-        _os.makedirs(_os.path.dirname(symlink_to), exist_ok=True)
-        sh(["rm", "-f", f"{symlink_to}"], verbose=False)
-        sh(["ln", "-sfr", f"{spath_final}", f"{symlink_to}"], verbose=False)
-        if verbose:
-            print(color_text(f"\n(Symlinked to: {symlink_to})", "yellow"))
 
 
 _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".tiff", ".tif", ".svg", ".pdf"}

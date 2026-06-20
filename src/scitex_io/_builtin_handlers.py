@@ -129,7 +129,13 @@ _LAZY_LOADERS: dict[str, tuple[str, str]] = {
     ".xlsb": ("scitex_io._load_modules._pandas", "_load_excel"),
     ".parquet": ("scitex_io._load_modules._pandas", "_load_parquet"),
     ".feather": ("scitex_io._load_modules._pandas", "_load_feather"),
-    ".db": ("scitex_io._load_modules._sqlite3", "_load_db_sqlite3"),
+    # `.db` is intentionally NOT a builtin — DB loading delegates to
+    # scitex-db via _optional_providers._register_scitex_db (gated by
+    # scitex_dev.try_import_optional). Without scitex-db installed,
+    # `stx.io.load("foo.db")` raises ValueError("No load handler …
+    # install scitex-io[db]") rather than silently returning a raw
+    # sqlite3.Connection (the silent-fallback antipattern removed in
+    # the scitex-db standardization).
     # Scientific (heavy: scipy, h5py, zarr)
     ".npy": ("scitex_io._load_modules._numpy", "_load_npy"),
     ".npz": ("scitex_io._load_modules._numpy", "_load_npy"),
@@ -239,7 +245,6 @@ _LOADER_ATTRS: dict[str, tuple[str, str]] = {
     "_load_excel": ("scitex_io._load_modules._pandas", "_load_excel"),
     "_load_parquet": ("scitex_io._load_modules._pandas", "_load_parquet"),
     "_load_feather": ("scitex_io._load_modules._pandas", "_load_feather"),
-    "_load_db_sqlite3": ("scitex_io._load_modules._sqlite3", "_load_db_sqlite3"),
     "_load_npy": ("scitex_io._load_modules._numpy", "_load_npy"),
     "_load_matlab": ("scitex_io._load_modules._matlab", "_load_matlab"),
     "_load_hdf5": ("scitex_io._load_modules._hdf5", "_load_hdf5"),

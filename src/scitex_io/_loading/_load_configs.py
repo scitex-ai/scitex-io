@@ -19,6 +19,26 @@ from .._utils import DotDict
 from ._load import load
 
 
+class ConfigLoadError(Exception):
+    """Raised by :func:`load_configs` when a YAML config fails to load/process.
+
+    Replaces the historical swallow-and-return-empty-``DotDict`` behaviour
+    of the outer ``try/except`` in ``load_configs``. That swallow turned
+    every config bug — a malformed YAML, an int-keyed mapping crashing the
+    debug-promotion walker, a missing file under ``categories/`` — into a
+    silent empty ``DotDict({})``. The user then saw a baffling
+    ``'DotDict' object has no attribute 'PAC'`` three frames away from the
+    actual failure, with the real ``yaml.YAMLError`` / ``AttributeError``
+    only printed to stderr (often invisible in CI logs or pytest captures).
+
+    ``ConfigLoadError`` names the offending YAML file in its message and
+    chains the original exception as ``__cause__`` so the actual root
+    error stays visible in the traceback. Catch this only if you
+    genuinely want to recover from a bad config; otherwise let it
+    propagate.
+    """
+
+
 def _normalize_to_upper(d, file=None, path="CONFIG"):
     """Normalize every string key in a config tree to UPPER_CASE.
 
@@ -145,6 +165,17 @@ def load_configs(
         If two keys inside one mapping fold to the same UPPER form
         (a case collision). Raised at load time, naming the file, the
         mapping path, and both offending keys.
+    ConfigLoadError
+        If reading or processing any YAML file under ``config_dir``
+        fails for any reason other than a case collision (malformed
+        YAML, missing required file under ``categories/``, an
+        ``apply_debug_values`` walker crash on a malformed mapping,
+        …). The message names the offending file path; the original
+        exception is chained as ``__cause__`` so the traceback shows
+        the root error. Replaces the prior swallow-and-return-empty-
+        ``DotDict`` behaviour, which made every config bug surface as
+        a baffling ``'DotDict' object has no attribute 'X'`` three
+        frames away from the actual failure.
 
     Examples
     --------
@@ -160,7 +191,22 @@ def load_configs(
             return config
 
         for key, value in list(config.items()):
-            if key.startswith(("DEBUG_", "debug_")):
+            # YAML mapping keys can be non-string (ints, etc.) — e.g.
+            # SEIZURE.yaml's INT2STR / INT2COLOR carry literal integer
+            # event-code keys. `str.startswith` would raise
+            # `AttributeError: 'int' object has no attribute 'startswith'`
+            # on those, the outer try in `load_configs` would swallow it
+            # as `Error loading configs: ...` and return an empty
+            # DotDict — and the user sees the cryptic downstream
+            # `'DotDict' object has no attribute 'PAC'`. Only the
+            # `DEBUG_<key>` / `debug_<key>` promotion rule applies to
+            # strings; non-string keys are silently recursed into when
+            # they nest another mapping but never pattern-matched.
+            is_debug_prefixed = (
+                isinstance(key, str)
+                and key.startswith(("DEBUG_", "debug_"))
+            )
+            if is_debug_prefixed:
                 dk_wo_debug_prefix = key.split("_", 1)[1]
                 config[dk_wo_debug_prefix] = value
                 if show or verbose:
@@ -169,15 +215,18 @@ def load_configs(
                 config[key] = apply_debug_values(value, IS_DEBUG)
         return config
 
-    try:
-        # Handle config directory parameter
-        if config_dir is None:
-            config_dir = "./config"
-        elif isinstance(config_dir, Path):
-            config_dir = str(config_dir)
+    # Handle config directory parameter
+    if config_dir is None:
+        config_dir = "./config"
+    elif isinstance(config_dir, Path):
+        config_dir = str(config_dir)
 
-        # Set debug mode
-        debug_config_path = f"{config_dir}/IS_DEBUG.yaml"
+    # Set debug mode. Wrap the IS_DEBUG.yaml read so a malformed
+    # IS_DEBUG.yaml surfaces as ConfigLoadError naming that file
+    # rather than poisoning every downstream load with a swallowed
+    # error.
+    debug_config_path = f"{config_dir}/IS_DEBUG.yaml"
+    try:
         IS_DEBUG = (
             IS_DEBUG
             or os.getenv("CI") == "True"
@@ -186,42 +235,61 @@ def load_configs(
                 and load(debug_config_path).get("IS_DEBUG")
             )
         )
+    except (ConfigLoadError, ValueError):
+        raise
+    except Exception as e:
+        raise ConfigLoadError(
+            f"load_configs failed reading IS_DEBUG flag from "
+            f"{debug_config_path!r}: {type(e).__name__}: {e}"
+        ) from e
 
-        # Load and merge configs (namespaced by filename)
-        CONFIGS = {}
+    # Load and merge configs (namespaced by filename)
+    CONFIGS = {}
 
-        # Load from main config directory
-        config_pattern = f"{config_dir}/*.yaml"
-        for lpath in glob(config_pattern):
+    def _ingest(lpath: str) -> None:
+        """Load one YAML file into ``CONFIGS`` under its filename stem.
+
+        Wraps the per-file load + debug walk in a fail-loud envelope so
+        a single bad file surfaces with its path in the error message,
+        instead of silently producing an empty ``DotDict`` further
+        downstream.
+        """
+        try:
             if config := load(lpath):
                 filename = Path(lpath).stem
                 CONFIGS[filename] = apply_debug_values(config, IS_DEBUG)
+        except (ConfigLoadError, ValueError):
+            # Re-raise case-collision ValueError and any nested
+            # ConfigLoadError unchanged; everything else is wrapped
+            # below with the file path attached.
+            raise
+        except Exception as e:
+            raise ConfigLoadError(
+                f"load_configs failed processing {lpath!r}: "
+                f"{type(e).__name__}: {e}"
+            ) from e
 
-        # Load from categories subdirectory if it exists
-        categories_dir = f"{config_dir}/categories"
-        if os.path.exists(categories_dir):
-            categories_pattern = f"{categories_dir}/*.yaml"
-            for lpath in glob(categories_pattern):
-                if config := load(lpath):
-                    filename = Path(lpath).stem
-                    CONFIGS[filename] = apply_debug_values(config, IS_DEBUG)
+    # Load from main config directory
+    config_pattern = f"{config_dir}/*.yaml"
+    for lpath in glob(config_pattern):
+        _ingest(lpath)
 
-        # Normalise every filename-level key (from YAML stem) and every
-        # nested string key to UPPER_CASE so the loaded config is
-        # case-stable regardless of source casing. A case collision
-        # (e.g. MODEL.yaml + model.yaml, HIDDEN_DIM + hidden_dim,
-        # "seizure" + "SEIZURE") raises a loud ValueError here.
-        _normalize_to_upper(CONFIGS)
+    # Load from categories subdirectory if it exists
+    categories_dir = f"{config_dir}/categories"
+    if os.path.exists(categories_dir):
+        categories_pattern = f"{categories_dir}/*.yaml"
+        for lpath in glob(categories_pattern):
+            _ingest(lpath)
 
-        return DotDict(CONFIGS)
+    # Normalise every filename-level key (from YAML stem) and every
+    # nested string key to UPPER_CASE so the loaded config is
+    # case-stable regardless of source casing. A case collision
+    # (e.g. MODEL.yaml + model.yaml, HIDDEN_DIM + hidden_dim,
+    # "seizure" + "SEIZURE") raises a loud ValueError here, naming
+    # the file/path/keys (see ``_normalize_to_upper``).
+    _normalize_to_upper(CONFIGS)
 
-    except ValueError:
-        # Case collisions are user config errors — fail loud, never
-        # swallow into the empty-DotDict fallback below.
-        raise
-    except Exception as e:
-        print(f"Error loading configs: {e}")
-        return DotDict({})
+    return DotDict(CONFIGS)
 
 
 # EOF

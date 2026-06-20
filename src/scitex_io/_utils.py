@@ -313,12 +313,46 @@ def parse(string, pattern=None):
 
 # Environment detection
 def detect_environment():
-    """Detect execution environment."""
+    """Detect the execution environment.
+
+    Returns exactly one of a fixed, documented vocabulary — callers
+    (see ``scitex_io._save.save``) route on these strings, and an
+    unrecognised value is a fail-fast error there, never a silent
+    fallback:
+
+    - ``"jupyter"``     : Jupyter kernel (IPython ``ZMQInteractiveShell``)
+    - ``"ipython"``     : IPython *terminal* REPL (``TerminalInteractiveShell``)
+    - ``"script"``      : a real ``.py`` run (``__main__`` has a ``__file__``)
+    - ``"interactive"`` : bare ``python`` REPL / ``python -i`` / ``-c``
+
+    Detection order: IPython shell class first (jupyter vs ipython),
+    then whether ``__main__`` has a ``__file__`` (script vs bare REPL).
+
+    Operator directive 2026-06-13: the previous implementation returned
+    only ``"jupyter"`` or ``"python"`` — ``"python"`` was ambiguous (real
+    script vs REPL) and ``"script"`` was never returned, leaving
+    ``_save.py``'s ``elif env_type == "script"`` branch as dead code and
+    routing every script save to ``<cwd>/output/`` via a silent
+    fallback. That fallback is removed in this same release; the
+    detector now returns the precise string the consumer expects.
+    """
+    import sys as _sys
+
     try:
-        get_ipython()  # type: ignore
-        return "jupyter"
+        _shell = get_ipython()  # type: ignore[name-defined]
     except NameError:
-        return "python"
+        _shell = None
+
+    if _shell is not None:
+        if type(_shell).__name__ == "ZMQInteractiveShell":
+            return "jupyter"
+        # Any other IPython shell (terminal REPL, embedded shell, etc.).
+        return "ipython"
+
+    _main = _sys.modules.get("__main__")
+    if _main is not None and hasattr(_main, "__file__"):
+        return "script"
+    return "interactive"
 
 
 def get_notebook_info_simple():

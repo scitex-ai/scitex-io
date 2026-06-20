@@ -7,6 +7,140 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-06-20
+
+### Changed
+- **CI workflows realigned to the canonical fleet-standard explicit
+  set.** The transitional `ci.yml` / `release.yml` (and the
+  `pr-ci.yml` / `release-ci.yml` brought in by the L1–L5 speedup) are
+  replaced by the per-concern workflow set used across the ecosystem:
+  `pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml`,
+  `import-smoke-on-ubuntu-py3-12.yml`,
+  `pypi-publish-and-github-release-on-tag.yml`,
+  `rtd-sphinx-build-on-ubuntu-latest.yml`,
+  `newb-docs-quality-on-ubuntu-latest.yml`,
+  `auto-merge-to-develop.yaml`, and a leaf-scoped
+  `scitex-io-quality-audit-on-ubuntu-latest.yml`. The pytest-matrix job
+  preserves the required status-check names
+  (`pytest-matrix-on-ubuntu-py3.11/3.12/3.13`) and the per-job-HOME
+  codecov-race guard so the matrix legs do not contend on a shared
+  `~/.gitconfig`. `cla.yml` (PS-168 owner-bypass variant) is unchanged.
+
+## [0.3.1] — 2026-06-07
+
+### Changed
+- **`mne` is no longer a core dependency.** Bare `pip install
+  scitex-io` no longer pulls mne + sklearn + pooch + decorator (~150MB
+  install footprint) just because two niche loaders
+  (`_load_modules/_con.py`, `_load_modules/_eeg.py`) use it. Install
+  with `pip install 'scitex-io[mne]'` to opt back in. The loaders
+  already imported optionally; this PR makes the dep optional at the
+  packaging layer too. Companion fix: `_load_eeg_data` now raises a
+  clear `ImportError` naming the `[mne]` extra when called without mne
+  installed and without a `mne_module=` injection (previously
+  AttributeError'd on the first `mne_module.io.*` call).
+
+  Motivation: same SIF-dogfood signal as scitex-gen v0.1.13
+  (proj-paper-ripple-wm, 2026-06-07). Bare ecosystem installs in slim
+  research containers shouldn't drag heavy optional chains in for
+  niche loaders.
+
+- **Publish workflow gates on STRUCTURAL checks only.** The
+  `pypi-publish-and-github-release-on-tag` workflow's pre-publish
+  `pytest tests/ -x` step has been dropped. It duplicated the PR
+  matrix and fast-failed on the known-tolerated
+  `tests/develop/test_audit.py::test_audit_all_clean` F that every
+  scitex-* repo carries as accepted drift under the
+  {CLEAN, UNSTABLE} merge framework. The `test` job is now a
+  matrix install-smoke (pip install -e .[all,dev]) — that's the
+  structural correctness gate the publish pipeline owes the user.
+  Functional coverage continues to run on every PR via the matrix
+  workflow. Same fix as scitex-gen PR #23.
+
+- **`[all]` and `[dev]` extras now list deps literally** (no
+  `scitex-io[mcp]`-style self-references, which fail to resolve
+  during `pip install -e` because the package isn't on PyPI at
+  install time). `[dev]` ⊇ `[all]` by enumeration — the suite covers
+  every optional code path. Invariant captured inline as a comment.
+
+- **`faulthandler_timeout = 120` in pytest config.** Pytest dumps
+  every thread's stack on a 120s deadlock — so CI logs name the
+  exact wedged test instead of leaving us reading the runner clock.
+  Same hygiene as scitex-gen v0.1.13. Cost: zero on green runs.
+
+## [0.3.0] — 2026-06-07
+
+Minor bump motivated by two intentional behaviour breaks, both
+no-silent-failure antipattern removals. Both surfaces are also the
+documented release reason — the changes were lead-mandated and
+called out in commit messages before the version bump.
+
+### Removed
+- **Silent-fallback `.db` loader stub (#59).** Deleted
+  `src/scitex_io/_load_modules/_sqlite3.py` — the 8-line primitive
+  `SQLite3` class that wrapped a raw `sqlite3.Connection` and
+  shadowed `scitex_db`'s full SQLite3 wrapper. Calling
+  `stx.io.load("foo.db")` used to return that raw Connection wrapped
+  in the stub; user code lost access to `get_rows` / `load_array` /
+  `save_array` and silently bypassed scitex-db's compression / array
+  / blob / transaction layer. Replaced by the existing
+  optional-provider mechanism (`_optional_providers.py`,
+  `_register_scitex_db()` via
+  `scitex_dev.try_import_optional("scitex_db", extra="db",
+  pkg="scitex-io")`).
+  - When **scitex-db is installed**: `stx.io.load("foo.db")`
+    delegates to `scitex_db.SQLite3(path, **kwargs)`; kwargs flow
+    through to support `mode='ro'` / `timeout=` (companion
+    `scitex-db v0.1.12`).
+  - When **scitex-db is absent**: registration silently no-ops and
+    `stx.io.load("foo.db")` fails through the standard registry
+    error path: `ValueError("No load handler registered for
+    '.db'. Use register_loader('.db', your_fn) to add one.")`.
+    Install `scitex-io[db]` to get the scitex-db dispatch.
+  - **Breaking** for any caller relying on the silent stub return
+    value. Umbrella consumers are not affected (the `scitex`
+    umbrella core-pins `scitex-db>=0.1.11` already, so the dispatch
+    is always active there).
+- **Silent-empty `load_configs` fallback on processing errors
+  (#65).** Removed the outer `try/except Exception: print(...);
+  return DotDict({})` from
+  `src/scitex_io/_loading/_load_configs.py`. The swallow turned
+  every YAML processing bug — malformed YAML, an int-keyed mapping
+  crashing the debug-promotion walker, a missing required file
+  under `categories/` — into a silent empty `DotDict({})` and a
+  cryptic downstream `'DotDict' object has no attribute 'X'` three
+  frames away from the actual failure.
+
+### Changed
+- **`load_configs` raises `ConfigLoadError` on processing errors
+  (#65).** New `scitex_io._loading._load_configs.ConfigLoadError`
+  exception class. Each error names the offending YAML file in the
+  message and chains the original exception as `__cause__`. The
+  `IS_DEBUG.yaml` read is wrapped the same way so a malformed flag
+  file surfaces with its path in the error. Case-collision
+  `ValueError` from `_normalize_to_upper` keeps propagating as
+  before — no behaviour change for that path. **Breaking** for any
+  caller depending on the silent-empty return value (the
+  documented antipattern being removed); the typical consumer
+  pattern of `CONFIG = load_configs(); CONFIG.MODEL.HIDDEN_DIM` is
+  unchanged on the happy path.
+
+### Fixed
+- **`apply_debug_values` no longer crashes on non-string YAML keys
+  (#64).** YAML mapping keys can be non-string — neurovista's
+  `SEIZURE.yaml` carries literal integer event-code tables
+  (`INT2STR: {-1: interictal, 1: seizure, 2: sle}`). When
+  `load_configs` ran with `IS_DEBUG=True` (any of: explicit kwarg,
+  `CI=True`, or `IS_DEBUG.yaml` with `IS_DEBUG: true`), the inner
+  `apply_debug_values` walker raised
+  `AttributeError: 'int' object has no attribute 'startswith'` on
+  the first int key. Now guards with `isinstance(key, str)` before
+  `key.startswith(("DEBUG_", "debug_"))` — the `DEBUG_<KEY>` rule
+  only applies to string keys by definition. Combined with the
+  `load_configs` fail-loud rewrite above, every config bug now
+  surfaces at load time with the offending file + root exception
+  in the traceback instead of as a downstream `AttributeError`.
+
 ## [0.2.21] — 2026-06-04
 
 ### Fixed

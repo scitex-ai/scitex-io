@@ -13,7 +13,11 @@ saves an image extension.
 import os as _os
 import warnings
 
-from ._utils import color_text, getsize, readable_bytes
+from scitex_logging import getLogger as _getLogger
+
+from ._utils import getsize, readable_bytes
+
+logger = _getLogger(__name__)
 
 
 def _get_save_image():
@@ -126,12 +130,7 @@ def _save_separate_legends(obj, spath, symlink_from_cwd=False, dry_run=False, **
 
         if not dry_run and _os.path.exists(legend_filename):
             file_size = readable_bytes(getsize(legend_filename))
-            print(
-                color_text(
-                    f"\nSaved legend to: {legend_filename} ({file_size})",
-                    color="yellow",
-                )
-            )
+            logger.success(f"Saved legend to: {legend_filename} ({file_size})")
 
 
 def handle_image_with_csv(
