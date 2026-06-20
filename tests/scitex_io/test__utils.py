@@ -7,7 +7,6 @@ Every public helper + the DotDict class. Real fixtures only — no mocks
 around the system layer beyond `monkeypatch` for env vars / sys.argv.
 """
 
-
 import os
 import sys
 from pathlib import Path
@@ -48,7 +47,6 @@ class TestStringHelpers:
         # Act
         # Assert
         assert clean_path("./x/./y") == os.path.normpath("./x/./y")
-
 
     def test_clean_path_pathlike(self):
         # Arrange
@@ -126,7 +124,6 @@ class TestDotDictBasics:
         # Assert
         assert bool(d) is False
 
-
     def test_from_dict_d_a_equals_n_1(self):
         # Arrange
         # Arrange
@@ -156,7 +153,6 @@ class TestDotDictBasics:
         # Assert
         # Assert
         assert bool(d) is True
-
 
     def test_from_dotdict_b_x_equals_n_1(self):
         # Arrange
@@ -199,7 +195,6 @@ class TestDotDictBasics:
         # Assert
         assert d.top.inner == 1
 
-
     def test_attr_access_missing_raises(self):
         # Arrange
         # Act
@@ -232,7 +227,6 @@ class TestDotDictBasics:
         # Assert
         with ctx:
             del d.x  # already gone
-
 
     def test_item_access_d_a_1(self):
         # Arrange
@@ -270,7 +264,6 @@ class TestDotDictBasics:
         # Assert
         assert "a" not in d
 
-
     def test_item_set_wraps_dict_isinstance_d_sub_dotdict(self):
         # Arrange
         # Arrange
@@ -294,7 +287,6 @@ class TestDotDictBasics:
         assert d["sub"].k == 1
 
 
-
 class TestDotDictMappingMethods:
     def test_get_d_get_a_1(self):
         # Arrange
@@ -315,7 +307,6 @@ class TestDotDictMappingMethods:
         # Assert
         # Assert
         assert d.get("missing", "default") == "default"
-
 
     def test_keys_values_items_set_d_keys_a_b(self):
         # Arrange
@@ -347,7 +338,6 @@ class TestDotDictMappingMethods:
         # Assert
         assert set(d.items()) == {("a", 1), ("b", 2)}
 
-
     def test_update_with_dict_d_a_equals_n_99(self):
         # Arrange
         # Arrange
@@ -369,7 +359,6 @@ class TestDotDictMappingMethods:
         # Assert
         # Assert
         assert d.b == 2
-
 
     def test_update_with_iterable(self):
         # Arrange
@@ -431,7 +420,6 @@ class TestDotDictMappingMethods:
         # Assert
         assert d.b == 7
 
-
     def test_pop_d_pop_a_1(self):
         # Arrange
         d = DotDict({"a": 1})
@@ -480,7 +468,6 @@ class TestDotDictMappingMethods:
         with pytest.raises(TypeError):
             d.pop("a", "b", "c")
 
-
     def test_contains_iter_a_in_d(self):
         # Arrange
         # Arrange
@@ -502,7 +489,6 @@ class TestDotDictMappingMethods:
         assert list(iter(d)) == ["a", "b"]
 
 
-
 class TestDotDictReprAndEq:
     def test_eq_with_dotdict_dotdict_a_1_dotdict_a_1(self):
         # Arrange
@@ -522,7 +508,6 @@ class TestDotDictReprAndEq:
         # Assert
         assert DotDict({"a": 1}) != DotDict({"a": 2})
 
-
     def test_eq_with_plain_dict_dotdict_a_1_a_1(self):
         # Arrange
         # Act
@@ -540,7 +525,6 @@ class TestDotDictReprAndEq:
         # Act
         # Assert
         assert DotDict({"a": 1}) != {"a": 2}
-
 
     def test_eq_other_type_returns_false(self):
         # Arrange
@@ -573,7 +557,6 @@ class TestDotDictReprAndEq:
         # Assert
         assert not isinstance(plain["b"], DotDict)
 
-
     def test_to_dict_skips_private_keys_secret_not_in_plain(self):
         # Arrange
         # Arrange
@@ -603,7 +586,6 @@ class TestDotDictReprAndEq:
         plain_all = d.to_dict(include_private=True)
         # Assert
         assert "_secret" in plain_all
-
 
     def test_str_is_json(self):
         # Arrange
@@ -663,7 +645,6 @@ class TestDotDictReprAndEq:
         assert d.a == 1
 
 
-
 class TestPathHelpers:
     def test_preserve_doc_returns_func_g_1(self):
         # Arrange
@@ -671,6 +652,7 @@ class TestPathHelpers:
         def f():
             "doc"
             return 1
+
         # Act
         g = preserve_doc(f)
         # Act
@@ -684,13 +666,13 @@ class TestPathHelpers:
         def f():
             "doc"
             return 1
+
         # Act
         g = preserve_doc(f)
         # Act
         # Assert
         # Assert
         assert g.__doc__ == "doc"
-
 
     def test_split_a_in_parts_and_b_in_parts_and_c_in_parts(self):
         # Arrange
@@ -849,7 +831,6 @@ class TestEnvironmentDetect:
         # Assert
         assert dir_ == str(tmp_path)
 
-
     def test_notebook_path_argv_fallback_name_equals_via_argv_ipynb(
         self, tmp_path, env_save_restore, argv_restore
     ):
@@ -876,7 +857,6 @@ class TestEnvironmentDetect:
         # Assert
         assert dir_ == str(tmp_path)
 
-
     def test_notebook_path_none_when_no_signal(self, env_save_restore, argv_restore):
         # Arrange
         env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
@@ -890,9 +870,7 @@ class TestEnvironmentDetect:
         self, tmp_path, env_save_restore, argv_restore
     ):
         # Arrange — env var points at a non-existent path → fall through
-        env_save_restore.set(
-            "SCITEX_NOTEBOOK_PATH", str(tmp_path / "missing.ipynb")
-        )
+        env_save_restore.set("SCITEX_NOTEBOOK_PATH", str(tmp_path / "missing.ipynb"))
         sys.argv[:] = ["pytest"]
         # Act
         result = get_notebook_info_simple()
@@ -956,3 +934,93 @@ class TestDetectEnvironmentReturnsClosedVocabulary:
             f"detect_environment() under `python -c` must return 'interactive'; "
             f"got {emitted}; stderr={result.stderr!r}"
         )
+
+
+# ====================================================================== #
+# detect_environment — in-process branch coverage for the IPython paths   #
+# ====================================================================== #
+# ``detect_environment`` calls a *bare* ``get_ipython()`` and treats a
+# ``NameError`` as "no IPython". Under a real IPython/Jupyter kernel,
+# ``get_ipython`` is injected into builtins so the bare call resolves.
+#
+# To exercise the jupyter / ipython branches in-process (the subprocess
+# tests above run in a child whose coverage isn't measured, and a plain
+# pytest run hits neither IPython branch), we inject a hand-rolled
+# ``get_ipython`` *function* into the ``_utils`` module namespace — a real
+# callable returning a real shell-like object whose ``type(...).__name__``
+# drives the branch. ``attr_restore`` snapshots + removes it after the
+# test, so no global IPython state leaks. No mock library is used: the
+# injected object is an ordinary class instance.
+
+
+class _FakeShell:
+    """Stand-in IPython shell: only ``type(self).__name__`` is read."""
+
+
+# NOTE: ``detect_environment`` keys on ``type(shell).__name__ ==
+# "ZMQInteractiveShell"`` — an EXACT string match. The fake classes must
+# therefore be named EXACTLY as the real IPython shell classes (no
+# leading underscore), so ``type(instance).__name__`` produces the
+# string the branch compares against.
+class ZMQInteractiveShell(_FakeShell):  # noqa: N801 — must match real name
+    """Jupyter-kernel shell class name that maps to ``'jupyter'``."""
+
+
+class TerminalInteractiveShell(_FakeShell):  # noqa: N801 — real IPython name
+    """Any non-ZMQ IPython shell → the ``'ipython'`` branch."""
+
+
+def _install_fake_get_ipython(attr_restore, shell_obj):
+    """Inject a real ``get_ipython`` returning ``shell_obj`` into _utils."""
+    import scitex_io._utils as _utils_mod
+
+    attr_restore.set(_utils_mod, "get_ipython", lambda: shell_obj)
+
+
+class TestDetectEnvironmentIPythonBranchesInProcess:
+    """In-process coverage of the ``get_ipython()``-present branches."""
+
+    def test_zmq_shell_detected_as_jupyter(self, attr_restore):
+        # Arrange — a ZMQInteractiveShell-classed object means a kernel.
+        _install_fake_get_ipython(attr_restore, ZMQInteractiveShell())
+        # Act
+        result = detect_environment()
+        # Assert
+        assert result == "jupyter"
+
+    def test_terminal_shell_detected_as_ipython(self, attr_restore):
+        # Arrange — any other IPython shell class → 'ipython'.
+        _install_fake_get_ipython(attr_restore, TerminalInteractiveShell())
+        # Act
+        result = detect_environment()
+        # Assert
+        assert result == "ipython"
+
+    def test_no_ipython_and_no_main_file_returns_interactive(self, attr_restore):
+        # Arrange — force the no-IPython path: a get_ipython that raises
+        # NameError exactly like the absent builtin, plus a __main__ with
+        # no __file__ so the final 'interactive' return is reached.
+        import sys
+
+        import scitex_io._utils as _utils_mod
+
+        def _raise_nameerror():
+            raise NameError("name 'get_ipython' is not defined")
+
+        attr_restore.set(_utils_mod, "get_ipython", _raise_nameerror)
+
+        # Swap __main__ for a bare module object with no __file__ so the
+        # `hasattr(_main, "__file__")` test is False (pytest's __main__
+        # normally HAS a __file__). attr_restore restores it after.
+        import types
+
+        bare_main = types.ModuleType("__main__")  # no __file__ attribute
+        saved_main = sys.modules.get("__main__")
+        sys.modules["__main__"] = bare_main
+        try:
+            # Act
+            result = detect_environment()
+        finally:
+            sys.modules["__main__"] = saved_main
+        # Assert
+        assert result == "interactive"

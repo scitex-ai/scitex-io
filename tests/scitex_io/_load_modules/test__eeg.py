@@ -68,9 +68,83 @@ def test_mne_available_flag_is_bool():
     """``MNE_AVAILABLE`` is a boolean flag."""
     # Arrange
     # Act
-    from scitex_io._load_modules._eeg import MNE_AVAILABLE
+    from scitex_io._load_modules import _eeg
+
     # Assert
-    assert isinstance(MNE_AVAILABLE, bool)
+    assert isinstance(_eeg.MNE_AVAILABLE, bool)
+
+
+# ---------------------------------------------------------------------------
+# MNE-unavailable fail-loud — the import-guard branch
+# ---------------------------------------------------------------------------
+#
+# When the optional ``mne`` package is NOT installed, ``MNE_AVAILABLE`` is
+# ``False`` and the module-level ``mne`` is ``None``. Calling
+# ``_load_eeg_data`` WITHOUT an explicit ``mne_module`` must then raise a
+# clear ``ImportError`` naming the package + the install extra, never an
+# opaque ``AttributeError: 'NoneType' has no attribute 'io'`` deeper in.
+#
+# ``mne`` IS installed in this environment, so we flip the module's real
+# ``MNE_AVAILABLE`` flag to ``False`` for the duration of the test via the
+# structural ``attr_restore`` fixture (no mock library) and restore it
+# after. This exercises the genuine import-guard code path.
+
+
+def test_load_eeg_data_raises_importerror_when_mne_unavailable(attr_restore):
+    """No ``mne`` + no injected module → fail loud with ``ImportError``."""
+    # Arrange — pretend mne is not installed for this test only.
+    from scitex_io._load_modules import _eeg
+
+    attr_restore.set(_eeg, "MNE_AVAILABLE", False)
+    # Act
+    ctx = pytest.raises(ImportError)
+    # Assert
+    with ctx:
+        _eeg._load_eeg_data("recording.edf")
+
+
+def test_mne_unavailable_importerror_names_the_mne_package(attr_restore):
+    """The fail-loud message tells the user which package to install."""
+    # Arrange
+    from scitex_io._load_modules import _eeg
+
+    attr_restore.set(_eeg, "MNE_AVAILABLE", False)
+    # Act
+    ctx = pytest.raises(ImportError, match=r"mne")
+    # Assert
+    with ctx:
+        _eeg._load_eeg_data("recording.edf")
+
+
+def test_mne_unavailable_importerror_mentions_install_extra(attr_restore):
+    """The message points at the ``scitex-io[mne]`` install extra."""
+    # Arrange
+    from scitex_io._load_modules import _eeg
+
+    attr_restore.set(_eeg, "MNE_AVAILABLE", False)
+    # Act
+    ctx = pytest.raises(ImportError, match=r"scitex-io\[mne\]")
+    # Assert
+    with ctx:
+        _eeg._load_eeg_data("recording.edf")
+
+
+def test_injected_mne_module_bypasses_unavailable_guard(attr_restore):
+    """Passing ``mne_module`` explicitly skips the MNE_AVAILABLE check.
+
+    Even with ``MNE_AVAILABLE`` flipped to ``False``, a caller who hands
+    in a working reader namespace must still succeed — the guard only
+    fires when the caller relies on the (absent) module-level ``mne``.
+    """
+    # Arrange
+    from scitex_io._load_modules import _eeg
+
+    attr_restore.set(_eeg, "MNE_AVAILABLE", False)
+    mne_ns, _ = _make_fake_mne()
+    # Act
+    result = _eeg._load_eeg_data("recording.edf", mne_module=mne_ns)
+    # Assert
+    assert result is mne_ns.io.read_raw_edf.sentinel
 
 
 # ---------------------------------------------------------------------------
@@ -86,6 +160,7 @@ def test_load_eeg_data_rejects_unsupported_extension(invalid_path):
     """Reject paths whose extension is unsupported."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     ctx = pytest.raises(ValueError, match="File must have one of these extensions")
     # Assert
@@ -101,6 +176,7 @@ def test_load_eeg_data_rejects_uppercase_extension(uppercase_path):
     """Extension matching is case-sensitive."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     ctx = pytest.raises(ValueError, match="File must have one of these extensions")
     # Assert
@@ -130,8 +206,12 @@ def test_load_eeg_data_dispatches_to_expected_reader(lpath, reader_name):
     """Each extension routes to the matching ``mne.io.read_raw_*`` reader."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, _ = _make_fake_mne()
-    expected_sentinel = getattr(mne_ns.io, f"read_raw_{reader_name}" if reader_name != "read_raw" else "read_raw").sentinel
+    expected_sentinel = getattr(
+        mne_ns.io,
+        f"read_raw_{reader_name}" if reader_name != "read_raw" else "read_raw",
+    ).sentinel
     # Act
     result = _load_eeg_data(lpath, mne_module=mne_ns)
     # Assert
@@ -147,6 +227,7 @@ def test_load_eeg_data_forwards_kwargs_to_reader():
     """User kwargs (other than ``preload``) reach the reader unchanged."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, calls = _make_fake_mne()
     # Act
     _load_eeg_data(
@@ -164,6 +245,7 @@ def test_load_eeg_data_enforces_preload_true():
     """``preload`` is set to ``True`` even if the caller passes ``False``."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, calls = _make_fake_mne()
     # Act
     _load_eeg_data("test.cnt", mne_module=mne_ns, preload=False)
@@ -175,6 +257,7 @@ def test_load_eeg_data_preserves_non_preload_kwargs_when_overriding_preload():
     """Non-preload kwargs remain even when preload is stripped+re-injected."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, calls = _make_fake_mne()
     # Act
     _load_eeg_data("test.cnt", mne_module=mne_ns, preload=False, verbose=True)
@@ -191,6 +274,7 @@ def test_load_eeg_data_eeg_extension_detects_brainvision_companions():
     """``.eeg`` with ``.vhdr``/``.vmrk`` companions routes to brainvision."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, calls = _make_fake_mne()
 
     def isfile(path):
@@ -206,6 +290,7 @@ def test_load_eeg_data_eeg_extension_uses_vhdr_path_for_brainvision():
     """The .eeg path is rewritten to .vhdr before dispatch."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, calls = _make_fake_mne()
 
     def isfile(path):
@@ -221,6 +306,7 @@ def test_load_eeg_data_eeg_extension_detects_nihon_koden_companions():
     """``.eeg`` with ``.21e``/``.pnt``/``.log`` companions routes to read_raw."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, _ = _make_fake_mne()
 
     def isfile(path):
@@ -236,6 +322,7 @@ def test_load_eeg_data_eeg_extension_without_companions_raises():
     """A bare ``.eeg`` with no companion files raises ``ValueError``."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, _ = _make_fake_mne()
     # Act
     ctx = pytest.raises(ValueError, match="No associated files found for .eeg file")
@@ -253,6 +340,7 @@ def test_load_eeg_data_propagates_filenotfounderror_from_reader():
     """A ``FileNotFoundError`` from the reader bubbles up."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, _ = _make_fake_mne()
 
     def read_raw_edf(lpath, preload, **kwargs):
@@ -270,6 +358,7 @@ def test_load_eeg_data_propagates_valueerror_from_reader():
     """A ``ValueError`` from the reader bubbles up."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, _ = _make_fake_mne()
 
     def read_raw_bdf(lpath, preload, **kwargs):
@@ -300,6 +389,7 @@ def test_load_eeg_data_extracts_final_extension_only(lpath, expected_reader):
     """Multi-dot paths route by their final segment."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     mne_ns, calls = _make_fake_mne()
     # Act
     _load_eeg_data(lpath, mne_module=mne_ns)
@@ -316,6 +406,7 @@ def test_load_eeg_data_signature_includes_lpath():
     """``_load_eeg_data`` accepts an ``lpath`` parameter."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     sig = inspect.signature(_load_eeg_data)
     # Assert
@@ -326,18 +417,18 @@ def test_load_eeg_data_signature_accepts_kwargs():
     """``_load_eeg_data`` accepts ``**kwargs``."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     sig = inspect.signature(_load_eeg_data)
     # Assert
-    assert any(
-        p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-    )
+    assert any(p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
 
 
 def test_load_eeg_data_signature_lpath_annotated_as_str():
     """``lpath`` is annotated as ``str``."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     sig = inspect.signature(_load_eeg_data)
     # Assert
@@ -348,6 +439,7 @@ def test_load_eeg_data_signature_has_return_annotation():
     """``_load_eeg_data`` declares a return annotation."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     sig = inspect.signature(_load_eeg_data)
     # Assert
@@ -363,6 +455,7 @@ def test_load_eeg_data_has_docstring():
     """``_load_eeg_data`` exposes a non-empty docstring."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     # Act
     docstring = _load_eeg_data.__doc__
     # Assert
@@ -371,12 +464,21 @@ def test_load_eeg_data_has_docstring():
 
 @pytest.mark.parametrize(
     "needle",
-    ["Load EEG data", "MNE-Python", "BrainVision", "EDF", "Parameters", "Returns", "Raises"],
+    [
+        "Load EEG data",
+        "MNE-Python",
+        "BrainVision",
+        "EDF",
+        "Parameters",
+        "Returns",
+        "Raises",
+    ],
 )
 def test_load_eeg_data_docstring_mentions_needle(needle):
     """Docstring mentions the documented item."""
     # Arrange
     from scitex_io._load_modules._eeg import _load_eeg_data
+
     docstring = _load_eeg_data.__doc__ or ""
     # Act
     present = needle in docstring
@@ -386,4 +488,5 @@ def test_load_eeg_data_docstring_mentions_needle(needle):
 
 if __name__ == "__main__":
     import os
+
     pytest.main([os.path.abspath(__file__)])

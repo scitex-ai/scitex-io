@@ -568,9 +568,7 @@ class TestFailLoudOnLoadErrors:
     the fail-loud contract.
     """
 
-    def test_malformed_yaml_raises_config_load_error(
-        self, config_dir, ci_env_unset
-    ):
+    def test_malformed_yaml_raises_config_load_error(self, config_dir, ci_env_unset):
         # Arrange — invalid YAML used to be swallowed and return empty.
         os.makedirs(config_dir, exist_ok=True)
         broken_path = os.path.join(config_dir, "broken.yaml")
@@ -582,9 +580,7 @@ class TestFailLoudOnLoadErrors:
         with ctx:
             load_configs(config_dir=config_dir)
 
-    def test_malformed_yaml_error_names_offending_file(
-        self, config_dir, ci_env_unset
-    ):
+    def test_malformed_yaml_error_names_offending_file(self, config_dir, ci_env_unset):
         # Arrange
         os.makedirs(config_dir, exist_ok=True)
         broken_path = os.path.join(config_dir, "broken.yaml")
@@ -640,6 +636,143 @@ class TestFailLoudOnLoadErrors:
             "load_configs must fail loud on malformed YAML, not swallow "
             "and return DotDict({})."
         )
+
+
+class TestConfigDirArgumentForms:
+    """``config_dir`` accepts both ``str`` and ``pathlib.Path``."""
+
+    def test_pathlib_path_config_dir_loads_same_as_str(self, tmp_path, ci_env_unset):
+        # Arrange — pass a real ``Path`` (exercises the isinstance(Path)
+        # → str(config_dir) normalisation branch).
+        from pathlib import Path
+
+        config_dir = Path(tmp_path) / "config"
+        _write_configs(str(config_dir), {"config1": {"param1": "value1"}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert
+        assert result.CONFIG1.PARAM1 == "value1"
+
+    def test_default_config_dir_is_dot_config(self, tmp_path, ci_env_unset):
+        # Arrange — with config_dir omitted it defaults to ``./config``;
+        # run from a tmp cwd that has an empty ``config/`` so the default
+        # resolves to a real (empty) dir and returns an empty DotDict.
+        import os
+
+        os.makedirs(os.path.join(str(tmp_path), "config"), exist_ok=True)
+        old_cwd = os.getcwd()
+        os.chdir(str(tmp_path))
+        try:
+            # Act
+            result = load_configs(IS_DEBUG=False)
+        finally:
+            os.chdir(old_cwd)
+        # Assert
+        assert isinstance(result, DotDict)
+
+
+class TestCategoriesSubdir:
+    """YAML under ``<config_dir>/categories/`` is merged alongside the top."""
+
+    def test_categories_yaml_is_loaded(self, config_dir, ci_env_unset):
+        # Arrange — write one top-level file and one under categories/.
+        import os
+
+        _write_configs(config_dir, {"top": {"param": "top_value"}})
+        cats = os.path.join(config_dir, "categories")
+        _write_configs(cats, {"colors": {"primary": "blue"}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert — the categories file landed under its UPPER stem.
+        assert result.COLORS.PRIMARY == "blue"
+
+    def test_categories_and_top_level_merge_together(self, config_dir, ci_env_unset):
+        # Arrange
+        import os
+
+        _write_configs(config_dir, {"top": {"param": "top_value"}})
+        cats = os.path.join(config_dir, "categories")
+        _write_configs(cats, {"colors": {"primary": "blue"}})
+        # Act
+        result = load_configs(IS_DEBUG=False, config_dir=config_dir)
+        # Assert — both the top-level and categories stems are present.
+        assert result.TOP.PARAM == "top_value"
+
+    def test_malformed_categories_yaml_fails_loud(self, config_dir, ci_env_unset):
+        # Arrange — a broken YAML under categories/ must surface as
+        # ConfigLoadError naming the file, not a swallowed empty DotDict.
+        import os
+
+        os.makedirs(os.path.join(config_dir, "categories"), exist_ok=True)
+        broken = os.path.join(config_dir, "categories", "bad.yaml")
+        with open(broken, "w") as f:
+            f.write("key: [unclosed\n")
+        # Act
+        ctx = pytest.raises(ConfigLoadError, match=r"bad\.yaml")
+        # Assert
+        with ctx:
+            load_configs(config_dir=config_dir)
+
+
+class TestIsDebugYamlFailLoud:
+    """A broken ``IS_DEBUG.yaml`` fails loud while READING the debug flag.
+
+    The IS_DEBUG flag is read before any other config (it gates debug
+    promotion). A malformed ``IS_DEBUG.yaml`` used to poison every
+    downstream load via the swallowed outer ``try``; now it raises
+    ``ConfigLoadError`` naming that file, with the original YAML error
+    chained as ``__cause__``.
+    """
+
+    def test_malformed_is_debug_yaml_raises_config_load_error(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange — IS_DEBUG.yaml itself is invalid YAML. IS_DEBUG kwarg
+        # left None so the file is actually consulted.
+        import os
+
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "IS_DEBUG.yaml"), "w") as f:
+            f.write("IS_DEBUG: [unclosed\n")
+        # Act
+        ctx = pytest.raises(ConfigLoadError)
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=None, config_dir=config_dir)
+
+    def test_malformed_is_debug_yaml_error_names_is_debug_file(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        import os
+
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "IS_DEBUG.yaml"), "w") as f:
+            f.write("IS_DEBUG: [unclosed\n")
+        # Act — the message must point at IS_DEBUG.yaml specifically.
+        ctx = pytest.raises(ConfigLoadError, match=r"IS_DEBUG\.yaml")
+        # Assert
+        with ctx:
+            load_configs(IS_DEBUG=None, config_dir=config_dir)
+
+    def test_malformed_is_debug_yaml_chains_original_cause(
+        self, config_dir, ci_env_unset
+    ):
+        # Arrange
+        import os
+
+        os.makedirs(config_dir, exist_ok=True)
+        with open(os.path.join(config_dir, "IS_DEBUG.yaml"), "w") as f:
+            f.write("IS_DEBUG: [unclosed\n")
+        # Act — capture the chained cause so the original YAMLError stays
+        # visible in the traceback.
+        cause = None
+        try:
+            load_configs(IS_DEBUG=None, config_dir=config_dir)
+        except ConfigLoadError as e:
+            cause = e.__cause__
+        # Assert
+        assert cause is not None
 
 
 class TestRealFilesystemRoundTrip:

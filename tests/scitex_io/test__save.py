@@ -16,6 +16,7 @@ Real-collaborator style: the production ``save()`` accepts an
 tests pass a no-arg lambda returning the desired environment string,
 instead of patching ``scitex_io._utils.detect_environment``.
 """
+
 from __future__ import annotations
 
 import sys
@@ -129,9 +130,7 @@ def test_notebook_info_env_var_falls_through_when_path_missing(
     assert info == (None, None)
 
 
-def test_notebook_info_finds_ipynb_in_argv(
-    tmp_path, env_save_restore, argv_restore
-):
+def test_notebook_info_finds_ipynb_in_argv(tmp_path, env_save_restore, argv_restore):
     # Arrange
     nb = tmp_path / "fromargv.ipynb"
     nb.write_text("{}")
@@ -186,6 +185,7 @@ def test_abs_path_makedirs_false_raises_on_missing_parent(cwd_tmp):
     # early policy, 2026-06-01). Previously this branch returned a
     # `False` sentinel which let callers think the save had succeeded.
     import pytest
+
     # Arrange
     target = cwd_tmp / "missing-parent" / "data.npy"
     # Act
@@ -206,6 +206,7 @@ def test_abs_path_makedirs_false_does_not_create_target(cwd_tmp):
     # the target path must not appear on disk after the raise. This
     # test owns that invariant; the sibling test owns the raise.
     import contextlib
+
     # Arrange
     target = cwd_tmp / "missing-parent" / "data.npy"
     with contextlib.suppress(Exception):
@@ -239,24 +240,18 @@ def test_jupyter_filename_only_with_env_routes_under_stem_out(
     assert (cwd_tmp / "demo_out" / "result.npy").is_file()
 
 
-def test_jupyter_relative_subdir_with_env_preserves_subdirs(
-    cwd_tmp, env_save_restore
-):
+def test_jupyter_relative_subdir_with_env_preserves_subdirs(cwd_tmp, env_save_restore):
     # Arrange
     nb = cwd_tmp / "demo.ipynb"
     nb.write_text("{}")
     env_save_restore.set("SCITEX_NOTEBOOK_PATH", str(nb))
     # Act
-    sio.save(
-        np.array([1, 2]), "_assets/figs/01.npy", env_detector=_env("jupyter")
-    )
+    sio.save(np.array([1, 2]), "_assets/figs/01.npy", env_detector=_env("jupyter"))
     # Assert
     assert (cwd_tmp / "demo_out" / "_assets" / "figs" / "01.npy").is_file()
 
 
-def test_jupyter_notebook_in_subdir_writes_to_notebook_dir(
-    tmp_path, env_save_restore
-):
+def test_jupyter_notebook_in_subdir_writes_to_notebook_dir(tmp_path, env_save_restore):
     # Arrange
     nb_dir = tmp_path / "examples"
     nb_dir.mkdir()
@@ -492,9 +487,7 @@ def test_dry_run_does_not_write_file(cwd_tmp):
     # Arrange
     target = cwd_tmp / "dry.npy"
     # Act
-    sio.save(
-        np.array([1.0]), str(target), dry_run=True, env_detector=_env("script")
-    )
+    sio.save(np.array([1.0]), str(target), dry_run=True, env_detector=_env("script"))
     # Assert
     assert not target.exists()
 
@@ -514,6 +507,75 @@ def test_dry_run_returns_without_error(cwd_tmp):
     completed = True
     # Assert
     assert completed
+
+
+# ===========================================================================
+# Interactive / IPython routing — in-process ($SCITEX_DIR cache branch)
+# ===========================================================================
+#
+# A bare-REPL / IPython-terminal save (env_type 'interactive' or
+# 'ipython') has no script path to anchor `_out/` to, so it routes into
+# `$SCITEX_DIR/io/runtime/cache/`. The end-to-end suite below pins this
+# via a real `python -c` subprocess — but a subprocess child's coverage
+# is not captured by the parent run, so the routing branch shows as
+# uncovered. These IN-PROCESS tests exercise the same branch directly
+# (real save, real tmp $SCITEX_DIR, no mocks) so the cache-routing lines
+# are measured.
+
+
+@pytest.mark.parametrize("env_type", ["interactive", "ipython"])
+def test_interactive_save_routes_into_scitex_dir_cache(
+    cwd_tmp, env_save_restore, env_type
+):
+    # Arrange — point SCITEX_DIR at a tmp dir so we can locate the result.
+    scitex_dir = cwd_tmp / "fake_scitex_dir"
+    env_save_restore.set("SCITEX_DIR", str(scitex_dir))
+    # Act
+    sio.save(
+        np.array([1.0, 2.0]),
+        "interactive_result.npy",
+        env_detector=_env(env_type),
+    )
+    # Assert — file lands under $SCITEX_DIR/io/runtime/cache/.
+    expected = scitex_dir / "io" / "runtime" / "cache" / "interactive_result.npy"
+    assert expected.is_file()
+
+
+def test_interactive_save_round_trips_by_cache_path(cwd_tmp, env_save_restore):
+    # Arrange
+    scitex_dir = cwd_tmp / "fake_scitex_dir"
+    env_save_restore.set("SCITEX_DIR", str(scitex_dir))
+    sio.save(
+        np.array([7.0]),
+        "rt_interactive.npy",
+        env_detector=_env("interactive"),
+    )
+    cache_path = scitex_dir / "io" / "runtime" / "cache" / "rt_interactive.npy"
+    # Act
+    loaded = sio.load(str(cache_path))
+    # Assert
+    assert loaded.tolist() == [7.0]
+
+
+def test_interactive_save_defaults_scitex_dir_to_home_when_unset(
+    cwd_tmp, env_save_restore
+):
+    # Arrange — with SCITEX_DIR unset the branch falls back to
+    # ~/.scitex; redirect HOME so the write stays inside the sandbox and
+    # we don't touch the real home dir.
+    env_save_restore.delete("SCITEX_DIR")
+    fake_home = cwd_tmp / "fake_home"
+    fake_home.mkdir()
+    env_save_restore.set("HOME", str(fake_home))
+    # Act
+    sio.save(
+        np.array([3.0]),
+        "home_default.npy",
+        env_detector=_env("interactive"),
+    )
+    # Assert — landed under <HOME>/.scitex/io/runtime/cache/.
+    expected = fake_home / ".scitex" / "io" / "runtime" / "cache" / "home_default.npy"
+    assert expected.is_file()
 
 
 # ===========================================================================
@@ -603,6 +665,7 @@ def test_double_save_does_not_self_loop_cwd_anchor(cwd_tmp):
     """After two saves, the cwd anchor symlink target is NOT its own basename."""
     # Arrange
     import os
+
     import pandas as pd
 
     df = pd.DataFrame({"a": [1]})
@@ -664,6 +727,7 @@ def test_stale_self_loop_symlink_at_cwd_anchor_is_cleaned(cwd_tmp):
     """A pre-existing self-loop symlink at the cwd anchor is removed by save()."""
     # Arrange
     import os
+
     import pandas as pd
 
     bad_link = cwd_tmp / "x.csv"
@@ -691,10 +755,10 @@ def test_stale_self_loop_symlink_at_cwd_anchor_is_cleaned(cwd_tmp):
 # commit; these tests pin the contract end-to-end with real subprocess +
 # tmp_path (no mocks, per operator).
 
+import os as _os_module
 import subprocess as _subproc
 import sys as _sys_module
 import textwrap as _textwrap
-import os as _os_module
 from pathlib import Path as _Path
 
 
@@ -768,10 +832,7 @@ class TestSaveRoutesInteractiveEnvToScitexDirCacheEndToEnd:
         # Arrange — fake SCITEX_DIR so we can locate the result.
         scitex_dir = tmp_path / "fake_scitex_dir"
         env = {"SCITEX_DIR": str(scitex_dir)}
-        oneliner = (
-            "import scitex_io; "
-            "scitex_io.save('hello', 'interactive_save.txt')"
-        )
+        oneliner = "import scitex_io; scitex_io.save('hello', 'interactive_save.txt')"
         # Act
         result = _subproc.run(
             [_sys_module.executable, "-c", oneliner],
@@ -826,7 +887,9 @@ class TestSaveFailsLoudOnUnknownEnvTypeEndToEnd:
             f"got {emitted}; stdout={result.stdout!r}; stderr={result.stderr!r}"
         )
 
-    def test_unknown_env_type_does_not_create_silent_cwd_output_fallback(self, tmp_path):
+    def test_unknown_env_type_does_not_create_silent_cwd_output_fallback(
+        self, tmp_path
+    ):
         # Arrange — same as above; verify NO file lands anywhere.
         script_body = """
             import scitex_io
