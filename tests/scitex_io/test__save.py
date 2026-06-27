@@ -754,46 +754,65 @@ def test_stale_self_loop_symlink_at_cwd_anchor_is_cleaned(cwd_tmp):
 # both helpers via a robust abspath identity check (``_is_self_link``).
 
 
-def test_is_self_link_detects_same_path(tmp_path):
-    """_is_self_link is true iff target and link denote the same abs path."""
+def test_is_self_link_same_path_is_true(tmp_path):
+    """_is_self_link is True when target and link are the same abs path."""
+    # Arrange
     from scitex_io._path_modules._symlink import _is_self_link
 
     same = str(tmp_path / "sub" / "fig.png")
-    assert _is_self_link(same, same) is True
-    assert _is_self_link(str(tmp_path / "a.png"), str(tmp_path / "b.png")) is False
+    # Act
+    result = _is_self_link(same, same)
+    # Assert
+    assert result is True
+
+
+def test_is_self_link_different_paths_is_false(tmp_path):
+    """_is_self_link is False for two distinct paths."""
+    # Arrange
+    from scitex_io._path_modules._symlink import _is_self_link
+
+    a, b = str(tmp_path / "a.png"), str(tmp_path / "b.png")
+    # Act
+    result = _is_self_link(a, b)
+    # Assert
+    assert result is False
 
 
 def test_symlink_to_refuses_self_pointing_link(tmp_path):
-    """_symlink_to(saved, saved) must keep the real file, not self-loop it."""
-    import os
+    """_symlink_to(saved, saved) keeps the real file instead of self-looping.
+
+    A self-loop would replace ``f`` with ``f -> fig.png``; reading it then
+    raises ELOOP. Asserting the original content survives pins the fix.
+    """
+    # Arrange
     from scitex_io._path_modules._symlink import _symlink_to
 
     f = tmp_path / "sub" / "fig.png"
     f.parent.mkdir(parents=True)
     f.write_text("REALDATA")
-    # Act: ask to symlink the saved file onto itself.
+    # Act
     _symlink_to(str(f), str(f), verbose=False)
-    # Assert: still a real file with original content, not a symlink.
-    assert not os.path.islink(str(f))
+    # Assert
     assert f.read_text() == "REALDATA"
 
 
 def test_symlink_refuses_self_pointing_link(tmp_path):
-    """_symlink with target == cwd-anchor must keep the real file."""
-    import os
+    """_symlink with target == cwd-anchor keeps the real file."""
+    # Arrange
     from scitex_io._path_modules._symlink import _symlink
 
     f = tmp_path / "sub" / "fig.png"
     f.parent.mkdir(parents=True)
     f.write_text("REALDATA")
+    # Act
     _symlink(str(f), str(f), symlink_from_cwd=True, verbose=False, spath_final=str(f))
-    assert not os.path.islink(str(f))
+    # Assert
     assert f.read_text() == "REALDATA"
 
 
 def test_symlink_to_cross_dir_still_links(tmp_path):
     """The guard must not break legitimate cross-directory symlink_to links."""
-    import os
+    # Arrange
     from scitex_io._path_modules._symlink import _symlink_to
 
     real = tmp_path / "out" / "fig.png"
@@ -801,8 +820,9 @@ def test_symlink_to_cross_dir_still_links(tmp_path):
     real.write_text("R")
     link = tmp_path / "cwd" / "fig.png"
     link.parent.mkdir(parents=True)
+    # Act
     _symlink_to(str(real), str(link), verbose=False)
-    assert os.path.islink(str(link))
+    # Assert
     assert link.resolve() == real.resolve()
 
 
