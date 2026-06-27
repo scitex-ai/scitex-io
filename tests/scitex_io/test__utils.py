@@ -791,6 +791,16 @@ class TestParse:
 
 
 class TestEnvironmentDetect:
+    @pytest.mark.skipif(
+        os.environ.get("PYTEST_XDIST_WORKER") is not None,
+        reason=(
+            "pytest-xdist runs each test in an execnet worker whose __main__ "
+            "has no __file__, so detect_environment() truthfully returns "
+            "'interactive' there. The 'script' guarantee only holds when "
+            "__main__ is a real entrypoint (non-distributed run); the SIF CI "
+            "uses `-n WORKERS`, the GitHub-hosted matrix does not."
+        ),
+    )
     def test_python_env_detect_environment_returns_script(self):
         # In a plain pytest run, no IPython kernel + __main__ has a
         # __file__ (the pytest entry-point) → detect_environment now
