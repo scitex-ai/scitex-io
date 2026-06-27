@@ -115,6 +115,17 @@ def test_optuna_available_optuna_available_is_true():
     assert OPTUNA_AVAILABLE is True
 
 
+@pytest.mark.skipif(
+    os.environ.get("APPTAINER_CONTAINER") is not None,
+    reason=(
+        "Saving optuna study PNGs renders plotly figures via "
+        "kaleido→choreographer→headless Chrome, which fails under the "
+        "self-hosted SIF's unprivileged user namespace (Chrome needs "
+        "--no-sandbox there). That flag has no scitex-io code surface and "
+        "the render is covered on the GitHub-hosted matrix, so skip this "
+        "test only inside apptainer."
+    ),
+)
 def test_save_study_csv_and_pngs(tmp_path):
     # Arrange
     # Arrange
