@@ -439,8 +439,19 @@ def _save(
         handler = get_saver(ext)
         if handler is None:
             raise ValueError(
-                f"No save handler registered for '{ext}'. "
-                f"Use register_saver('{ext}', your_fn) to add one."
+                f"No save handler registered for '{ext}'.\n"
+                f"scitex-io has a pluggable extension registry — register a saver "
+                f"for this format, then retry. For example:\n\n"
+                f"    from scitex_io import register_saver\n\n"
+                f"    @register_saver('{ext}')\n"
+                f"    def _saver(obj, path, **kwargs):\n"
+                f"        # serialize obj however this format needs, e.g.\n"
+                f"        #   obj.save(path)   # many objects self-serialize\n"
+                f"        ...\n\n"
+                f"    save(obj, path)   # now dispatches to your saver\n\n"
+                f"Inspect built-ins via scitex_io.list_formats(); register_loader() "
+                f"is the load-side twin. Direct form: "
+                f"register_saver('{ext}', your_fn)."
             )
         handler(obj, spath, **kwargs)
 

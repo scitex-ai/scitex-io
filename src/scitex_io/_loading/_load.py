@@ -192,8 +192,19 @@ def _load_impl(
         loader = get_loader(f".{detected_ext}" if detected_ext else "")
     if loader is None:
         raise ValueError(
-            f"No load handler registered for '.{detected_ext}'. "
-            f"Use register_loader('.{detected_ext}', your_fn) to add one."
+            f"No load handler registered for '.{detected_ext}'.\n"
+            f"scitex-io has a pluggable extension registry — register a loader "
+            f"for this format, then retry. For example:\n\n"
+            f"    from scitex_io import register_loader\n\n"
+            f"    @register_loader('.{detected_ext}')\n"
+            f"    def _loader(path, **kwargs):\n"
+            f"        # import/install whatever runtime this format needs, e.g.\n"
+            f"        #   import keras; return keras.models.load_model(path)\n"
+            f"        return obj\n\n"
+            f"    obj = load(path)   # now dispatches to your loader\n\n"
+            f"Inspect built-ins via scitex_io.list_formats(); register_saver() is "
+            f"the save-side twin. Direct form: "
+            f"register_loader('.{detected_ext}', your_fn)."
         )
 
     try:

@@ -742,6 +742,90 @@ def test_stale_self_loop_symlink_at_cwd_anchor_is_cleaned(cwd_tmp):
     assert link_target != "x.csv"
 
 
+# ===========================================================================
+# neurovista 2026-06-27 — symlink helpers must NEVER self-point
+# ===========================================================================
+#
+# Self-referential symlinks (target == link itself) corrupt figure
+# outputs: the real artefact is replaced by an ``x -> x`` loop and any
+# reader doing ``Path.resolve()`` crashes with "Symlink loop". ``_symlink``
+# already guarded this; ``_symlink_to`` did NOT, so ``save(..., symlink_to
+# == saved_path)`` destroyed the file. These unit tests pin the guard on
+# both helpers via a robust abspath identity check (``_is_self_link``).
+
+
+def test_is_self_link_same_path_is_true(tmp_path):
+    """_is_self_link is True when target and link are the same abs path."""
+    # Arrange
+    from scitex_io._path_modules._symlink import _is_self_link
+
+    same = str(tmp_path / "sub" / "fig.png")
+    # Act
+    result = _is_self_link(same, same)
+    # Assert
+    assert result is True
+
+
+def test_is_self_link_different_paths_is_false(tmp_path):
+    """_is_self_link is False for two distinct paths."""
+    # Arrange
+    from scitex_io._path_modules._symlink import _is_self_link
+
+    a, b = str(tmp_path / "a.png"), str(tmp_path / "b.png")
+    # Act
+    result = _is_self_link(a, b)
+    # Assert
+    assert result is False
+
+
+def test_symlink_to_refuses_self_pointing_link(tmp_path):
+    """_symlink_to(saved, saved) keeps the real file instead of self-looping.
+
+    A self-loop would replace ``f`` with ``f -> fig.png``; reading it then
+    raises ELOOP. Asserting the original content survives pins the fix.
+    """
+    # Arrange
+    from scitex_io._path_modules._symlink import _symlink_to
+
+    f = tmp_path / "sub" / "fig.png"
+    f.parent.mkdir(parents=True)
+    f.write_text("REALDATA")
+    # Act
+    _symlink_to(str(f), str(f), verbose=False)
+    # Assert
+    assert f.read_text() == "REALDATA"
+
+
+def test_symlink_refuses_self_pointing_link(tmp_path):
+    """_symlink with target == cwd-anchor keeps the real file."""
+    # Arrange
+    from scitex_io._path_modules._symlink import _symlink
+
+    f = tmp_path / "sub" / "fig.png"
+    f.parent.mkdir(parents=True)
+    f.write_text("REALDATA")
+    # Act
+    _symlink(str(f), str(f), symlink_from_cwd=True, verbose=False, spath_final=str(f))
+    # Assert
+    assert f.read_text() == "REALDATA"
+
+
+def test_symlink_to_cross_dir_still_links(tmp_path):
+    """The guard must not break legitimate cross-directory symlink_to links."""
+    # Arrange
+    from scitex_io._path_modules._symlink import _symlink_to
+
+    real = tmp_path / "out" / "fig.png"
+    real.parent.mkdir(parents=True)
+    real.write_text("R")
+    link = tmp_path / "cwd" / "fig.png"
+    link.parent.mkdir(parents=True)
+    # Act
+    _symlink_to(str(real), str(link), verbose=False)
+    # Assert
+    assert link.resolve() == real.resolve()
+
+
 # ====================================================================== #
 # Operator-dogfood 2026-06-13 path-routing regression suite               #
 # ====================================================================== #
