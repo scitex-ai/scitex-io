@@ -35,6 +35,19 @@ def sh(command, *args, **kwargs):
     return result.returncode == 0
 
 
+def _is_self_link(target, link_path):
+    """True when a symlink at ``link_path`` -> ``target`` would point at itself.
+
+    Compares the two paths lexically via ``abspath`` (NOT ``realpath`` /
+    ``Path.resolve``): the link may already be a broken or self-looping
+    symlink, and resolving it would follow that loop and raise. The
+    reported corruption (neurovista, scitex 2.30.1) is exactly the case
+    where the saved file IS the cwd-relative location, so ``target`` and
+    ``link_path`` denote the same absolute path — that is what we refuse.
+    """
+    return _os.path.abspath(target) == _os.path.abspath(link_path)
+
+
 def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
     """Create a symbolic link from the current working directory.
 
@@ -42,31 +55,25 @@ def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
     the link source when supplied; falls back to the raw ``spath`` for
     backward compatibility with callers that don't yet pass it.
 
-    scitex-io#55: when ``spath`` contained ``./`` segments (the common
-    case for ``save(obj, "./x.csv", symlink_from_cwd=True)``), the
-    ``ln -sfr`` relative-target computation could collapse to the same
-    basename in the same dir, producing a ``./x.csv -> x.csv``
-    self-loop. We now:
-
-    1. Prefer the cleaned ``spath_final`` as the link source.
-    2. Compute the relative target ourselves and bail out (logging) if
-       it would equal ``basename(spath_cwd)`` in ``dirname(spath_cwd)``.
+    scitex-io#55 / neurovista 2026-06-27: when the save target already
+    resolves under the cwd (the common case for
+    ``save(obj, "./output/.../x.png", symlink_from_cwd=True)``), the link
+    source and the link path are the SAME file, and ``ln -sfr`` collapses
+    the relative target to the file's own basename — an ``x.png -> x.png``
+    self-loop that overwrites the real artefact and crashes any reader
+    doing ``Path.resolve()``. We refuse such a link (before any ``rm``)
+    so the saved file survives untouched.
     """
     if symlink_from_cwd and (spath != spath_cwd):
         target = spath_final if spath_final is not None else spath
-        _os.makedirs(_os.path.dirname(spath_cwd), exist_ok=True)
-        rel_target = _os.path.relpath(target, _os.path.dirname(spath_cwd))
-        if rel_target == _os.path.basename(spath_cwd):
-            # Defensive guard — refuse to create a self-loop. This
-            # should be unreachable now that spath_cwd uses normpath
-            # (not clean→resolve) upstream, but is kept as a belt-and-
-            # suspenders for any caller that passes already-resolved
-            # paths.
-            logger.error(
-                f"_symlink would self-loop {spath_cwd} -> {rel_target}; "
-                "skipping link creation (scitex-io#55)."
+        if _is_self_link(target, spath_cwd):
+            logger.warning(
+                f"_symlink: refusing self-pointing link at {spath_cwd} "
+                f"(target resolves to the link itself); keeping the real "
+                f"file (scitex-io#55 / neurovista 2026-06-27)."
             )
             return
+        _os.makedirs(_os.path.dirname(spath_cwd), exist_ok=True)
         sh(["rm", "-f", f"{spath_cwd}"], verbose=False)
         sh(["ln", "-sfr", f"{target}", f"{spath_cwd}"], verbose=False)
         if verbose:
@@ -74,11 +81,23 @@ def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
 
 
 def _symlink_to(spath_final, symlink_to, verbose):
-    """Create a symbolic link at the specified path pointing to the saved file."""
+    """Create a symbolic link at the specified path pointing to the saved file.
+
+    Same self-loop guard as ``_symlink``: if ``symlink_to`` denotes the
+    very file that was just saved, refuse the link (before any ``rm``) so
+    the real artefact is not replaced by an ``x -> x`` self-loop.
+    """
     if symlink_to:
         if isinstance(symlink_to, Path):
             symlink_to = str(symlink_to)
         symlink_to = clean(symlink_to)
+        if _is_self_link(spath_final, symlink_to):
+            logger.warning(
+                f"_symlink_to: refusing self-pointing link at {symlink_to} "
+                f"(target resolves to the link itself); keeping the real "
+                f"file (scitex-io#55 / neurovista 2026-06-27)."
+            )
+            return
         _os.makedirs(_os.path.dirname(symlink_to), exist_ok=True)
         sh(["rm", "-f", f"{symlink_to}"], verbose=False)
         sh(["ln", "-sfr", f"{spath_final}", f"{symlink_to}"], verbose=False)
@@ -86,6 +105,6 @@ def _symlink_to(spath_final, symlink_to, verbose):
             logger.success(f"(Symlinked to: {symlink_to})")
 
 
-__all__ = ["sh", "_symlink", "_symlink_to"]
+__all__ = ["sh", "_symlink", "_symlink_to", "_is_self_link"]
 
 # EOF
