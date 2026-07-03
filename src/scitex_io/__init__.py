@@ -210,6 +210,66 @@ def __dir__() -> list[str]:
     return sorted(set(_LAZY_ATTRS) | set(_OPTIONAL_ATTRS) | set(globals()))
 
 
+def _activate_observers() -> None:
+    """Activate post-save/load observers registered by OTHER packages under
+    the ``scitex_io.observers`` entry-point group — WITHOUT importing them.
+
+    R6 (observer self-registration) let a package like scitex-clew call
+    ``register_post_save_hook`` from its own module, but that only ran if
+    the user's script IMPORTED that package. The clean provenance idiom
+    (``@stx.session.start`` + ``stx.io.save`` with no explicit clew calls)
+    imports scitex_io + scitex_session but NOT scitex_clew, so clew's
+    io-observer subscription never activated → ``on_io_save`` had no
+    subscriber → ``file_hashes`` stayed empty (auto-provenance incident,
+    2026-07-04). This scan closes that gap: on ``import scitex_io`` we
+    discover each observer's 0-arg registrar via entry-point METADATA and
+    call it, so the subscription self-activates from importing scitex_io
+    alone. scitex_io NEVER imports its observers by name — acyclicity holds
+    (discovery is via importlib.metadata, dependency direction unchanged).
+
+    Contract (``scitex_io.observers`` group): each entry point loads to a
+    ZERO-ARG callable returning ``bool`` (True registered / False skipped).
+    It self-registers via ``register_post_save_hook`` / ``register_post_
+    load_hook`` and MUST be idempotent (a package's own import-time
+    bootstrap may also call it during rollout). A registrar that raises or
+    returns False is LOGGED (never silent, never fatal to the import).
+    Cheap: accessing ``register_post_save_hook`` is registry-independent
+    (see ``__getattr__``), so this does NOT pull in format handlers.
+    """
+    import logging
+
+    log = logging.getLogger(__name__)
+    try:
+        from importlib.metadata import entry_points
+    except ImportError:  # pragma: no cover
+        return
+    try:
+        eps = entry_points(group="scitex_io.observers")  # Python 3.10+
+    except TypeError:  # pragma: no cover — Python 3.9 signature
+        eps = entry_points().get("scitex_io.observers", [])
+    for ep in eps:
+        try:
+            registrar = ep.load()
+            result = registrar()
+            if result is False:
+                log.warning(
+                    "scitex_io.observers: %r returned False — observer NOT "
+                    "registered (API skew / unavailable?)",
+                    getattr(ep, "name", ep),
+                )
+        except Exception:  # pragma: no cover — never break `import scitex_io`
+            log.warning(
+                "scitex_io.observers: failed to activate %r",
+                getattr(ep, "name", ep),
+                exc_info=True,
+            )
+
+
+# Activate registered observers at import time (once per process). This is
+# the ONLY eager work `import scitex_io` does beyond version resolution.
+_activate_observers()
+
+
 __all__ = [
     "__version__",
     *_LAZY_ATTRS.keys(),
