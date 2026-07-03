@@ -251,6 +251,11 @@ def _activate_observers() -> None:
         try:
             registrar = ep.load()
             result = registrar()
+            log.debug(
+                "scitex_io.observers: activated %r -> %r",
+                getattr(ep, "name", ep),
+                result,
+            )
             if result is False:
                 log.warning(
                     "scitex_io.observers: %r returned False — observer NOT "
