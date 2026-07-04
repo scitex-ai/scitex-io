@@ -1,14 +1,55 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder_true_case():
-    # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
-    assert True
+import os
+import tempfile
 
-# Add your tests here
+from scitex_io._loading import _load_cache
+
+
+class _WeakrefableHolder:
+    """A weakref-able stand-in (plain dict/list cannot be weak-referenced,
+    but the load-cache stores loaded objects in a WeakValueDictionary)."""
+
+    def __init__(self, value):
+        self.value = value
+
+
+def _make_cached_file(value):
+    # Shared arrange helper: write a real file and cache a holder for it.
+    tmpdir = tempfile.mkdtemp()
+    path = os.path.join(tmpdir, "cached.bin")
+    with open(path, "w") as fh:
+        fh.write("x")
+    obj = _WeakrefableHolder(value)
+    _load_cache.cache_data(path, obj)
+    return path, obj
+
+
+def test_cache_data_then_get_cached_data_returns_the_object():
+    # Arrange
+    _load_cache.clear_cache()
+    path, obj = _make_cached_file([1])
+    # Act
+    result = _load_cache.get_cached_data(path)
+    # Assert
+    assert result is obj
+
+
+def test_invalidate_evicts_the_cached_entry_for_a_path():
+    # Arrange
+    _load_cache.clear_cache()
+    path, _obj = _make_cached_file([1])
+    # Act
+    _load_cache.invalidate(path)
+    # Assert
+    assert _load_cache.get_cached_data(path) is None
+
+
+def test_invalidate_on_an_uncached_path_is_a_noop():
+    # Arrange
+    _load_cache.clear_cache()
+    # Act
+    _load_cache.invalidate("/nonexistent/never/cached/path.bin")
+    # Assert
+    assert _load_cache.get_cached_data("/nonexistent/never/cached/path.bin") is None
 
 if __name__ == "__main__":
     import os
