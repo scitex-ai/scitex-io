@@ -210,9 +210,14 @@ def __dir__() -> list[str]:
     return sorted(set(_LAZY_ATTRS) | set(_OPTIONAL_ATTRS) | set(globals()))
 
 
-def _activate_observers() -> None:
+def _activate_observers(observers=None) -> None:
     """Activate post-save/load observers registered by OTHER packages under
     the ``scitex_io.observers`` entry-point group — WITHOUT importing them.
+
+    ``observers`` is an optional iterable of ``(name, 0-arg registrar)`` pairs
+    for explicit injection (and unit testing); when ``None`` it is discovered
+    from the ``scitex_io.observers`` entry-point group via
+    ``_discover_observer_registrars()``.
 
     R6 (observer self-registration) let a package like scitex-clew call
     ``register_post_save_hook`` from its own module, but that only ran if
@@ -239,35 +244,50 @@ def _activate_observers() -> None:
     import logging
 
     log = logging.getLogger(__name__)
-    try:
-        from importlib.metadata import entry_points
-    except ImportError:  # pragma: no cover
-        return
-    try:
-        eps = entry_points(group="scitex_io.observers")  # Python 3.10+
-    except TypeError:  # pragma: no cover — Python 3.9 signature
-        eps = entry_points().get("scitex_io.observers", [])
-    for ep in eps:
+    if observers is None:
+        observers = _discover_observer_registrars()
+    for name, registrar in observers:
         try:
-            registrar = ep.load()
             result = registrar()
-            log.debug(
-                "scitex_io.observers: activated %r -> %r",
-                getattr(ep, "name", ep),
-                result,
-            )
+            log.debug("scitex_io.observers: activated %r -> %r", name, result)
             if result is False:
                 log.warning(
                     "scitex_io.observers: %r returned False — observer NOT "
                     "registered (API skew / unavailable?)",
-                    getattr(ep, "name", ep),
+                    name,
                 )
         except Exception:  # pragma: no cover — never break `import scitex_io`
             log.warning(
-                "scitex_io.observers: failed to activate %r",
+                "scitex_io.observers: failed to activate %r", name, exc_info=True
+            )
+
+
+def _discover_observer_registrars() -> list:
+    """Load ``(name, 0-arg registrar)`` pairs from the ``scitex_io.observers``
+    entry-point group. A registrar that fails to *load* is logged and skipped
+    (never fatal to the import)."""
+    import logging
+
+    log = logging.getLogger(__name__)
+    try:
+        from importlib.metadata import entry_points
+    except ImportError:  # pragma: no cover
+        return []
+    try:
+        eps = entry_points(group="scitex_io.observers")  # Python 3.10+
+    except TypeError:  # pragma: no cover — Python 3.9 signature
+        eps = entry_points().get("scitex_io.observers", [])
+    registrars = []
+    for ep in eps:
+        try:
+            registrars.append((getattr(ep, "name", ep), ep.load()))
+        except Exception:  # pragma: no cover
+            log.warning(
+                "scitex_io.observers: failed to load %r",
                 getattr(ep, "name", ep),
                 exc_info=True,
             )
+    return registrars
 
 
 # Activate registered observers at import time (once per process). This is
