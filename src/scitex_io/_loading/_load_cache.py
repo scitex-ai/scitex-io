@@ -196,6 +196,34 @@ def clear_cache() -> None:
     _cache_stats["evictions"] = 0
 
 
+def invalidate(file_path: str) -> None:
+    """Drop any cached load state for ``file_path``.
+
+    Call this after WRITING ``file_path`` so a subsequent ``load`` re-reads
+    from disk instead of returning a stale cached value. This is required
+    because :func:`is_cache_valid` keys validity on ``(mtime, size)`` only —
+    so overwriting a file with the SAME size within one mtime-resolution tick
+    (e.g. save ``[1]`` then save ``[2]`` to the same path, both a few bytes,
+    microseconds apart) would otherwise be seen as "unchanged" and the first
+    value returned. Evicting on save closes that window deterministically.
+    """
+    abs_path = os.path.abspath(file_path)
+    _file_metadata_cache.pop(abs_path, None)
+    try:
+        del _file_data_cache[abs_path]
+    except KeyError:
+        pass
+    # The numpy LRU keys on (path, mtime, size), so it has the same
+    # same-size-same-mtime blind spot. lru_cache can't evict a single key;
+    # if this path was cached there, drop its keys and clear the LRU
+    # (correctness over a rare full npy-cache reset on overwrite).
+    stale_keys = {k for k in _numpy_cache_keys if k and k[0] == abs_path}
+    if stale_keys:
+        _numpy_cache_keys.difference_update(stale_keys)
+        _cached_load_npy.cache_clear()
+    _cache_stats["evictions"] += 1
+
+
 def get_cache_info() -> Dict[str, Any]:
     """
     Get cache statistics and configuration.

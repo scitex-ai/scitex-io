@@ -354,6 +354,22 @@ def save(
         _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=spath_final)
         _symlink_to(spath_final, symlink_to, verbose)
         saved_path = Path(spath)
+
+        # Evict any stale load-cache entry for the path we just wrote, so a
+        # subsequent load() re-reads from disk. is_cache_valid keys on
+        # (mtime, size) only, so a same-size overwrite within one mtime tick
+        # would otherwise return the previous value. Invalidate both the
+        # specified path and the resolved final path. Best-effort; never let
+        # a cache concern fail the save.
+        try:
+            from ._loading._load_cache import invalidate as _invalidate_cache
+
+            _invalidate_cache(str(saved_path))
+            if str(spath_final) != str(saved_path):
+                _invalidate_cache(str(spath_final))
+        except Exception:  # pragma: no cover — cache eviction is best-effort
+            pass
+
         # Notify any registered observers (clew, audit, …). See _hooks.
         # Observers SELF-REGISTER on their own import — scitex_io never
         # names them. Hooks never raise (best-effort fan-out).
