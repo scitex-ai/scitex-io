@@ -86,6 +86,10 @@ def _load_pdf(lpath: str, mode: str = "full", **kwargs) -> Any:
         **kwargs: Additional arguments
             - backend: 'auto' (default), 'fitz', 'pdfplumber', or 'pypdf2'
             - clean_text: Clean extracted text (default: True)
+            - ocr: OCR fallback for image-only PDFs (default: False). When
+              True and the text layer is empty, each page is rendered with
+              fitz and recognised via scitex_cv.ocr (requires the optional
+              scitex-cv[ocr] extra). Applies to mode='text' and 'full'.
             - extract_images: Extract images to files (default: False for
               'full' mode, True for 'scientific')
             - output_dir: Directory for extracted images/tables (temp dir)
@@ -124,6 +128,7 @@ def _load_pdf(lpath: str, mode: str = "full", **kwargs) -> Any:
     mode = kwargs.get("mode", mode)
     backend = kwargs.get("backend", "auto")
     clean_text = kwargs.get("clean_text", True)
+    ocr = kwargs.get("ocr", False)
     extract_images = kwargs.get("extract_images", False)
     output_dir = kwargs.get("output_dir", None)
     table_settings = kwargs.get("table_settings", {})
@@ -140,7 +145,7 @@ def _load_pdf(lpath: str, mode: str = "full", **kwargs) -> Any:
         logger.debug(f"Using temporary directory: {output_dir}")
 
     if mode == "text":
-        return _extract_text(lpath, backend, clean_text)
+        return _extract_text(lpath, backend, clean_text, ocr)
     elif mode == "sections":
         return _extract_sections(lpath, backend, clean_text)
     elif mode == "tables":
@@ -167,6 +172,7 @@ def _load_pdf(lpath: str, mode: str = "full", **kwargs) -> Any:
             output_dir,
             table_settings,
             save_as_jpg,
+            ocr,
         )
     else:
         raise ValueError(f"Unknown extraction mode: {mode}")
@@ -250,6 +256,7 @@ def _extract_full(
     output_dir: str,
     table_settings: Dict,
     save_as_jpg: bool = True,
+    ocr: bool = False,
 ) -> DotDict:
     """Extract comprehensive data from PDF."""
     result: Dict[str, Any] = {
@@ -263,7 +270,7 @@ def _extract_full(
     }
 
     try:
-        result["full_text"] = _extract_text(lpath, backend, clean)
+        result["full_text"] = _extract_text(lpath, backend, clean, ocr)
         result["sections"] = _extract_sections(lpath, backend, clean)
         result["metadata"] = _extract_metadata(lpath, backend)
         result["pages"] = _extract_pages(lpath, backend, clean)
