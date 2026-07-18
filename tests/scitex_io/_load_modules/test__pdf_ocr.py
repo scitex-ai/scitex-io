@@ -73,7 +73,10 @@ def text_pdf(tmp_path):
 # (a) ocr=False on an image-only PDF -> empty text (default path unchanged)
 # ---------------------------------------------------------------------------
 def test_ocr_false_on_image_only_pdf_returns_empty(image_only_pdf):
+    # Arrange
+    # Act
     text = _extract_text(image_only_pdf, "fitz", clean=True, ocr=False)
+    # Assert
     assert text.strip() == ""
 
 
@@ -82,7 +85,10 @@ def test_ocr_false_on_image_only_pdf_returns_empty(image_only_pdf):
 # ---------------------------------------------------------------------------
 @pytest.mark.skipif(not _OCR_AVAILABLE, reason=_OCR_SKIP_REASON)
 def test_ocr_true_on_image_only_pdf_recovers_text(image_only_pdf):
+    # Arrange
+    # Act
     text = _extract_text(image_only_pdf, "fitz", clean=True, ocr=True)
+    # Assert
     assert "HELLO" in text.upper()
 
 
@@ -90,5 +96,8 @@ def test_ocr_true_on_image_only_pdf_recovers_text(image_only_pdf):
 # (c) ocr=True on a normal text PDF -> still returns the text layer (no OCR)
 # ---------------------------------------------------------------------------
 def test_ocr_true_on_text_pdf_still_uses_text_layer(text_pdf):
+    # Arrange
+    # Act
     text = _extract_text(text_pdf, "fitz", clean=True, ocr=True)
+    # Assert
     assert "SAMPLE TEXT LAYER" in text

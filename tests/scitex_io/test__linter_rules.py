@@ -4,58 +4,92 @@
 import scitex_io
 from scitex_io._linter.rules import IOBypassTarget, iter_io_bypass_targets
 
+# Alias spellings that appear as call_rules keys but must NOT surface as a
+# module_path — callers import by module, so aliases have to be canonicalised.
+_ALIASES = {"np", "pd", "sio", "plt", "Image", "cPickle"}
+_CANONICAL = {"numpy", "pandas", "scipy.io", "matplotlib.pyplot", "PIL.Image"}
+
 
 def test_public_export_on_package():
-    assert scitex_io.iter_io_bypass_targets is iter_io_bypass_targets
+    # Arrange
+    # Act
+    exported = scitex_io.iter_io_bypass_targets
+    # Assert
+    assert exported is iter_io_bypass_targets
+
+
+def test_returns_nonempty():
+    # Arrange
+    # Act
+    targets = list(iter_io_bypass_targets())
+    # Assert
+    assert targets
 
 
 def test_returns_iobypass_target_tuples():
+    # Arrange
+    # Act
     targets = list(iter_io_bypass_targets())
-    assert targets
+    # Assert
     assert all(isinstance(t, IOBypassTarget) for t in targets)
 
 
 def test_no_duplicate_module_attr_pairs():
+    # Arrange
     targets = list(iter_io_bypass_targets())
+    # Act
     pairs = [(t.module_path, t.attr) for t in targets]
+    # Assert
     assert len(pairs) == len(set(pairs))
 
 
-def test_aliases_collapse_to_canonical_module():
+def test_aliases_do_not_leak_as_module_paths():
+    # Arrange
     targets = list(iter_io_bypass_targets())
+    # Act
     modules = {t.module_path for t in targets}
-    # Aliases must not leak through as their own module_path.
-    assert "np" not in modules
-    assert "pd" not in modules
-    assert "sio" not in modules
-    assert "plt" not in modules
-    assert "Image" not in modules
-    assert "cPickle" not in modules
-    # Canonical forms must be present instead.
-    assert "numpy" in modules
-    assert "pandas" in modules
-    assert "scipy.io" in modules
-    assert "matplotlib.pyplot" in modules
-    assert "PIL.Image" in modules
+    # Assert
+    assert not (modules & _ALIASES)
+
+
+def test_canonical_modules_are_present():
+    # Arrange
+    targets = list(iter_io_bypass_targets())
+    # Act
+    modules = {t.module_path for t in targets}
+    # Assert
+    assert _CANONICAL <= modules
 
 
 def test_receiver_agnostic_rules_are_skipped():
+    # Arrange
     # (None, "savefig") in call_rules has no module path to import.
     targets = list(iter_io_bypass_targets())
-    assert not any(t.attr == "savefig" for t in targets)
+    # Act
+    savefig_targets = [t for t in targets if t.attr == "savefig"]
+    # Assert
+    assert not savefig_targets
 
 
 def test_sqlite3_connect_present_with_io015():
+    # Arrange
     targets = list(iter_io_bypass_targets())
-    match = [t for t in targets if t.module_path == "sqlite3" and t.attr == "connect"]
-    assert len(match) == 1
-    assert match[0].rule_id == "STX-IO015"
+    # Act
+    rule_ids = [
+        t.rule_id
+        for t in targets
+        if t.module_path == "sqlite3" and t.attr == "connect"
+    ]
+    # Assert
+    assert rule_ids == ["STX-IO015"]
 
 
 def test_severity_is_passed_through_unfiltered():
-    targets = list(iter_io_bypass_targets())
-    severities = {t.severity for t in targets}
+    # Arrange
     # Both warning (default IO/PA rules) and info (PA003) must survive —
     # this module does not filter by severity, callers decide policy.
-    assert "warning" in severities
-    assert "info" in severities
+    targets = list(iter_io_bypass_targets())
+    # Act
+    severities = {t.severity for t in targets}
+    # Assert
+    assert {"warning", "info"} <= severities
