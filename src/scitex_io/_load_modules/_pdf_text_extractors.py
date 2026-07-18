@@ -120,16 +120,90 @@ def _extract_text_pypdf2(lpath: str, clean: bool) -> str:
 
 
 # ---------------------------------------------------------------------------
+# OCR fallback for image-only (no text layer) PDFs
+# ---------------------------------------------------------------------------
+# Minimum number of non-whitespace characters the text layer must yield for
+# it to count as "real" text. Below this, an ``ocr=True`` caller triggers the
+# render+OCR fallback (a scanned / image-only PDF has a near-empty text layer).
+_OCR_MIN_TEXT_CHARS = 5
+
+
+def _extract_text_ocr(lpath: str, clean: bool) -> str:
+    """Render each PDF page to an image and OCR it via scitex_cv.
+
+    This is the fallback for image-only PDFs (no text layer). Pages are
+    rasterised with fitz (PyMuPDF) and handed to ``scitex_cv.ocr``, which
+    lazily pulls in EasyOCR. ``scitex_cv`` is an OPTIONAL dependency reached
+    through the same ``try_import_optional`` idiom the PDF backends use — it
+    is never imported at module top, so ``ocr=False`` callers never touch it.
+
+    Raises ImportError (mirroring how the text backends report a missing
+    dependency) when fitz or scitex_cv is unavailable.
+    """
+    if not FITZ_AVAILABLE or fitz is None:
+        raise ImportError(
+            "PyMuPDF (fitz) is required to render PDF pages for OCR. "
+            "Install with: pip install PyMuPDF"
+        )
+
+    scitex_cv = try_import_optional("scitex_cv")
+    if scitex_cv is None:
+        raise ImportError(
+            "OCR was requested (ocr=True) but scitex_cv is not available. "
+            "Install with: pip install 'scitex-cv[ocr]'"
+        )
+
+    import numpy as np
+
+    doc = fitz.open(lpath)
+    text_parts = []
+    try:
+        for page in doc:
+            pix = page.get_pixmap()
+            img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
+                pix.height, pix.width, pix.n
+            )
+            if pix.n == 4:  # drop alpha channel; OCR wants RGB/gray
+                img = img[:, :, :3]
+            page_text = scitex_cv.ocr(img)
+            if page_text and page_text.strip():
+                text_parts.append(page_text)
+    finally:
+        doc.close()
+
+    full_text = "\n".join(text_parts)
+
+    if clean:
+        full_text = _clean_pdf_text(full_text)
+
+    return full_text
+
+
+# ---------------------------------------------------------------------------
 # Unified text extractor dispatcher
 # ---------------------------------------------------------------------------
-def _extract_text(lpath: str, backend: str, clean: bool) -> str:
-    """Extract plain text from PDF."""
+def _extract_text(
+    lpath: str, backend: str, clean: bool, ocr: bool = False
+) -> str:
+    """Extract plain text from PDF.
+
+    When ``ocr=True`` and the text layer is empty (fewer than
+    ``_OCR_MIN_TEXT_CHARS`` non-whitespace characters), fall back to
+    rendering each page and OCRing it via ``scitex_cv`` (image-only PDFs).
+    ``ocr=False`` (default) preserves the text-layer-only behaviour exactly
+    and never reaches for scitex_cv.
+    """
     if backend == "fitz":
-        return _extract_text_fitz(lpath, clean)
+        text = _extract_text_fitz(lpath, clean)
     elif backend == "pdfplumber":
-        return _extract_text_pdfplumber(lpath, clean)
+        text = _extract_text_pdfplumber(lpath, clean)
     else:
-        return _extract_text_pypdf2(lpath, clean)
+        text = _extract_text_pypdf2(lpath, clean)
+
+    if ocr and len("".join(text.split())) < _OCR_MIN_TEXT_CHARS:
+        text = _extract_text_ocr(lpath, clean)
+
+    return text
 
 
 # ---------------------------------------------------------------------------
