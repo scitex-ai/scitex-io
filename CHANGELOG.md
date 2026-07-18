@@ -7,6 +7,49 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-18
+
+### Added
+- **`STX-IO015` linter rule — raw sqlite detection.** Flags raw
+  `sqlite3.connect(...)`, so SQLite IO that bypasses `stx.io` is caught
+  rather than silently breaking provenance. The rule is `category=io`,
+  so in research projects it inherits the existing error-promotion and
+  the blocking pre-save lint hook — i.e. it ERRORS and blocks the save.
+  (Incident 2026-07-05: boundary PAC scripts used raw `sqlite3.connect`
+  + `to_csv`, bypassing `stx.io`, so clew recorded no data edges.)
+- **`iter_io_bypass_targets()`** — exposes the STX-IO rule registry as
+  module+attr pairs so callers can enumerate IO-bypass targets without
+  parsing the AST-shaped `call_rules` mapping.
+- **OCR for image-only PDFs** — `ocr=` option on the PDF loader, backed
+  by `scitex_cv`.
+
+### Changed
+- **Linter modules grouped into the `scitex_io._linter` subpackage**
+  (`plugin.py`, `ext_checker.py`, `rules.py`, plus an `__init__`
+  re-exporting `get_plugin` / `iter_io_bypass_targets`), replacing the
+  flat `_linter_*.py` cluster. The plugin entry point is now
+  `scitex_io._linter.plugin:get_plugin`. (PS-108 src-prefix-cluster)
+- CI migrated to the shared `scitex-ai/.github` reusable workflows.
+
+### Fixed
+- **Load cache invalidated on save** — a same-size overwrite no longer
+  serves a stale cached object.
+- **`scitex_io.observers` auto-activates on import**, so provenance
+  observers are registered without an explicit opt-in call.
+
+## [0.3.3] — 2026-06-27
+
+### Fixed
+- **`save()` never creates self-referential symlinks.** When the save
+  target already resolved to the cwd-relative location (the common
+  `save(obj, "./out/x.png", symlink_from_cwd=True)` case), `ln -sfr`
+  collapsed the relative target to the file's own basename, producing an
+  `x.png -> x.png` self-loop that replaced the real artefact and crashed
+  any reader doing `Path.resolve()`. Both `_symlink` and `_symlink_to`
+  now refuse a link whose target resolves to the link itself — checked
+  before any `rm`, so the saved file survives. Legitimate cross-directory
+  links are unaffected.
+
 ## [0.3.2] — 2026-06-20
 
 ### Changed
