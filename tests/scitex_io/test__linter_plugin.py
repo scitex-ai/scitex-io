@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for scitex_io._linter_plugin."""
+"""Tests for scitex_io._linter.plugin."""
 
 from scitex_dev.linter.checker import lint_source
 
-from scitex_io._linter_plugin import (
+from scitex_io._linter.plugin import (
     _REGISTER_HINT,
     _builtin_extensions,
     _UnknownExtChecker,
@@ -514,7 +514,7 @@ def test_unknownextchecker_direct_chk_source_1_import_scitex_as_stx():
 
 def test_builtin_extensions_fallback_csv_in_exts(attr_restore):
     # Arrange
-    import scitex_io._linter_plugin as mod
+    import scitex_io._linter.plugin as mod
     import scitex_io._registry as reg
     # Clobber the registry tier attrs so the function raises and hits except
     attr_restore.set(reg, "_builtin_savers", None)
@@ -526,7 +526,7 @@ def test_builtin_extensions_fallback_csv_in_exts(attr_restore):
 
 def test_builtin_extensions_fallback_h5_in_exts(attr_restore):
     # Arrange
-    import scitex_io._linter_plugin as mod
+    import scitex_io._linter.plugin as mod
     import scitex_io._registry as reg
     attr_restore.set(reg, "_builtin_savers", None)
     # Act
@@ -537,7 +537,7 @@ def test_builtin_extensions_fallback_h5_in_exts(attr_restore):
 
 def test_builtin_extensions_fallback_exts_is_set(attr_restore):
     # Arrange
-    import scitex_io._linter_plugin as mod
+    import scitex_io._linter.plugin as mod
     import scitex_io._registry as reg
     attr_restore.set(reg, "_builtin_savers", None)
     # Act
@@ -548,7 +548,7 @@ def test_builtin_extensions_fallback_exts_is_set(attr_restore):
 
 def test_builtin_extensions_fallback_png_in_exts(attr_restore):
     # Arrange
-    import scitex_io._linter_plugin as mod
+    import scitex_io._linter.plugin as mod
     import scitex_io._registry as reg
     attr_restore.set(reg, "_builtin_savers", None)
     # Act
