@@ -57,6 +57,20 @@ def register_post_load_hook(fn: PostLoadHook) -> None:
 
 def fire_post_save(path: Path, obj: Any, kwargs: dict) -> None:
     """Internal: invoke registered post-save hooks. Never raises."""
+    # Diagnosability (auto-provenance incident, 2026-07-04): log the FIRING
+    # instance's fingerprint so a single DEBUG smoke pinpoints a dead hook.
+    # `count == 0` here while an observer logged a successful registration
+    # ⇒ module-identity split (it registered on a DIFFERENT scitex_io
+    # instance's list than the one firing). Compare `hooks_id` / `module`
+    # against the observer's own registration-side DEBUG log.
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            "fire_post_save: %d hook(s) for %s; _post_save_hooks id=%d module=%s",
+            len(_post_save_hooks),
+            path,
+            id(_post_save_hooks),
+            __file__,
+        )
     for fn in _post_save_hooks:
         try:
             fn(path, obj, kwargs)

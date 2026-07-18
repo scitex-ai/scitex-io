@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-io"
-version = "0.3.3"
+version = "0.4.0"
 description = "Universal scientific data I/O with plugin registry"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -187,7 +187,7 @@ scitex-io = "scitex_io"
 scitex-io = "scitex_io"
 
 [project.entry-points."scitex_dev.linter.plugins"]
-io = "scitex_io._linter_plugin:get_plugin"
+io = "scitex_io._linter.plugin:get_plugin"
 
 [project.urls]
 Homepage = "https://github.com/ywatanabe1989/scitex-io"
