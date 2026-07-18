@@ -10,10 +10,10 @@ matlab, image (png/jpg/...), mp4, zarr, bibtex, html, tex, plus any
 extension a user has added via `register_saver` / `register_loader`.
 
 STX-IO014's checker (``_UnknownExtChecker``) lives in
-``_linter_ext_checker.py`` — extracted to stay under the 512-line cap.
+``_linter/ext_checker.py`` — extracted to stay under the 512-line cap.
 """
 
-from ._linter_ext_checker import (  # noqa: F401 (re-exported for callers/tests)
+from .ext_checker import (  # noqa: F401 (re-exported for callers/tests)
     _REGISTER_HINT,
     _builtin_extensions,
     _UnknownExtChecker,

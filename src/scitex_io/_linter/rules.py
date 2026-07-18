@@ -1,6 +1,6 @@
 """Public, importable view of scitex-io's raw-IO detection rules.
 
-``_linter_plugin.get_plugin()["call_rules"]`` is AST-shaped: its keys are
+``_linter.plugin.get_plugin()["call_rules"]`` is AST-shaped: its keys are
 the names as they appear in SOURCE TEXT (``"np"``, ``"pd"``, ``"sio"``,
 ``"plt"``, ``"Image"``, ...), which is exactly right for a static
 text/AST matcher but wrong for a runtime consumer (e.g. a monkeypatch
@@ -66,7 +66,7 @@ def iter_io_bypass_targets() -> Iterator[IOBypassTarget]:
     a single row. Skips rules with no module-level call shape (receiver-
     agnostic method rules like ``.savefig()``).
     """
-    from ._linter_plugin import get_plugin
+    from .plugin import get_plugin
 
     call_rules = get_plugin()["call_rules"]
     seen = set()

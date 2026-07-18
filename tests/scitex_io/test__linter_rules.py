@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for scitex_io._linter_rules."""
+"""Tests for scitex_io._linter.rules."""
 
 import scitex_io
-from scitex_io._linter_rules import IOBypassTarget, iter_io_bypass_targets
+from scitex_io._linter.rules import IOBypassTarget, iter_io_bypass_targets
 
 
 def test_public_export_on_package():

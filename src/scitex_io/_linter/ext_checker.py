@@ -1,6 +1,6 @@
-"""STX-IO014 unknown-extension checker, extracted from _linter_plugin.py.
+"""STX-IO014 unknown-extension checker, extracted from _linter/plugin.py.
 
-Split out under the 512-line-per-file limit (_linter_plugin.py was at the
+Split out under the 512-line-per-file limit (_linter/plugin.py was at the
 cap). Purely a mechanical extraction — no behavior change.
 """
 
