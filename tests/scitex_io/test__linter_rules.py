@@ -18,7 +18,7 @@ def test_public_export_on_package():
     assert exported is iter_io_bypass_targets
 
 
-def test_returns_nonempty():
+def test_returns_nonempty_target_list():
     # Arrange
     # Act
     targets = list(iter_io_bypass_targets())
