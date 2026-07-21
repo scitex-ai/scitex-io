@@ -165,6 +165,8 @@ docs = [
 # optional-dep code path) — keep both in sync when adding a new
 # optional dep.
 all = [
+    "scitex-io[dev]",
+    "scitex-io[docs]",
     "mne",
     "fastmcp>=2.0",
     "scipy",
