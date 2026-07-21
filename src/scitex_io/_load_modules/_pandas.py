@@ -10,7 +10,7 @@ def _load_csv(lpath, **kwargs):
     import pandas as pd
 
     if not lpath.endswith(".csv"):
-        raise ValueError("File must have .csv extension")
+        raise ValueError(f"File must have .csv extension: '{lpath}'")
 
     # Handle index column - default to None to match default index=False in saving
     index_col = kwargs.pop("index_col", None)
@@ -44,7 +44,7 @@ def _load_tsv(lpath, **kwargs):
     import pandas as pd
 
     if not lpath.endswith(".tsv"):
-        raise ValueError("File must have .tsv extension")
+        raise ValueError(f"File must have .tsv extension: '{lpath}'")
     return pd.read_csv(lpath, sep="\t", **kwargs)
 
 
@@ -53,7 +53,9 @@ def _load_excel(lpath, **kwargs):
     import pandas as pd
 
     if not lpath.endswith((".xls", ".xlsx", ".xlsm", ".xlsb")):
-        raise ValueError("File must have Excel extension")
+        raise ValueError(
+            f"File must have Excel extension (.xls, .xlsx, .xlsm, .xlsb): '{lpath}'"
+        )
     return pd.read_excel(lpath, **kwargs)
 
 
@@ -62,7 +64,7 @@ def _load_parquet(lpath, **kwargs):
     import pandas as pd
 
     if not lpath.endswith(".parquet"):
-        raise ValueError("File must have .parquet extension")
+        raise ValueError(f"File must have .parquet extension: '{lpath}'")
     return pd.read_parquet(lpath, **kwargs)
 
 
@@ -71,7 +73,7 @@ def _load_feather(lpath, **kwargs):
     import pandas as pd
 
     if not lpath.endswith(".feather"):
-        raise ValueError("File must have .feather extension")
+        raise ValueError(f"File must have .feather extension: '{lpath}'")
     return pd.read_feather(lpath, **kwargs)
 
 
