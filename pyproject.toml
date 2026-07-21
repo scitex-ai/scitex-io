@@ -190,10 +190,10 @@ scitex-io = "scitex_io"
 io = "scitex_io._linter.plugin:get_plugin"
 
 [project.urls]
-Homepage = "https://github.com/ywatanabe1989/scitex-io"
+Homepage = "https://github.com/scitex-ai/scitex-io"
 Documentation = "https://scitex-io.readthedocs.io/"
-Repository = "https://github.com/ywatanabe1989/scitex-io.git"
-Issues = "https://github.com/ywatanabe1989/scitex-io/issues"
+Repository = "https://github.com/scitex-ai/scitex-io.git"
+Issues = "https://github.com/scitex-ai/scitex-io/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/scitex_io"]
