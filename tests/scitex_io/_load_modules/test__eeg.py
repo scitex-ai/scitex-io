@@ -486,6 +486,21 @@ def test_load_eeg_data_docstring_mentions_needle(needle):
     assert present
 
 
+def test_load_eeg_data_default_module_resolves_to_real_mne():
+    """With mne installed, the default (``mne_module=None``) path resolves
+    past the availability gate and reaches extension dispatch — an
+    unsupported suffix raises ``ValueError``, never ``ImportError``."""
+    # Arrange
+    pytest.importorskip("mne")
+    from scitex_io._load_modules._eeg import _load_eeg_data
+
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have one of these")
+    # Assert
+    with ctx:
+        _load_eeg_data("recording.unsupported")
+
+
 if __name__ == "__main__":
     import os
 
