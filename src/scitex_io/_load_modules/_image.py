@@ -37,7 +37,10 @@ def _load_image(lpath: str, **kwargs) -> Any:
 
     supported_exts = [".jpg", ".jpeg", ".png", ".tiff", ".tif"]
     if not any(lpath.lower().endswith(ext) for ext in supported_exts):
-        raise ValueError("Unsupported image format")
+        raise ValueError(
+            f"Unsupported image format: '{lpath}'. "
+            f"Supported extensions: {', '.join(supported_exts)}."
+        )
     return Image.open(lpath, **pil_kwargs)
 
 
