@@ -102,7 +102,7 @@ figrecipe = [
 db = [
     "scitex-db>=0.1.11",
 ]
-_dev = [
+dev = [
     "pytest>=7.0",
     "pytest-cov",
     "matplotlib",
@@ -148,7 +148,7 @@ _dev = [
     "scitex-stats>=0.2.22",  # optional synergy: .stats.zip + Stats schema (scitex_stats._dataclasses.Stats, published in 0.2.22)
     "scitex-db>=0.1.11",   # optional synergy: .db dispatch via SQLite3 wrapper
 ]
-_docs = [
+docs = [
     "sphinx>=7.0",
     "sphinx-rtd-theme>=2.0",
     "myst-parser>=2.0",
@@ -165,6 +165,8 @@ _docs = [
 # optional-dep code path) — keep both in sync when adding a new
 # optional dep.
 all = [
+    "scitex-io[dev]",
+    "scitex-io[docs]",
     "mne",
     "fastmcp>=2.0",
     "scipy",
