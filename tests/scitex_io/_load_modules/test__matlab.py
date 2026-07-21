@@ -421,8 +421,14 @@ def test_pymatreader_fallback_loads_hdf5_mat_that_scipy_rejects():
     values = np.arange(6.0).reshape(2, 3)
     with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
         path = f.name
-    with h5py.File(path, "w") as h5:
+    # HDF5 payload first; the 512-byte userblock then receives the
+    # MATLAB v7.3 header (text, then version 0x0200 + "IM" endian
+    # marker at bytes 124-127) that both readers use to sniff the type.
+    with h5py.File(path, "w", userblock_size=512) as h5:
         h5.create_dataset("values", data=values)
+    header = b"MATLAB 7.3 MAT-file".ljust(124, b" ") + b"\x00\x02IM"
+    with open(path, "r+b") as fh:
+        fh.write(header)
     try:
         # Act
         loaded = _load_matlab(path)
