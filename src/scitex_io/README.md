@@ -6,7 +6,7 @@
 
 # SciTeX I/O Module
 
-Files in Windows/MacOS can be opened by licking without specifying software to open. This io module enables such experiences with automatic format detection from file extension, making standardized coding available: `stx.io.load("path/to/file.ext")` and `stx.io.save(obj, "path/to/file.ext")`
+Files in Windows/MacOS can be opened by clicking without specifying software to open. This io module enables such experiences with automatic format detection from file extension, making standardized coding available: `stx.io.load("path/to/file.ext")` and `stx.io.save(obj, "path/to/file.ext")`
 
 ## Loading Data
 
@@ -14,7 +14,7 @@ The `load` function allows you to read data from various file formats. It automa
 
 ### Supported Formats
 
-- **Tabular Data**: `.csv`, `.tsv`, `.xls`, `.xlsx`, `.xlsm`, `.xlsb`, `.parquet`
+- **Tabular Data**: `.csv`, `.tsv`, `.xls`, `.xlsx`, `.xlsm`, `.xlsb`, `.parquet`, `.feather`
 - **Configuration**: `.json`, `.yaml`, `.yml`
 - **Serialization**: `.pkl`, `.joblib`
 - **Scientific Arrays**: `.npy`, `.npz`, `.hdf5`, `.h5`, `.zarr`, `.nc` (NetCDF), `.mat` (MATLAB), `.con`
