@@ -397,8 +397,13 @@ class TestLoadImage:
         ]
 
         for filename in unsupported_extensions:
-            with pytest.raises(ValueError, match="Unsupported image format"):
+            with pytest.raises(ValueError) as exc_info:
                 _load_image(filename)
+            message = str(exc_info.value)
+            # The message names the rejected file and the accepted extensions.
+            assert message.startswith("Unsupported image format")
+            assert filename in message
+            assert ".png" in message
 
     def test_supported_extensions_validation(self):
         """Test that all documented supported extensions are recognized."""
