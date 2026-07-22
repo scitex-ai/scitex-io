@@ -249,6 +249,40 @@ def test_load_parquet_invalid_extension_raises_valueerror():
         _load_parquet("test.csv")
 
 
+def test_load_feather_round_trips_frame():
+    # Arrange
+    from scitex_io._load_modules._pandas import _load_feather
+
+    try:
+        import pyarrow  # noqa: F401
+    except ImportError:
+        pytest.skip("pyarrow not available")
+    df = pd.DataFrame(
+        {"int_col": [1, 2, 3], "float_col": [1.1, 2.2, 3.3], "str_col": ["a", "b", "c"]}
+    )
+    with tempfile.NamedTemporaryFile(suffix=".feather", delete=False) as f:
+        df.to_feather(f.name)
+        temp_path = f.name
+    try:
+        # Act
+        loaded_df = _load_feather(temp_path)
+        # Assert
+        pd.testing.assert_frame_equal(loaded_df, df)
+    finally:
+        os.unlink(temp_path)
+
+
+def test_load_feather_invalid_extension_raises_valueerror():
+    # Arrange
+    from scitex_io._load_modules._pandas import _load_feather
+
+    # Act
+    ctx = pytest.raises(ValueError, match="File must have .feather extension")
+    # Assert
+    with ctx:
+        _load_feather("test.csv")
+
+
 def test_load_csv_nonexistent_path_raises_filenotfounderror():
     # Arrange
     from scitex_io._load_modules._pandas import _load_csv
