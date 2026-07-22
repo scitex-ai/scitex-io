@@ -120,10 +120,8 @@ def test_load_csv_invalid_extension_raises_valueerror():
     # Arrange
     from scitex_io._load_modules._pandas import _load_csv
 
-    # Act
-    ctx = pytest.raises(ValueError, match="File must have .csv extension")
-    # Assert
-    with ctx:
+    # Act & Assert: the message names the offending path.
+    with pytest.raises(ValueError, match=r"File must have \.csv extension: 'test\.txt'"):
         _load_csv("test.txt")
 
 
@@ -150,10 +148,8 @@ def test_load_tsv_invalid_extension_raises_valueerror():
     # Arrange
     from scitex_io._load_modules._pandas import _load_tsv
 
-    # Act
-    ctx = pytest.raises(ValueError, match="File must have .tsv extension")
-    # Assert
-    with ctx:
+    # Act & Assert: the message names the offending path.
+    with pytest.raises(ValueError, match=r"File must have \.tsv extension: 'test\.csv'"):
         _load_tsv("test.csv")
 
 
@@ -208,10 +204,8 @@ def test_load_excel_invalid_extension_raises_valueerror():
     # Arrange
     from scitex_io._load_modules._pandas import _load_excel
 
-    # Act
-    ctx = pytest.raises(ValueError, match="File must have Excel extension")
-    # Assert
-    with ctx:
+    # Act & Assert: the message names the offending path and accepted extensions.
+    with pytest.raises(ValueError, match=r"File must have Excel extension.*'test\.csv'"):
         _load_excel("test.csv")
 
 
@@ -242,10 +236,8 @@ def test_load_parquet_invalid_extension_raises_valueerror():
     # Arrange
     from scitex_io._load_modules._pandas import _load_parquet
 
-    # Act
-    ctx = pytest.raises(ValueError, match="File must have .parquet extension")
-    # Assert
-    with ctx:
+    # Act & Assert: the message names the offending path.
+    with pytest.raises(ValueError, match=r"File must have \.parquet extension: 'test\.csv'"):
         _load_parquet("test.csv")
 
 
