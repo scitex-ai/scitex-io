@@ -156,25 +156,31 @@ docs = [
     "sphinx-autodoc-typehints>=1.25",
 ]
 # `[all]` aggregates every optional dep so a user opting in to "every
-# feature" lands at the maximum-functionality install. Lists deps
-# LITERALLY (not via the `scitex-io[mcp]` etc. self-reference, which
-# fails to resolve during editable installs because the package isn't
-# on PyPI yet at install time). Mirrors the union of `[mne]`,
-# `[mcp]`, `[scientific]`, `[optuna]`, `[figrecipe]`, `[db]`.
-# Invariant: `[dev]` ⊇ `[all]` (the test suite must cover every
-# optional-dep code path) — keep both in sync when adding a new
-# optional dep.
+# feature" lands at the maximum-functionality install.
+#
+# PS-221 `[all]`-closure: every PUBLIC extra must be a SUBSET of `all`.
+# The previous literal enumeration omitted `[dev]` and `[docs]`, so
+# `pip install scitex-io[all]` silently under-installed 26 requirements.
+# Closing by self-reference (rather than re-enumerating) means `all`
+# cannot drift when one of the referenced extras changes.
+#
+# A self-reference in `all` DOES resolve during editable installs — pip
+# resolves the local project's own extras without consulting PyPI. (The
+# constraint that motivated the old literal list applies to a self-
+# reference inside `[dev]`, which is still enumerated literally below.)
+# scitex-genai and scitex-stats ship this same shape.
+#
+# `dev` / `docs` stay PUBLIC — PEP 508/685 forbids leading-underscore
+# extra names, and setuptools/hatchling/pip/uv all reject them.
 all = [
-    "mne",
-    "fastmcp>=2.0",
-    "scipy",
-    "h5py",
-    "zarr>=3",
-    "numcodecs",
-    "matplotlib",
-    "optuna",
-    "figrecipe>=0.28",
-    "scitex-db>=0.1.11",
+    "scitex-io[mne]",
+    "scitex-io[mcp]",
+    "scitex-io[scientific]",
+    "scitex-io[optuna]",
+    "scitex-io[figrecipe]",
+    "scitex-io[db]",
+    "scitex-io[dev]",
+    "scitex-io[docs]",
 ]
 
 [project.scripts]
