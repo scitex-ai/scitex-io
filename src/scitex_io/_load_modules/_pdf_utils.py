@@ -62,6 +62,33 @@ class DotDict(dict):
 # ---------------------------------------------------------------------------
 # Backend selection
 # ---------------------------------------------------------------------------
+#: Raised when no PDF backend is installed. A module-level constant rather
+#: than an inline literal so it can be asserted on directly — forcing the
+#: "no backend available" branch would otherwise mean faking three
+#: module-level import flags, and this package does not test with mocks.
+#:
+#: This message is the FIRST and often ONLY thing that tells a consumer the
+#: capability needs a backend at all, so it must name something that
+#: actually fixes the problem. The previous version said
+#: "pip install PyPDF2" — but this module imports the module `pypdf`, the
+#: maintained successor, so following that instruction installed a package
+#: that did NOT resolve the error. An error that names the wrong remedy is
+#: worse than one that names none: it spends the reader's time and returns
+#: them to the same failure.
+NO_PDF_BACKEND_MESSAGE = (
+    "No PDF library available. Install one of:\n"
+    '  pip install "scitex-io[pdf]"        '
+    "# pypdf, BSD — the default\n"
+    '  pip install "scitex-io[pdf-tables]" '
+    "# pdfplumber, MIT — best for tables\n"
+    '  pip install "scitex-io[pdf-fast]"   '
+    "# PyMuPDF, AGPL-3.0 — fastest; the licence is a deliberate choice\n"
+    "\n"
+    "The bare package names also work (pypdf / pdfplumber / pymupdf), but "
+    "prefer the extras: they pin the versions this loader is tested against."
+)
+
+
 def _select_backend(mode: str, requested: str) -> str:
     """Select appropriate backend based on mode and availability."""
     if requested != "auto":
@@ -95,12 +122,7 @@ def _select_backend(mode: str, requested: str) -> str:
         elif PYPDF2_AVAILABLE:
             return "pypdf2"
         else:
-            raise ImportError(
-                "No PDF library available. Install one of:\n"
-                "  pip install PyMuPDF     # Recommended\n"
-                "  pip install pdfplumber  # Best for tables\n"
-                "  pip install PyPDF2      # Basic fallback"
-            )
+            raise ImportError(NO_PDF_BACKEND_MESSAGE)
 
 
 # ---------------------------------------------------------------------------

@@ -102,6 +102,42 @@ figrecipe = [
 db = [
     "scitex-db>=0.1.11",
 ]
+# PDF text extraction. `load(path, mode="text")` is a documented public
+# capability, but until now every backend for it lived ONLY in [dev] — so a
+# consumer wanting PDF text at RUNTIME had to install the developer
+# toolchain, or [all], or discover the gap as an ImportError at call time.
+# That is a category error: a developer extra is not where a runtime
+# capability's backend belongs.
+#
+# WHY TWO EXTRAS, AND WHY pypdf IS THE DEFAULT — this split is about
+# LICENSING, not speed, and it is the reason [pdf] does not simply install
+# the fastest backend:
+#
+#     pypdf       BSD-3-Clause                        permissive
+#     pdfplumber  MIT                                 permissive
+#     pymupdf     AGPL-3.0 (or a commercial licence)  copyleft
+#
+# PyMuPDF is the better extractor, but it is AGPL absent a commercial
+# licence, and AGPL's network-use clause is the one that surprises people —
+# some consumers cannot accept it and some employers forbid it outright.
+# Making it what `scitex-io[pdf]` installs would hand that obligation to
+# everyone who typed the obvious command, as a side effect they never chose.
+# So the obvious extra is permissive, and the AGPL backend has its own name
+# that makes taking it a deliberate act.
+#
+# `pdf` matches what the loader actually imports: _pdf_utils.py imports the
+# module `pypdf` (the maintained successor to PyPDF2), NOT PyPDF2 itself.
+pdf = [
+    "pypdf>=4",
+]
+# Faster extraction, AGPL-3.0 — take this one on purpose, never by default.
+pdf-fast = [
+    "pymupdf>=1.24",
+]
+# Table extraction from PDFs (_pdf_content_extractors); MIT.
+pdf-tables = [
+    "pdfplumber>=0.11",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov",
@@ -160,10 +196,19 @@ docs = [
 # LITERALLY (not via the `scitex-io[mcp]` etc. self-reference, which
 # fails to resolve during editable installs because the package isn't
 # on PyPI yet at install time). Mirrors the union of `[mne]`,
-# `[mcp]`, `[scientific]`, `[optuna]`, `[figrecipe]`, `[db]`.
+# `[mcp]`, `[scientific]`, `[optuna]`, `[figrecipe]`, `[db]`, `[pdf]`,
+# `[pdf-tables]`.
 # Invariant: `[dev]` ⊇ `[all]` (the test suite must cover every
 # optional-dep code path) — keep both in sync when adding a new
 # optional dep.
+#
+# ONE DELIBERATE EXCEPTION to "the union of every extra": `[pdf-fast]`
+# (PyMuPDF) is NOT included here. `[all]` is what you install when you do
+# not know which extras you need, and PyMuPDF is AGPL-3.0 absent a
+# commercial licence — so folding it in would hand a copyleft obligation
+# to exactly the consumer who was not making a licence decision. Anyone
+# who wants it asks for it by name. `[dev]` still carries it, because the
+# test suite must exercise the fitz backend.
 all = [
     "mne",
     "fastmcp>=2.0",
@@ -175,6 +220,9 @@ all = [
     "optuna",
     "figrecipe>=0.28",
     "scitex-db>=0.1.11",
+    # PDF text/tables. `[pdf]` and `[pdf-tables]` only — both permissive.
+    "pypdf>=4",
+    "pdfplumber>=0.11",
 ]
 
 [project.scripts]
