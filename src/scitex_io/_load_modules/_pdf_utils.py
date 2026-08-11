@@ -40,6 +40,36 @@ PYPDF2_AVAILABLE = PyPDF2 is not None
 pd = try_import_optional("pandas")
 PANDAS_AVAILABLE = pd is not None
 
+#: Raised when NO PDF backend is importable.
+#:
+#: THE PREVIOUS TEXT SENT READERS TO A PACKAGE THAT CANNOT FIX THE ERROR. It
+#: said `pip install PyPDF2`, but line 37 above imports `pypdf` -- PyPDF2 is a
+#: stale VARIABLE name kept for source compatibility, not the module being
+#: looked for. Following that instruction installs PyPDF2, changes nothing, and
+#: returns the reader to the identical failure with their confidence in the
+#: message spent. An error naming the WRONG remedy costs more than one naming
+#: none, because it is followed. Measured: it cost a full investigation in
+#: scitex-storage before anyone read line 37.
+#:
+#: Also drops "# Recommended" from PyMuPDF. It is AGPL-3.0 while pypdf is
+#: BSD-3-Clause and pdfplumber is MIT, so the one the message pushed hardest
+#: was the only one carrying a copyleft obligation -- stated here rather than
+#: ranked silently, so the choice is the caller's and is informed.
+#:
+#: A module-level constant rather than an inline string so a test can assert on
+#: the wording without forcing the raise, which would mean faking three import
+#: flags in a package that does not test with mocks.
+NO_PDF_BACKEND_MESSAGE = (
+    "No PDF library available. scitex-io reads PDFs through whichever of "
+    "these is importable; install one:\n"
+    "  pip install pypdf        # BSD-3-Clause, pure-Python, text layer\n"
+    "  pip install pdfplumber   # MIT, best for tables\n"
+    "  pip install PyMuPDF      # AGPL-3.0 (or commercial) -- fastest, and\n"
+    "                           # the only copyleft option here\n"
+    "Note: `pypdf`, NOT `PyPDF2`. PyPDF2 was renamed to pypdf; installing "
+    "PyPDF2 will NOT satisfy this import."
+)
+
 
 # ---------------------------------------------------------------------------
 # DotDict
@@ -95,12 +125,7 @@ def _select_backend(mode: str, requested: str) -> str:
         elif PYPDF2_AVAILABLE:
             return "pypdf2"
         else:
-            raise ImportError(
-                "No PDF library available. Install one of:\n"
-                "  pip install PyMuPDF     # Recommended\n"
-                "  pip install pdfplumber  # Best for tables\n"
-                "  pip install PyPDF2      # Basic fallback"
-            )
+            raise ImportError(NO_PDF_BACKEND_MESSAGE)
 
 
 # ---------------------------------------------------------------------------
