@@ -88,6 +88,43 @@ NO_PDF_BACKEND_MESSAGE = (
     "prefer the extras: they pin the versions this loader is tested against."
 )
 
+#: The DEGRADED paths, where a backend IS available but not the preferred one.
+#:
+#: WHY THESE ARE NOT JUST "install PyMuPDF". They used to be, and that is the
+#: hole this constant closes. `pdf-fast` is deliberately EXCLUDED from
+#: `scitex-io[all]` because PyMuPDF is AGPL-3.0 and `[all]` is the install you
+#: choose when you do NOT know what you need -- the worst possible surface for
+#: an obligation you must know you are taking on.
+#:
+#: An exclusion nobody is told about is not a safeguard, it is a silent
+#: under-install: the user typed the documented command to get everything, did
+#: not get this, and has no way to learn why. So the carve-out has to be
+#: VISIBLE AT THE POINT OF FAILURE -- naming the extra AND the licence, at the
+#: moment the missing backend actually costs the caller something. That
+#: converts a silent omission into a stated choice, which is the only thing
+#: that makes the carve-out honest rather than a hole. (scitex-dev's ruling,
+#: 2026-08-11: licence beats closure because the costs differ in
+#: REVERSIBILITY -- a missing capability costs one pip command, an AGPL
+#: obligation you have already distributed under cannot be un-acquired.)
+#:
+#: Named constants rather than inline strings so a test can assert on them
+#: without provoking the degraded path, which would need three import flags
+#: faked and this package does not test with mocks.
+MISSING_FAST_BACKEND_MESSAGE = (
+    "PyMuPDF (fitz) is the preferred backend for this mode and is not "
+    "installed; falling back to a slower one.\n"
+    '  pip install "scitex-io[pdf-fast]"\n'
+    "NOTE: PyMuPDF is AGPL-3.0. It is deliberately NOT part of "
+    '"scitex-io[all]" -- taking on a copyleft obligation should be a choice '
+    "you make knowingly, not something [all] hands you."
+)
+
+MISSING_TABLES_BACKEND_MESSAGE = (
+    "pdfplumber is the preferred backend for table extraction and is not "
+    "installed; falling back to one that does not understand tables.\n"
+    '  pip install "scitex-io[pdf-tables]"   # pdfplumber, MIT'
+)
+
 
 def _select_backend(mode: str, requested: str) -> str:
     """Select appropriate backend based on mode and availability."""
@@ -98,20 +135,14 @@ def _select_backend(mode: str, requested: str) -> str:
         if PDFPLUMBER_AVAILABLE:
             return "pdfplumber"
         else:
-            logger.warning(
-                "pdfplumber not available for table extraction. "
-                "Install with: pip install pdfplumber"
-            )
+            logger.warning(MISSING_TABLES_BACKEND_MESSAGE)
             return "fitz" if FITZ_AVAILABLE else "pypdf2"
 
     elif mode in ["images", "scientific", "full"]:
         if FITZ_AVAILABLE:
             return "fitz"
         else:
-            logger.warning(
-                "PyMuPDF (fitz) recommended for image extraction. "
-                "Install with: pip install PyMuPDF"
-            )
+            logger.warning(MISSING_FAST_BACKEND_MESSAGE)
             return "pdfplumber" if PDFPLUMBER_AVAILABLE else "pypdf2"
 
     else:  # text, sections, metadata, pages

@@ -11,3 +11,30 @@ audit:
     dirs:
       # Claude Code writes claude-code.log here at runtime. Already in .gitignore.
       - logs
+
+  skip-rules:
+    - rule: PS-221
+      reason: >-
+        pdf-fast is deliberately held OUT of [all]: PyMuPDF is AGPL-3.0 and
+        [all] is the do-not-know-what-I-need install, which makes it the worst
+        surface for a copyleft obligation. PS-221 and this exclusion are the
+        SAME rule pointing opposite ways -- PS-221's stated hazard is "the user
+        did the documented thing to get everything and silently got something
+        other than what they intended", and a silent AGPL acquisition is that
+        hazard exactly, with a different object. They differ only in
+        REVERSIBILITY, and that is the ranking: a missing capability costs one
+        pip command; an AGPL obligation already distributed under cannot be
+        un-acquired. Ruled by scitex-dev 2026-08-11.
+
+        NOT A SILENT CARVE-OUT. The exclusion is visible AT THE POINT OF
+        FAILURE: _pdf_utils.MISSING_FAST_BACKEND_MESSAGE names
+        scitex-io[pdf-fast], states the AGPL licence, and says [all] withholds
+        it on purpose. Five tests pin that wording. Without it this would be a
+        silent under-install -- the same defect one level out.
+
+        THIS ENTRY IS A STOPGAP AND SHOULD NOT SURVIVE. skip-rules' semantics
+        are DEFERRAL ("this campaign lands later"), and this exclusion is
+        permanent and correct rather than deferred. The real fix is a licence
+        carve-out inside PS-221 itself, which scitex-dev owns and is tracking
+        on dev-ps221-licence-carveout-20260811. When that lands, DELETE this
+        block rather than rewording it.

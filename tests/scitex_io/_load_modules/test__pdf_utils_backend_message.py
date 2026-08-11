@@ -76,3 +76,76 @@ def test_message_flags_the_agpl_licence_on_the_fast_backend():
     message = module.NO_PDF_BACKEND_MESSAGE
     # Assert
     assert "AGPL-3.0" in message
+
+
+# ---------------------------------------------------------------------------
+# The DEGRADED paths — a backend exists, but not the preferred one.
+#
+# These are the sites scitex-dev's 2026-08-11 ruling actually turns on. The
+# no-backend message above was already correct; these two still said
+# "pip install PyMuPDF" with no mention of the extra and no mention of the
+# licence. That is the silent-AGPL-acquisition surface the carve-out exists to
+# prevent, reachable by anyone who installed [all] and asked for a mode that
+# prefers fitz.
+#
+# The ruling's condition for the carve-out being honest rather than a hole:
+# the exclusion must be VISIBLE AT THE POINT OF FAILURE, naming the extra AND
+# the licence. These tests are that condition, asserted.
+# ---------------------------------------------------------------------------
+def test_fast_fallback_names_the_extra_not_the_bare_package():
+    # Arrange
+    module = _pdf_utils
+    # Act
+    message = module.MISSING_FAST_BACKEND_MESSAGE
+    # Assert
+    assert '"scitex-io[pdf-fast]"' in message
+
+
+def test_fast_fallback_states_the_agpl_licence():
+    # Arrange
+    module = _pdf_utils
+    # Act
+    message = module.MISSING_FAST_BACKEND_MESSAGE
+    # Assert
+    assert "AGPL-3.0" in message
+
+
+def test_fast_fallback_says_why_all_does_not_include_it():
+    """A silent omission from [all] is an under-install; a stated one is a choice.
+
+    Without this sentence the reader knows only that something is missing --
+    not that it was withheld deliberately, nor why -- and the obvious repair
+    is to acquire the copyleft dependency without registering that they did.
+    """
+    # Arrange
+    module = _pdf_utils
+    # Act
+    message = module.MISSING_FAST_BACKEND_MESSAGE
+    # Assert
+    assert "scitex-io[all]" in message
+
+
+def test_tables_fallback_names_the_extra_not_the_bare_package():
+    # Arrange
+    module = _pdf_utils
+    # Act
+    message = module.MISSING_TABLES_BACKEND_MESSAGE
+    # Assert
+    assert '"scitex-io[pdf-tables]"' in message
+
+
+def test_no_degraded_message_tells_the_reader_to_install_pypdf2():
+    """Same regression guard as above, applied to the paths it was missing from.
+
+    The original defect was only ever fixed in the no-backend message. A
+    remedy string that names a package which cannot resolve the problem does
+    not merely fail to help -- it OVERWRITES correct knowledge in the reader,
+    including a reader who had already measured the truth. Guarding every
+    site, not the one that was noticed first.
+    """
+    # Arrange
+    module = _pdf_utils
+    # Act
+    both = module.MISSING_FAST_BACKEND_MESSAGE + module.MISSING_TABLES_BACKEND_MESSAGE
+    # Assert
+    assert "PyPDF2" not in both
