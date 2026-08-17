@@ -12,7 +12,7 @@ tags: [scitex-io-linting-rules, scitex-io, scitex-package]
 Detected by [`scitex-dev`](https://github.com/ywatanabe1989/scitex-dev)'s linter via the `scitex_dev.linter.plugins` entry point. `scitex-dev` is already a hard dependency of `scitex-io`, so no extra install is required.
 
 ```bash
-scitex-dev linter check-files src/           # lint a tree
+scitex-dev linter validate-files src/        # lint a tree
 scitex-dev linter list-rules --category io   # show live rule definitions
 ```
 

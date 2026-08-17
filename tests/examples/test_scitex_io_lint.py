@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Tests for examples/scitex_io_lint.sh — the Claude Code PostToolUse
-hook that runs `scitex-dev linter check-files --category io` on every
+hook that runs `scitex-dev linter validate-files --category io` on every
 edited .py file.
 
 These tests exercise the hook script the way Claude Code's hook

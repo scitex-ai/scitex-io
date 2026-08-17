@@ -31,7 +31,7 @@ FILE=$(echo "$INPUT" | python3 -c \
 [[ -n "$FILE" && -f "$FILE" && "$FILE" == *.py ]] || exit 0
 
 # Errors block the turn; warnings are advisory.
-scitex-dev linter check-files "$FILE" --category io --severity error --no-color >&2 || exit 2
-scitex-dev linter check-files "$FILE" --category io --severity warning --no-color >&2 || true
+scitex-dev linter validate-files "$FILE" --category io --severity error --no-color >&2 || exit 2
+scitex-dev linter validate-files "$FILE" --category io --severity warning --no-color >&2 || true
 
 exit 0
