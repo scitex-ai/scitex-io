@@ -334,28 +334,6 @@ def test_load_yaml_as_optuna_dict_ml_scenario_picks_learning_rate(tmp_path):
     assert result["learning_rate"] == pytest.approx(1e-3)
 
 
-def test_load_study_rdb_creates_study_in_real_sqlite(tmp_path):
-    """End-to-end real-collaborator test.
-
-    Creates a real Optuna study in a temporary sqlite RDB file, then
-    loads it back through ``load_study_rdb`` and asserts the study
-    name round-trips. Exercises the real ``RDBStorage`` + ``load_study``
-    code path that the prior mock-based tests only pretended to cover.
-    """
-    # Arrange
-    from scitex_io._load_modules import load_study_rdb
-
-    db_path = tmp_path / "real.db"
-    rdb_url = f"sqlite:///{db_path}"
-    storage = optuna.storages.RDBStorage(url=rdb_url)
-    optuna.create_study(study_name="real_study", storage=storage)
-
-    # Act
-    loaded = load_study_rdb("real_study", rdb_url)
-    # Assert
-    assert loaded.study_name == "real_study"
-
-
 if __name__ == "__main__":
     import os
 

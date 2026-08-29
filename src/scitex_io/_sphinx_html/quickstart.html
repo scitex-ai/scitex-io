@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quickstart &mdash; SciTeX IO v0.3.1</title>
+  <title>Quickstart &mdash; SciTeX IO v0.4.0</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=4621528c"></script>
+      <script src="_static/documentation_options.js?v=6c02275b"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -161,6 +161,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.iter_io_bypass_targets"><code class="docutils literal notranslate"><span class="pre">iter_io_bypass_targets()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -168,6 +169,9 @@
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.save_listed_scalars_as_csv"><code class="docutils literal notranslate"><span class="pre">save_listed_scalars_as_csv()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.save_optuna_study_as_csv_and_pngs"><code class="docutils literal notranslate"><span class="pre">save_optuna_study_as_csv_and_pngs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.json2md"><code class="docutils literal notranslate"><span class="pre">json2md()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#core-i-o">Core I/O</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#registry">Registry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/scitex_io.html#cache-control">Cache Control</a></li>
@@ -194,7 +198,7 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Quickstart</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/ywatanabe1989/scitex-io/blob/main/docs/sphinx/quickstart.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/scitex-ai/scitex-io/blob/main/docs/sphinx/quickstart.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -211,20 +215,20 @@
 
 <span class="c1"># DataFrames</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]})</span>
-<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;data.csv&quot;</span><span class="p">)</span>
-<span class="n">loaded</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]})</span>
+<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"data.csv"</span><span class="p">)</span>
+<span class="n">loaded</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">"data.csv"</span><span class="p">)</span>
 
 <span class="c1"># NumPy arrays</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="n">save</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="s2">&quot;data.npy&quot;</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="s2">"data.npy"</span><span class="p">)</span>
 
 <span class="c1"># Dictionaries</span>
-<span class="n">save</span><span class="p">({</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">},</span> <span class="s2">&quot;config.yaml&quot;</span><span class="p">)</span>
-<span class="n">save</span><span class="p">({</span><span class="s2">&quot;nested&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]},</span> <span class="s2">&quot;data.json&quot;</span><span class="p">)</span>
+<span class="n">save</span><span class="p">({</span><span class="s2">"key"</span><span class="p">:</span> <span class="s2">"value"</span><span class="p">},</span> <span class="s2">"config.yaml"</span><span class="p">)</span>
+<span class="n">save</span><span class="p">({</span><span class="s2">"nested"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]},</span> <span class="s2">"data.json"</span><span class="p">)</span>
 
 <span class="c1"># Any Python object</span>
-<span class="n">save</span><span class="p">({</span><span class="s2">&quot;complex&quot;</span><span class="p">:</span> <span class="nb">object</span><span class="p">()},</span> <span class="s2">&quot;data.pkl&quot;</span><span class="p">)</span>
+<span class="n">save</span><span class="p">({</span><span class="s2">"complex"</span><span class="p">:</span> <span class="nb">object</span><span class="p">()},</span> <span class="s2">"data.pkl"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>One function for save, one for load — 30+ formats work the same way.</p>
@@ -234,8 +238,8 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_formats</span>
 
 <span class="n">formats</span> <span class="o">=</span> <span class="n">list_formats</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Save: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">formats</span><span class="p">[</span><span class="s1">&#39;save&#39;</span><span class="p">][</span><span class="s1">&#39;builtin&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> built-in formats&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Load: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">formats</span><span class="p">[</span><span class="s1">&#39;load&#39;</span><span class="p">][</span><span class="s1">&#39;builtin&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> built-in formats&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Save: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">formats</span><span class="p">[</span><span class="s1">'save'</span><span class="p">][</span><span class="s1">'builtin'</span><span class="p">])</span><span class="si">}</span><span class="s2"> built-in formats"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Load: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">formats</span><span class="p">[</span><span class="s1">'load'</span><span class="p">][</span><span class="s1">'builtin'</span><span class="p">])</span><span class="si">}</span><span class="s2"> built-in formats"</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Save: 24 built-in formats
@@ -248,22 +252,22 @@ Load: 29 built-in formats
 <p>Register handlers for any file extension:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_saver</span><span class="p">,</span> <span class="n">register_loader</span><span class="p">,</span> <span class="n">save</span><span class="p">,</span> <span class="n">load</span>
 
-<span class="nd">@register_saver</span><span class="p">(</span><span class="s2">&quot;.tsv3&quot;</span><span class="p">)</span>
+<span class="nd">@register_saver</span><span class="p">(</span><span class="s2">".tsv3"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_tsv3</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save with 3-space-separated values.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Save with 3-space-separated values."""</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;   &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"   "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 
-<span class="nd">@register_loader</span><span class="p">(</span><span class="s2">&quot;.tsv3&quot;</span><span class="p">)</span>
+<span class="nd">@register_loader</span><span class="p">(</span><span class="s2">".tsv3"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_tsv3</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load 3-space-separated values.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Load 3-space-separated values."""</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;   &quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"   "</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
 
 <span class="c1"># Now .tsv3 works like any built-in format</span>
-<span class="n">save</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]],</span> <span class="s2">&quot;data.tsv3&quot;</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;data.tsv3&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="p">[[</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">]]</span>
+<span class="n">save</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]],</span> <span class="s2">"data.tsv3"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">load</span><span class="p">(</span><span class="s2">"data.tsv3"</span><span class="p">)</span> <span class="o">==</span> <span class="p">[[</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"3"</span><span class="p">,</span> <span class="s2">"4"</span><span class="p">]]</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -291,9 +295,9 @@ YAML files under a <code class="docutils literal notranslate"><span class="pre">
 
 <span class="c1"># One call loads all YAML files, namespaced by filename</span>
 <span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">()</span>                            <span class="c1"># ./config/*.yaml</span>
-<span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">(</span><span class="n">config_dir</span><span class="o">=</span><span class="s2">&quot;./my_configs&quot;</span><span class="p">)</span>   <span class="c1"># custom path</span>
+<span class="n">CONFIG</span> <span class="o">=</span> <span class="n">load_configs</span><span class="p">(</span><span class="n">config_dir</span><span class="o">=</span><span class="s2">"./my_configs"</span><span class="p">)</span>   <span class="c1"># custom path</span>
 
-<span class="n">CONFIG</span><span class="o">.</span><span class="n">PATHS</span><span class="o">.</span><span class="n">DATA_DIR</span>            <span class="c1"># &quot;/data/experiment_01&quot;</span>
+<span class="n">CONFIG</span><span class="o">.</span><span class="n">PATHS</span><span class="o">.</span><span class="n">DATA_DIR</span>            <span class="c1"># "/data/experiment_01"</span>
 <span class="n">CONFIG</span><span class="o">.</span><span class="n">PREPROCESS</span><span class="o">.</span><span class="n">SAMPLE_RATE</span>    <span class="c1"># 1000</span>
 <span class="n">CONFIG</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>          <span class="c1"># 256</span>
 
@@ -311,14 +315,14 @@ use <strong>UPPER_CASE</strong> to signal that they are user-defined constants, 
 <p><code class="docutils literal notranslate"><span class="pre">DotDict</span></code> gives dot-notation access to nested dictionaries:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">DotDict</span>
 
-<span class="n">d</span> <span class="o">=</span> <span class="n">DotDict</span><span class="p">({</span><span class="s2">&quot;MODEL&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;HIDDEN_DIM&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">,</span> <span class="s2">&quot;LAYERS&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}})</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">DotDict</span><span class="p">({</span><span class="s2">"MODEL"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"HIDDEN_DIM"</span><span class="p">:</span> <span class="mi">256</span><span class="p">,</span> <span class="s2">"LAYERS"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}})</span>
 <span class="n">d</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">HIDDEN_DIM</span>    <span class="c1"># 256</span>
 <span class="n">d</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">LAYERS</span>        <span class="c1"># 4</span>
 
 <span class="c1"># Standard dict operations work too</span>
-<span class="n">d</span><span class="p">[</span><span class="s2">&quot;MODEL&quot;</span><span class="p">][</span><span class="s2">&quot;HIDDEN_DIM&quot;</span><span class="p">]</span>    <span class="c1"># 256</span>
-<span class="n">d</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>              <span class="c1"># dict_keys([&quot;HIDDEN_DIM&quot;, &quot;LAYERS&quot;])</span>
-<span class="n">d</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>           <span class="c1"># {&quot;HIDDEN_DIM&quot;: 256, &quot;LAYERS&quot;: 4}</span>
+<span class="n">d</span><span class="p">[</span><span class="s2">"MODEL"</span><span class="p">][</span><span class="s2">"HIDDEN_DIM"</span><span class="p">]</span>    <span class="c1"># 256</span>
+<span class="n">d</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>              <span class="c1"># dict_keys(["HIDDEN_DIM", "LAYERS"])</span>
+<span class="n">d</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>           <span class="c1"># {"HIDDEN_DIM": 256, "LAYERS": 4}</span>
 </pre></div>
 </div>
 </section>
@@ -329,19 +333,19 @@ use <strong>UPPER_CASE</strong> to signal that they are user-defined constants, 
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">embed_metadata</span><span class="p">,</span> <span class="n">read_metadata</span><span class="p">,</span> <span class="n">has_metadata</span>
 
 <span class="c1"># Embed metadata into a figure</span>
-<span class="n">embed_metadata</span><span class="p">(</span><span class="s2">&quot;figure.png&quot;</span><span class="p">,</span> <span class="p">{</span>
-    <span class="s2">&quot;experiment&quot;</span><span class="p">:</span> <span class="s2">&quot;exp_042&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;resnet50&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;accuracy&quot;</span><span class="p">:</span> <span class="mf">0.94</span><span class="p">,</span>
-    <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="s2">&quot;2026-03-11&quot;</span><span class="p">,</span>
+<span class="n">embed_metadata</span><span class="p">(</span><span class="s2">"figure.png"</span><span class="p">,</span> <span class="p">{</span>
+    <span class="s2">"experiment"</span><span class="p">:</span> <span class="s2">"exp_042"</span><span class="p">,</span>
+    <span class="s2">"model"</span><span class="p">:</span> <span class="s2">"resnet50"</span><span class="p">,</span>
+    <span class="s2">"accuracy"</span><span class="p">:</span> <span class="mf">0.94</span><span class="p">,</span>
+    <span class="s2">"timestamp"</span><span class="p">:</span> <span class="s2">"2026-03-11"</span><span class="p">,</span>
 <span class="p">})</span>
 
 <span class="c1"># Read it back — months later, from the file alone</span>
-<span class="n">meta</span> <span class="o">=</span> <span class="n">read_metadata</span><span class="p">(</span><span class="s2">&quot;figure.png&quot;</span><span class="p">)</span>
-<span class="n">meta</span><span class="p">[</span><span class="s2">&quot;experiment&quot;</span><span class="p">]</span>    <span class="c1"># &quot;exp_042&quot;</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">read_metadata</span><span class="p">(</span><span class="s2">"figure.png"</span><span class="p">)</span>
+<span class="n">meta</span><span class="p">[</span><span class="s2">"experiment"</span><span class="p">]</span>    <span class="c1"># "exp_042"</span>
 
 <span class="c1"># Check if a file carries metadata</span>
-<span class="n">has_metadata</span><span class="p">(</span><span class="s2">&quot;figure.png&quot;</span><span class="p">)</span>   <span class="c1"># True</span>
+<span class="n">has_metadata</span><span class="p">(</span><span class="s2">"figure.png"</span><span class="p">)</span>   <span class="c1"># True</span>
 </pre></div>
 </div>
 <p>Supports PNG (tEXt chunks), JPEG (EXIF), SVG (XML metadata), and PDF
@@ -383,11 +387,11 @@ automatically from the execution context:</p>
 </tbody>
 </table>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># In ~/proj/scripts/analysis.py:</span>
-<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;results.csv&quot;</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"results.csv"</span><span class="p">)</span>
 <span class="c1"># → ~/proj/scripts/analysis_out/results.csv</span>
 
 <span class="c1"># Absolute path bypasses routing:</span>
-<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;/data/shared/results.csv&quot;</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"/data/shared/results.csv"</span><span class="p">)</span>
 <span class="c1"># → /data/shared/results.csv</span>
 </pre></div>
 </div>
@@ -397,20 +401,20 @@ automatically from the execution context:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span>
 
 <span class="c1"># Symlink from cwd to saved file</span>
-<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;results.csv&quot;</span><span class="p">,</span> <span class="n">symlink_from_cwd</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"results.csv"</span><span class="p">,</span> <span class="n">symlink_from_cwd</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Symlink at a specific path</span>
-<span class="n">save</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;fig1.png&quot;</span><span class="p">,</span> <span class="n">symlink_to</span><span class="o">=</span><span class="s2">&quot;/data/latest/fig1.png&quot;</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">"fig1.png"</span><span class="p">,</span> <span class="n">symlink_to</span><span class="o">=</span><span class="s2">"/data/latest/fig1.png"</span><span class="p">)</span>
 
 <span class="c1"># Skip auto CSV export for image saves (default: images get .csv companion)</span>
-<span class="n">save</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;plot.png&quot;</span><span class="p">,</span> <span class="n">no_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">"plot.png"</span><span class="p">,</span> <span class="n">no_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Resolve path from the calling script, not the immediate caller.</span>
 <span class="c1"># Essential when save() is called through library wrappers.</span>
-<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;results.csv&quot;</span><span class="p">,</span> <span class="n">use_caller_path</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"results.csv"</span><span class="p">,</span> <span class="n">use_caller_path</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># Dry run — print resolved path without writing</span>
-<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;results.csv&quot;</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"results.csv"</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -420,17 +424,17 @@ automatically from the execution context:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">glob</span><span class="p">,</span> <span class="n">parse_glob</span><span class="p">,</span> <span class="n">load</span>
 
 <span class="c1"># Natural sort (1, 2, 10 — not 1, 10, 2)</span>
-<span class="n">paths</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="s2">&quot;data/**/*.csv&quot;</span><span class="p">)</span>
+<span class="n">paths</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="s2">"data/**/*.csv"</span><span class="p">)</span>
 
 <span class="c1"># Brace expansion</span>
-<span class="n">paths</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="s2">&quot;results/{exp1,exp2}/*.npy&quot;</span><span class="p">)</span>
+<span class="n">paths</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="s2">"results/{exp1,exp2}/*.npy"</span><span class="p">)</span>
 
 <span class="c1"># Parse named placeholders from paths</span>
-<span class="n">paths</span><span class="p">,</span> <span class="n">parsed</span> <span class="o">=</span> <span class="n">parse_glob</span><span class="p">(</span><span class="s2">&quot;sub_</span><span class="si">{id}</span><span class="s2">/ses_</span><span class="si">{session}</span><span class="s2">/*.vhdr&quot;</span><span class="p">)</span>
-<span class="c1"># parsed = [{&#39;id&#39;: &#39;001&#39;, &#39;session&#39;: &#39;pre&#39;}, ...]</span>
+<span class="n">paths</span><span class="p">,</span> <span class="n">parsed</span> <span class="o">=</span> <span class="n">parse_glob</span><span class="p">(</span><span class="s2">"sub_</span><span class="si">{id}</span><span class="s2">/ses_</span><span class="si">{session}</span><span class="s2">/*.vhdr"</span><span class="p">)</span>
+<span class="c1"># parsed = [{'id': '001', 'session': 'pre'}, ...]</span>
 
 <span class="c1"># Glob works directly in load()</span>
-<span class="n">dfs</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;results/*.csv&quot;</span><span class="p">)</span>  <span class="c1"># → list of DataFrames</span>
+<span class="n">dfs</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">"results/*.csv"</span><span class="p">)</span>  <span class="c1"># → list of DataFrames</span>
 </pre></div>
 </div>
 </section>
@@ -439,11 +443,11 @@ automatically from the execution context:</p>
 <p>Repeated loads are cached automatically by path + mtime:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scitex_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">get_cache_info</span><span class="p">,</span> <span class="n">configure_cache</span><span class="p">,</span> <span class="n">clear_load_cache</span>
 
-<span class="n">data1</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;large_file.hdf5&quot;</span><span class="p">)</span>   <span class="c1"># reads from disk</span>
-<span class="n">data2</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;large_file.hdf5&quot;</span><span class="p">)</span>   <span class="c1"># returns cached copy (instant)</span>
+<span class="n">data1</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">"large_file.hdf5"</span><span class="p">)</span>   <span class="c1"># reads from disk</span>
+<span class="n">data2</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">"large_file.hdf5"</span><span class="p">)</span>   <span class="c1"># returns cached copy (instant)</span>
 
 <span class="n">info</span> <span class="o">=</span> <span class="n">get_cache_info</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cache hits: </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;stats&#39;</span><span class="p">][</span><span class="s1">&#39;hits&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, misses: </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;stats&#39;</span><span class="p">][</span><span class="s1">&#39;misses&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cache hits: </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'stats'</span><span class="p">][</span><span class="s1">'hits'</span><span class="p">]</span><span class="si">}</span><span class="s2">, misses: </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'stats'</span><span class="p">][</span><span class="s1">'misses'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="n">configure_cache</span><span class="p">(</span><span class="n">max_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>  <span class="c1"># increase cache size (default: 32)</span>
 <span class="n">clear_load_cache</span><span class="p">()</span>            <span class="c1"># free memory</span>

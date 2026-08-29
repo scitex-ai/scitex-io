@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._loading._load_cache &mdash; SciTeX IO v0.3.1</title>
+  <title>scitex_io._loading._load_cache &mdash; SciTeX IO v0.4.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=4621528c"></script>
+      <script src="../../../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -158,6 +158,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.iter_io_bypass_targets"><code class="docutils literal notranslate"><span class="pre">iter_io_bypass_targets()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -165,6 +166,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_listed_scalars_as_csv"><code class="docutils literal notranslate"><span class="pre">save_listed_scalars_as_csv()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_optuna_study_as_csv_and_pngs"><code class="docutils literal notranslate"><span class="pre">save_optuna_study_as_csv_and_pngs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.json2md"><code class="docutils literal notranslate"><span class="pre">json2md()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#core-i-o">Core I/O</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#registry">Registry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#cache-control">Cache Control</a></li>
@@ -202,13 +206,13 @@
   <h1>Source code for scitex_io._loading._load_cache</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="c1"># Time-stamp: &quot;2025-07-25 04:40:00&quot;</span>
+<span class="c1"># Time-stamp: "2025-07-25 04:40:00"</span>
 <span class="c1"># File: _load_cache.py</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 <span class="sd">File load caching infrastructure for scitex.io module.</span>
 <span class="sd">Provides intelligent caching with file modification detection.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -232,18 +236,18 @@
 <span class="n">_file_data_cache</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">WeakValueDictionary</span><span class="p">()</span>
 
 <span class="c1"># Cache statistics</span>
-<span class="n">_cache_stats</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;hits&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;misses&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;evictions&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+<span class="n">_cache_stats</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"hits"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"misses"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"evictions"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
 <span class="c1"># Configuration</span>
 <span class="n">_cache_config</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="s2">&quot;max_size&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>  <span class="c1"># Maximum number of files to track</span>
-    <span class="s2">&quot;verbose&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"enabled"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">"max_size"</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>  <span class="c1"># Maximum number of files to track</span>
+    <span class="s2">"verbose"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_file_key</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get cache key based on file path, modification time, and size.</span>
 
 <span class="sd">    Parameters</span>
@@ -255,14 +259,14 @@
 <span class="sd">    -------</span>
 <span class="sd">    Tuple[str, float, int]</span>
 <span class="sd">        Tuple of (absolute_path, mtime, size)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
     <span class="n">stat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">abs_path</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">abs_path</span><span class="p">,</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">,</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_file_hash</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get a hash based on file metadata.</span>
 
 <span class="sd">    Parameters</span>
@@ -274,14 +278,14 @@
 <span class="sd">    -------</span>
 <span class="sd">    str</span>
 <span class="sd">        MD5 hash of file metadata</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">key</span> <span class="o">=</span> <span class="n">get_file_key</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
-    <span class="n">hash_input</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">key</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">hash_input</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">key</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">hash_input</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">is_cache_valid</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Check if cached data for a file is still valid.</span>
 
 <span class="sd">    Parameters</span>
@@ -293,7 +297,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    bool</span>
 <span class="sd">        True if cache is valid, False otherwise</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">abs_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_file_metadata_cache</span><span class="p">:</span>
@@ -311,7 +315,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_cached_data</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Retrieve cached data if available and valid.</span>
 
 <span class="sd">    Parameters</span>
@@ -323,30 +327,30 @@
 <span class="sd">    -------</span>
 <span class="sd">    Optional[Any]</span>
 <span class="sd">        Cached data if available, None otherwise</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;enabled&quot;</span><span class="p">]:</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"enabled"</span><span class="p">]:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
 
     <span class="c1"># Check if cache is valid</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_cache_valid</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
-        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;misses&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"misses"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="c1"># Try to get data from weak reference cache</span>
     <span class="k">if</span> <span class="n">abs_path</span> <span class="ow">in</span> <span class="n">_file_data_cache</span><span class="p">:</span>
-        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;hits&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;verbose&quot;</span><span class="p">]:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Cache HIT] </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"hits"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"verbose"</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[Cache HIT] </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_file_data_cache</span><span class="p">[</span><span class="n">abs_path</span><span class="p">]</span>
 
-    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;misses&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"misses"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">cache_data</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Cache data for a file.</span>
 
 <span class="sd">    Parameters</span>
@@ -355,8 +359,8 @@
 <span class="sd">        Path to the file</span>
 <span class="sd">    data : Any</span>
 <span class="sd">        Data to cache</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;enabled&quot;</span><span class="p">]:</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"enabled"</span><span class="p">]:</span>
         <span class="k">return</span>
 
     <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
@@ -368,52 +372,80 @@
     <span class="c1"># Try to cache the data (may fail for non-weakref-able types)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># For numpy arrays and other special types, we need to wrap them</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;__array__&quot;</span><span class="p">):</span>
-            <span class="c1"># Numpy arrays can&#39;t be weakly referenced directly</span>
-            <span class="c1"># We&#39;ll skip caching for now (could implement a wrapper)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"__array__"</span><span class="p">):</span>
+            <span class="c1"># Numpy arrays can't be weakly referenced directly</span>
+            <span class="c1"># We'll skip caching for now (could implement a wrapper)</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">_file_data_cache</span><span class="p">[</span><span class="n">abs_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
     <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-        <span class="c1"># Some objects can&#39;t be weakly referenced</span>
-        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;verbose&quot;</span><span class="p">]:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot cache </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> objects&quot;</span><span class="p">)</span>
+        <span class="c1"># Some objects can't be weakly referenced</span>
+        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"verbose"</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot cache </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> objects"</span><span class="p">)</span>
 
     <span class="c1"># Implement cache size limit</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_file_metadata_cache</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;max_size&quot;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_file_metadata_cache</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"max_size"</span><span class="p">]:</span>
         <span class="c1"># Remove oldest entries (simple FIFO for metadata)</span>
         <span class="n">oldest</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_file_metadata_cache</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">_file_metadata_cache</span><span class="p">[</span><span class="n">oldest</span><span class="p">]</span>
-        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;evictions&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"evictions"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">clear_cache</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clear all cached data.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Clear all cached data."""</span>
     <span class="n">_file_metadata_cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
     <span class="n">_file_data_cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
     <span class="n">_numpy_cache_keys</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
     <span class="n">_cached_load_npy</span><span class="o">.</span><span class="n">cache_clear</span><span class="p">()</span>  <span class="c1"># Clear LRU cache</span>
-    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;hits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;misses&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;evictions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"hits"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"misses"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"evictions"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">invalidate</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Drop any cached load state for ``file_path``.</span>
+
+<span class="sd">    Call this after WRITING ``file_path`` so a subsequent ``load`` re-reads</span>
+<span class="sd">    from disk instead of returning a stale cached value. This is required</span>
+<span class="sd">    because :func:`is_cache_valid` keys validity on ``(mtime, size)`` only —</span>
+<span class="sd">    so overwriting a file with the SAME size within one mtime-resolution tick</span>
+<span class="sd">    (e.g. save ``[1]`` then save ``[2]`` to the same path, both a few bytes,</span>
+<span class="sd">    microseconds apart) would otherwise be seen as "unchanged" and the first</span>
+<span class="sd">    value returned. Evicting on save closes that window deterministically.</span>
+<span class="sd">    """</span>
+    <span class="n">abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">_file_metadata_cache</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">abs_path</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">_file_data_cache</span><span class="p">[</span><span class="n">abs_path</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="c1"># The numpy LRU keys on (path, mtime, size), so it has the same</span>
+    <span class="c1"># same-size-same-mtime blind spot. lru_cache can't evict a single key;</span>
+    <span class="c1"># if this path was cached there, drop its keys and clear the LRU</span>
+    <span class="c1"># (correctness over a rare full npy-cache reset on overwrite).</span>
+    <span class="n">stale_keys</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_numpy_cache_keys</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">and</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">abs_path</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">stale_keys</span><span class="p">:</span>
+        <span class="n">_numpy_cache_keys</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">stale_keys</span><span class="p">)</span>
+        <span class="n">_cached_load_npy</span><span class="o">.</span><span class="n">cache_clear</span><span class="p">()</span>
+    <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"evictions"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
 
 <div class="viewcode-block" id="get_cache_info">
 <a class="viewcode-back" href="../../../api/scitex_io.html#scitex_io.get_cache_info">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_cache_info</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get cache statistics and configuration.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    Dict[str, Any]</span>
 <span class="sd">        Cache information including stats and config</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;stats&quot;</span><span class="p">:</span> <span class="n">_cache_stats</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="n">_cache_config</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="s2">&quot;metadata_size&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">_file_metadata_cache</span><span class="p">),</span>
-        <span class="s2">&quot;data_size&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">_file_data_cache</span><span class="p">),</span>
+        <span class="s2">"stats"</span><span class="p">:</span> <span class="n">_cache_stats</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="s2">"config"</span><span class="p">:</span> <span class="n">_cache_config</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+        <span class="s2">"metadata_size"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">_file_metadata_cache</span><span class="p">),</span>
+        <span class="s2">"data_size"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">_file_data_cache</span><span class="p">),</span>
     <span class="p">}</span></div>
 
 
@@ -425,7 +457,7 @@
     <span class="n">max_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Configure cache settings.</span>
 
 <span class="sd">    Parameters</span>
@@ -436,13 +468,13 @@
 <span class="sd">        Maximum number of files to cache</span>
 <span class="sd">    verbose : Optional[bool]</span>
 <span class="sd">        Enable verbose logging</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">enabled</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;enabled&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">enabled</span>
+        <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"enabled"</span><span class="p">]</span> <span class="o">=</span> <span class="n">enabled</span>
     <span class="k">if</span> <span class="n">max_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;max_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_size</span>
+        <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"max_size"</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_size</span>
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;verbose&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">verbose</span></div>
+        <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"verbose"</span><span class="p">]</span> <span class="o">=</span> <span class="n">verbose</span></div>
 
 
 
@@ -453,7 +485,7 @@
 <span class="c1"># Specialized cache for numpy arrays (using LRU cache)</span>
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_cached_load_npy</span><span class="p">(</span><span class="n">file_key</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Cached numpy loader using LRU cache.</span>
 
 <span class="sd">    Parameters</span>
@@ -465,21 +497,21 @@
 <span class="sd">    -------</span>
 <span class="sd">    Any</span>
 <span class="sd">        Loaded numpy array</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">file_path</span> <span class="o">=</span> <span class="n">file_key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="c1"># Import here to avoid circular imports</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">.._load_modules._numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">_load_npy</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="n">_load_npy</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
 
-    <span class="c1"># Track that we&#39;ve cached this key</span>
+    <span class="c1"># Track that we've cached this key</span>
     <span class="n">_numpy_cache_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">file_key</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">load_npy_cached</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Load numpy file with caching.</span>
 
 <span class="sd">    Parameters</span>
@@ -493,8 +525,8 @@
 <span class="sd">    -------</span>
 <span class="sd">    Any</span>
 <span class="sd">        Loaded numpy array</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;enabled&quot;</span><span class="p">]:</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"enabled"</span><span class="p">]:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">.._load_modules._numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">_load_npy</span>
 
         <span class="k">return</span> <span class="n">_load_npy</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -504,13 +536,13 @@
 
     <span class="c1"># Check if this key is already cached</span>
     <span class="k">if</span> <span class="n">file_key</span> <span class="ow">in</span> <span class="n">_numpy_cache_keys</span><span class="p">:</span>
-        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;hits&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;verbose&quot;</span><span class="p">]:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Cache HIT] Loaded from cache: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"hits"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"verbose"</span><span class="p">]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[Cache HIT] Loaded from cache: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">&quot;misses&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">&quot;verbose&quot;</span><span class="p">]:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Cache MISS] Loading from disk: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">_cache_stats</span><span class="p">[</span><span class="s2">"misses"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">_cache_config</span><span class="p">[</span><span class="s2">"verbose"</span><span class="p">]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[Cache MISS] Loading from disk: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="c1"># Use LRU cache for numpy files</span>
     <span class="k">return</span> <span class="n">_cached_load_npy</span><span class="p">(</span><span class="n">file_key</span><span class="p">)</span>

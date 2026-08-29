@@ -1,0 +1,323 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scitex_io._linter.rules &mdash; SciTeX IO v0.4.0</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SciTeX IO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#basic-installation">Basic Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#with-mcp-server">With MCP Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#full-installation">Full Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#scitex-users">SciTeX Users</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#development">Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#save-and-load">Save and Load</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#list-available-formats">List Available Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#custom-format-registration">Custom Format Registration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#project-configuration">Project Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#dotdict">DotDict</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#metadata-embedding">Metadata Embedding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#auto-path-routing">Auto Path Routing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#advanced-save-options">Advanced Save Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#glob-and-pattern-matching">Glob and Pattern Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#caching">Caching</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../formats.html">Supported Formats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../formats.html#format-table">Format Table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../formats.html#two-tier-registry">Two-Tier Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../formats.html#optional-dependencies">Optional Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#commands">Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#format-inspection">Format Inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#configuration-inspection">Configuration Inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#api-introspection">API Introspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli.html#shell-completion">Shell Completion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mcp.html">MCP Server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#starting-the-server">Starting the Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#mcp-client-configuration">MCP Client Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#available-tools">Available Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#tool-details">Tool Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mcp.html#diagnostics">Diagnostics</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Advanced</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../registry.html">Plugin Registry</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../registry.html#architecture">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../registry.html#how-dispatch-works">How Dispatch Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../registry.html#registering-handlers">Registering Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../registry.html#handler-contract">Handler Contract</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../explorers.html">Interactive Explorers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../explorers.html#h5explorer">H5Explorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../explorers.html#zarrexplorer">ZarrExplorer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../explorers.html#migration-hdf5-to-zarr">Migration: HDF5 to Zarr</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-1-basic-save-load">Example 1: Basic Save/Load</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-2-custom-format">Example 2: Custom Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-3-project-configuration">Example 3: Project Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-4-dotdict">Example 4: DotDict</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#example-5-metadata-embedding">Example 5: Metadata Embedding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#part-of-scitex">Part of SciTeX</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/scitex_io.html">scitex_io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#functionalities">Functionalities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#io">IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_saver"><code class="docutils literal notranslate"><span class="pre">register_saver()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_loader"><code class="docutils literal notranslate"><span class="pre">register_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.get_saver"><code class="docutils literal notranslate"><span class="pre">get_saver()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.get_loader"><code class="docutils literal notranslate"><span class="pre">get_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.list_formats"><code class="docutils literal notranslate"><span class="pre">list_formats()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.unregister_saver"><code class="docutils literal notranslate"><span class="pre">unregister_saver()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.unregister_loader"><code class="docutils literal notranslate"><span class="pre">unregister_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.load_configs"><code class="docutils literal notranslate"><span class="pre">load_configs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.glob"><code class="docutils literal notranslate"><span class="pre">glob()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.parse_glob"><code class="docutils literal notranslate"><span class="pre">parse_glob()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.reload"><code class="docutils literal notranslate"><span class="pre">reload()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.flush"><code class="docutils literal notranslate"><span class="pre">flush()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.cache"><code class="docutils literal notranslate"><span class="pre">cache()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.configure_cache"><code class="docutils literal notranslate"><span class="pre">configure_cache()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.get_cache_info"><code class="docutils literal notranslate"><span class="pre">get_cache_info()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.clear_load_cache"><code class="docutils literal notranslate"><span class="pre">clear_load_cache()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict"><code class="docutils literal notranslate"><span class="pre">DotDict</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.__init__"><code class="docutils literal notranslate"><span class="pre">DotDict.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict._resolve_key"><code class="docutils literal notranslate"><span class="pre">DotDict._resolve_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.get"><code class="docutils literal notranslate"><span class="pre">DotDict.get()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.to_dict"><code class="docutils literal notranslate"><span class="pre">DotDict.to_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.keys"><code class="docutils literal notranslate"><span class="pre">DotDict.keys()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.values"><code class="docutils literal notranslate"><span class="pre">DotDict.values()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.items"><code class="docutils literal notranslate"><span class="pre">DotDict.items()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.update"><code class="docutils literal notranslate"><span class="pre">DotDict.update()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.setdefault"><code class="docutils literal notranslate"><span class="pre">DotDict.setdefault()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.pop"><code class="docutils literal notranslate"><span class="pre">DotDict.pop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.DotDict.copy"><code class="docutils literal notranslate"><span class="pre">DotDict.copy()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.iter_io_bypass_targets"><code class="docutils literal notranslate"><span class="pre">iter_io_bypass_targets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_listed_dfs_as_csv"><code class="docutils literal notranslate"><span class="pre">save_listed_dfs_as_csv()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_listed_scalars_as_csv"><code class="docutils literal notranslate"><span class="pre">save_listed_scalars_as_csv()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_optuna_study_as_csv_and_pngs"><code class="docutils literal notranslate"><span class="pre">save_optuna_study_as_csv_and_pngs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.json2md"><code class="docutils literal notranslate"><span class="pre">json2md()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#core-i-o">Core I/O</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#registry">Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#cache-control">Cache Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#dict-utilities">Dict Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#metadata">Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#explorers">Explorers</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SciTeX IO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">scitex_io._linter.rules</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for scitex_io._linter.rules</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Public, importable view of scitex-io's raw-IO detection rules.</span>
+
+<span class="sd">``_linter.plugin.get_plugin()["call_rules"]`` is AST-shaped: its keys are</span>
+<span class="sd">the names as they appear in SOURCE TEXT (``"np"``, ``"pd"``, ``"sio"``,</span>
+<span class="sd">``"plt"``, ``"Image"``, ...), which is exactly right for a static</span>
+<span class="sd">text/AST matcher but wrong for a runtime consumer (e.g. a monkeypatch</span>
+<span class="sd">guard installed at ``@stx.session.start()``) that needs the REAL,</span>
+<span class="sd">importable module path regardless of what alias a given script's</span>
+<span class="sd">``import ... as`` happened to pick.</span>
+
+<span class="sd">``iter_io_bypass_targets()`` is that runtime-oriented view: canonical</span>
+<span class="sd">``(module_path, attr, rule_id, severity)`` tuples, generated FROM</span>
+<span class="sd">``call_rules`` (single source of truth, no second hand-maintained list to</span>
+<span class="sd">drift out of sync) but deduplicated to one row per real module+attr.</span>
+<span class="sd">Entries with no derivable module path (e.g. ``(None, "savefig")``,</span>
+<span class="sd">matched on any receiver's ``.savefig()`` method, not a module-level</span>
+<span class="sd">call) are skipped — there is nothing to ``importlib.import_module`` for</span>
+<span class="sd">those.</span>
+
+<span class="sd">This module intentionally does NOT decide policy (warn vs. raise, which</span>
+<span class="sd">severities matter). Callers get the full ``(module_path, attr, rule_id,</span>
+<span class="sd">severity)`` picture and decide for themselves — the rule DATA lives here</span>
+<span class="sd">once; what to do with it is a runtime-guard concern (see the operator's</span>
+<span class="sd">2026-07-05 raw-IO-provenance incident thread, scitex-session's runtime</span>
+<span class="sd">guard).</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">NamedTuple</span>
+
+<span class="c1"># Alias (as commonly written in source) -&gt; real importable module path.</span>
+<span class="c1"># "np"/"pd" are NOT themselves valid import paths (nobody has a module</span>
+<span class="c1"># literally named "np") — they're bound names, so they need remapping</span>
+<span class="c1"># same as "sio"/"plt"/"Image" (which have no canonical sibling entry in</span>
+<span class="c1"># call_rules at all). Listing both alias and canonical explicitly here</span>
+<span class="c1"># is what lets `iter_io_bypass_targets` collapse them to one row.</span>
+<span class="n">_ALIAS_TO_CANONICAL</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"np"</span><span class="p">:</span> <span class="s2">"numpy"</span><span class="p">,</span>
+    <span class="s2">"pd"</span><span class="p">:</span> <span class="s2">"pandas"</span><span class="p">,</span>
+    <span class="s2">"sio"</span><span class="p">:</span> <span class="s2">"scipy.io"</span><span class="p">,</span>
+    <span class="s2">"plt"</span><span class="p">:</span> <span class="s2">"matplotlib.pyplot"</span><span class="p">,</span>
+    <span class="s2">"Image"</span><span class="p">:</span> <span class="s2">"PIL.Image"</span><span class="p">,</span>
+    <span class="c1"># cPickle: py2-only real module; in py3 it's always an alias for</span>
+    <span class="c1"># `pickle` (or `_pickle`). Not a distinct real target — skip via</span>
+    <span class="c1"># the canonical-name check in `iter_io_bypass_targets` (its rule_id</span>
+    <span class="c1"># is identical to "pickle"'s, so dropping it loses no coverage).</span>
+<span class="p">}</span>
+
+<span class="c1"># Aliases with no real-module meaning at all (skip outright).</span>
+<span class="n">_SKIP_MODULES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"cPickle"</span><span class="p">}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">IOBypassTarget</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="n">module_path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">attr</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">rule_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">severity</span><span class="p">:</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="iter_io_bypass_targets">
+<a class="viewcode-back" href="../../../api/scitex_io.html#scitex_io.iter_io_bypass_targets">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">iter_io_bypass_targets</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">IOBypassTarget</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Yield canonical (module_path, attr, rule_id, severity) targets.</span>
+
+<span class="sd">    One row per distinct (real module path, attr) — aliases in</span>
+<span class="sd">    ``call_rules`` that resolve to the same canonical module collapse to</span>
+<span class="sd">    a single row. Skips rules with no module-level call shape (receiver-</span>
+<span class="sd">    agnostic method rules like ``.savefig()``).</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.plugin</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_plugin</span>
+
+    <span class="n">call_rules</span> <span class="o">=</span> <span class="n">get_plugin</span><span class="p">()[</span><span class="s2">"call_rules"</span><span class="p">]</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">call_rules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">module_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">module_name</span> <span class="ow">in</span> <span class="n">_SKIP_MODULES</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">canonical</span> <span class="o">=</span> <span class="n">_ALIAS_TO_CANONICAL</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">module_name</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">IOBypassTarget</span><span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">severity</span><span class="p">)</span></div>
+
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"IOBypassTarget"</span><span class="p">,</span> <span class="s2">"iter_io_bypass_targets"</span><span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024-2026, Yusuke Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

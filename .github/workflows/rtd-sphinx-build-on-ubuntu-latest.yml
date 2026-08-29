@@ -44,6 +44,10 @@ jobs:
         run: |
           rm -rf src/scitex_io/_sphinx_html
           cp -rf docs/sphinx/_build/html src/scitex_io/_sphinx_html
+          # Doctrees are Sphinx's build cache, not documentation: they
+          # pickle absolute build paths and a copy of every intersphinx
+          # inventory. They must not ship inside the wheel.
+          rm -rf src/scitex_io/_sphinx_html/.doctrees
           touch src/scitex_io/_sphinx_html/.nojekyll
 
       - name: Commit refreshed HTML if it changed (develop push only)

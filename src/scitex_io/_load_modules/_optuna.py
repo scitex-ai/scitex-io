@@ -63,7 +63,8 @@ def load_study_rdb(study_name, rdb_raw_bytes_url):
     study_name : str
         The name of the Optuna study.
     rdb_raw_bytes_url : str
-        The URL of the RDB storage, typically "sqlite:///*.db".
+        The URL of the RDB storage, e.g.
+        "postgresql://user@host:55432/optuna".
 
     Returns
     -------
@@ -74,7 +75,7 @@ def load_study_rdb(study_name, rdb_raw_bytes_url):
     -------
     >>> study = load_study_rdb(
     ...     study_name="YOUR_STUDY_NAME",
-    ...     rdb_raw_bytes_url="sqlite:///path/to/your/study.db"
+    ...     rdb_raw_bytes_url="postgresql://user@host:55432/optuna"
     ... )
     """
     import optuna

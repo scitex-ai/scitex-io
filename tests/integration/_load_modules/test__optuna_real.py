@@ -8,7 +8,6 @@ import yaml
 
 from scitex_io._load_modules._optuna import (
     OPTUNA_AVAILABLE,
-    load_study_rdb,
     load_yaml_as_an_optuna_dict,
 )
 
@@ -73,48 +72,3 @@ def test_load_yaml_uniform_log_intlog(tmp_path):
     # Assert
     # Assert
     assert {"u", "lu", "ilu"} <= set(seen.keys())
-
-
-def test_load_study_rdb_loaded_study_name_equals_t(tmp_path, capsys):
-    # Arrange
-    # Arrange
-    db_path = tmp_path / "x.db"
-    url = f"sqlite:///{db_path}"
-    s = optuna.create_study(study_name="t", storage=url)
-    s.optimize(lambda t: t.suggest_float("x", -1, 1) ** 2, n_trials=3)
-    # Act
-    loaded = load_study_rdb("t", url)
-    # Act
-    # Assert
-    # Assert
-    assert loaded.study_name == "t"
-
-
-def test_load_study_rdb_len_loaded_trials_is_3(tmp_path, capsys):
-    # Arrange
-    # Arrange
-    db_path = tmp_path / "x.db"
-    url = f"sqlite:///{db_path}"
-    s = optuna.create_study(study_name="t", storage=url)
-    s.optimize(lambda t: t.suggest_float("x", -1, 1) ** 2, n_trials=3)
-    # Act
-    loaded = load_study_rdb("t", url)
-    # Act
-    # Assert
-    # Assert
-    assert len(loaded.trials) == 3
-
-
-def test_load_study_rdb_prints_loaded_message(tmp_path, capsys):
-    # Arrange
-    db_path = tmp_path / "x.db"
-    url = f"sqlite:///{db_path}"
-    s = optuna.create_study(study_name="t", storage=url)
-    s.optimize(lambda t: t.suggest_float("x", -1, 1) ** 2, n_trials=3)
-    # Act
-    load_study_rdb("t", url)
-    out = capsys.readouterr().out
-    # Assert
-    assert "Loaded" in out
-
-

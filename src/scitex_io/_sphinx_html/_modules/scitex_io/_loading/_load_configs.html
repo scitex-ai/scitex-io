@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._loading._load_configs &mdash; SciTeX IO v0.3.1</title>
+  <title>scitex_io._loading._load_configs &mdash; SciTeX IO v0.4.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=4621528c"></script>
+      <script src="../../../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -158,6 +158,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.iter_io_bypass_targets"><code class="docutils literal notranslate"><span class="pre">iter_io_bypass_targets()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -165,6 +166,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_listed_scalars_as_csv"><code class="docutils literal notranslate"><span class="pre">save_listed_scalars_as_csv()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_optuna_study_as_csv_and_pngs"><code class="docutils literal notranslate"><span class="pre">save_optuna_study_as_csv_and_pngs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.json2md"><code class="docutils literal notranslate"><span class="pre">json2md()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#core-i-o">Core I/O</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#registry">Registry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#cache-control">Cache Control</a></li>
@@ -202,14 +206,14 @@
   <h1>Source code for scitex_io._loading._load_configs</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="c1"># Timestamp: &quot;2025-10-11 23:54:07 (ywatanabe)&quot;</span>
+<span class="c1"># Timestamp: "2025-10-11 23:54:07 (ywatanabe)"</span>
 <span class="c1"># File: /home/ywatanabe/proj/scitex_repo/src/scitex/io/_load_configs.py</span>
 <span class="c1"># ----------------------------------------</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
-<span class="n">__FILE__</span> <span class="o">=</span> <span class="s2">&quot;./src/scitex/io/_load_configs.py&quot;</span>
+<span class="n">__FILE__</span> <span class="o">=</span> <span class="s2">"./src/scitex/io/_load_configs.py"</span>
 <span class="n">__DIR__</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__FILE__</span><span class="p">)</span>
 <span class="c1"># ----------------------------------------</span>
 
@@ -222,14 +226,14 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">ConfigLoadError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised by :func:`load_configs` when a YAML config fails to load/process.</span>
+<span class="w">    </span><span class="sd">"""Raised by :func:`load_configs` when a YAML config fails to load/process.</span>
 
 <span class="sd">    Replaces the historical swallow-and-return-empty-``DotDict`` behaviour</span>
 <span class="sd">    of the outer ``try/except`` in ``load_configs``. That swallow turned</span>
 <span class="sd">    every config bug — a malformed YAML, an int-keyed mapping crashing the</span>
 <span class="sd">    debug-promotion walker, a missing file under ``categories/`` — into a</span>
 <span class="sd">    silent empty ``DotDict({})``. The user then saw a baffling</span>
-<span class="sd">    ``&#39;DotDict&#39; object has no attribute &#39;PAC&#39;`` three frames away from the</span>
+<span class="sd">    ``'DotDict' object has no attribute 'PAC'`` three frames away from the</span>
 <span class="sd">    actual failure, with the real ``yaml.YAMLError`` / ``AttributeError``</span>
 <span class="sd">    only printed to stderr (often invisible in CI logs or pytest captures).</span>
 
@@ -238,25 +242,25 @@
 <span class="sd">    error stays visible in the traceback. Catch this only if you</span>
 <span class="sd">    genuinely want to recover from a bad config; otherwise let it</span>
 <span class="sd">    propagate.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_to_upper</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;CONFIG&quot;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize every string key in a config tree to UPPER_CASE.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_to_upper</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"CONFIG"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Normalize every string key in a config tree to UPPER_CASE.</span>
 
 <span class="sd">    Walks a (possibly nested) dict/DotDict in place and renames every</span>
 <span class="sd">    string key to its ``str.upper()`` form so the loaded config is</span>
 <span class="sd">    case-stable regardless of how filenames and YAML keys were written.</span>
 <span class="sd">    Non-string keys (ints, etc.) are left untouched. Lookups on the</span>
 <span class="sd">    resulting :class:`~scitex_io._utils.DotDict` are case-insensitive</span>
-<span class="sd">    for string keys, so a YAML mapping written ``{&quot;seizure&quot;: &quot;red&quot;}``</span>
-<span class="sd">    (stored as ``{&quot;SEIZURE&quot;: &quot;red&quot;}``) can still be read with the</span>
+<span class="sd">    for string keys, so a YAML mapping written ``{"seizure": "red"}``</span>
+<span class="sd">    (stored as ``{"SEIZURE": "red"}``) can still be read with the</span>
 <span class="sd">    lowercase key the author wrote.</span>
 
 <span class="sd">    Collision fail-loud</span>
 <span class="sd">    -------------------</span>
 <span class="sd">    If two keys *inside one mapping* fold to the same UPPER form (e.g.</span>
-<span class="sd">    literally both ``&quot;seizure&quot;`` and ``&quot;SEIZURE&quot;``, or a ``MODEL.yaml``</span>
+<span class="sd">    literally both ``"seizure"`` and ``"SEIZURE"``, or a ``MODEL.yaml``</span>
 <span class="sd">    next to a ``model.yaml`` whose stems collide), this raises a loud</span>
 <span class="sd">    :class:`ValueError` naming the source file, the mapping path, and</span>
 <span class="sd">    both offending keys. The collision is detected here, at load time —</span>
@@ -274,7 +278,7 @@
 <span class="sd">    path : str</span>
 <span class="sd">        Dotted mapping path used in error messages (e.g.</span>
 <span class="sd">        ``CONFIG.SEIZURE.STR2COLOR``).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">DotDict</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">d</span>
 
@@ -285,17 +289,17 @@
 
     <span class="c1"># Track the original (pre-normalisation) string key behind each UPPER</span>
     <span class="c1"># form so the recursion can name children by the stem the author</span>
-    <span class="c1"># actually wrote (``m.yaml`` → file &#39;m&#39;, not the folded &#39;M&#39;).</span>
+    <span class="c1"># actually wrote (``m.yaml`` → file 'm', not the folded 'M').</span>
     <span class="n">upper_to_original</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">upper</span><span class="p">,</span> <span class="n">variants</span> <span class="ow">in</span> <span class="n">by_upper</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variants</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;file </span><span class="si">{</span><span class="n">file</span><span class="si">!r}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;the config directory&quot;</span>
+            <span class="n">where</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"file </span><span class="si">{</span><span class="n">file</span><span class="si">!r}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"the config directory"</span>
             <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">variants</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">variants</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;load_configs: case collision in </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2"> at mapping &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">: keys </span><span class="si">{</span><span class="n">a</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">b</span><span class="si">!r}</span><span class="s2"> both normalise to &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">upper</span><span class="si">!r}</span><span class="s2">. Rename one of them so the loaded config has &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;unambiguous UPPER_CASE keys.&quot;</span>
+                <span class="sa">f</span><span class="s2">"load_configs: case collision in </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2"> at mapping "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">: keys </span><span class="si">{</span><span class="n">a</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">b</span><span class="si">!r}</span><span class="s2"> both normalise to "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">upper</span><span class="si">!r}</span><span class="s2">. Rename one of them so the loaded config has "</span>
+                <span class="sa">f</span><span class="s2">"unambiguous UPPER_CASE keys."</span>
             <span class="p">)</span>
         <span class="p">(</span><span class="n">only</span><span class="p">,)</span> <span class="o">=</span> <span class="n">variants</span>
         <span class="n">upper_to_original</span><span class="p">[</span><span class="n">upper</span><span class="p">]</span> <span class="o">=</span> <span class="n">only</span>
@@ -308,7 +312,7 @@
             <span class="c1"># the ORIGINAL stem (what the author named the file) as the</span>
             <span class="c1"># source-file context for nested collisions.</span>
             <span class="n">child_file</span> <span class="o">=</span> <span class="n">upper_to_original</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">file</span>
-            <span class="n">_normalize_to_upper</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">child_file</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">_normalize_to_upper</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">child_file</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">d</span>
 
 
@@ -320,7 +324,7 @@
     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">config_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load and merge every YAML under ``config_dir`` into one ``DotDict``.</span>
+<span class="w">    </span><span class="sd">"""Load and merge every YAML under ``config_dir`` into one ``DotDict``.</span>
 
 <span class="sd">    Filename stems become top-level keys; YAML keys become nested</span>
 <span class="sd">    attributes. Every string key (filename stem and every nested key)</span>
@@ -328,13 +332,13 @@
 <span class="sd">    case-stable regardless of source casing — ``model.yaml`` with</span>
 <span class="sd">    ``hidden_dim: 256`` lands at ``CONFIG.MODEL.HIDDEN_DIM``. Lookups on</span>
 <span class="sd">    the returned ``DotDict`` are case-insensitive for string keys, so</span>
-<span class="sd">    ``CONFIG.SEIZURE.STR2COLOR[&quot;seizure&quot;]`` resolves the stored</span>
-<span class="sd">    ``&quot;SEIZURE&quot;`` entry — no surprise ``KeyError`` for the lowercase key</span>
+<span class="sd">    ``CONFIG.SEIZURE.STR2COLOR["seizure"]`` resolves the stored</span>
+<span class="sd">    ``"SEIZURE"`` entry — no surprise ``KeyError`` for the lowercase key</span>
 <span class="sd">    the author wrote (non-string keys are matched exactly).</span>
 
 <span class="sd">    If two keys inside one mapping fold to the same UPPER form (e.g.</span>
 <span class="sd">    ``MODEL.yaml`` next to ``model.yaml``, or ``HIDDEN_DIM`` next to</span>
-<span class="sd">    ``hidden_dim``, or ``&quot;seizure&quot;`` next to ``&quot;SEIZURE&quot;`` in one</span>
+<span class="sd">    ``hidden_dim``, or ``"seizure"`` next to ``"SEIZURE"`` in one</span>
 <span class="sd">    string-mapping), a loud ``ValueError`` is raised at load time naming</span>
 <span class="sd">    the source file, the mapping path, and both offending keys. The</span>
 <span class="sd">    collision is never silently merged or dropped.</span>
@@ -356,7 +360,7 @@
 <span class="sd">    verbose : bool</span>
 <span class="sd">        Print detailed information.</span>
 <span class="sd">    config_dir : Union[str, Path], optional</span>
-<span class="sd">        Directory containing the YAML files. Defaults to ``&quot;./config&quot;``.</span>
+<span class="sd">        Directory containing the YAML files. Defaults to ``"./config"``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -378,7 +382,7 @@
 <span class="sd">        exception is chained as ``__cause__`` so the traceback shows</span>
 <span class="sd">        the root error. Replaces the prior swallow-and-return-empty-</span>
 <span class="sd">        ``DotDict`` behaviour, which made every config bug surface as</span>
-<span class="sd">        a baffling ``&#39;DotDict&#39; object has no attribute &#39;X&#39;`` three</span>
+<span class="sd">        a baffling ``'DotDict' object has no attribute 'X'`` three</span>
 <span class="sd">        frames away from the actual failure.</span>
 
 <span class="sd">    Examples</span>
@@ -387,41 +391,41 @@
 <span class="sd">    &gt;&gt;&gt; CONFIG.MODEL.HIDDEN_DIM                       # 256</span>
 <span class="sd">    &gt;&gt;&gt; CONFIG = load_configs(IS_DEBUG=True)</span>
 <span class="sd">    &gt;&gt;&gt; CONFIG.MODEL.HIDDEN_DIM                       # 32 (DEBUG_ promoted)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">apply_debug_values</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">IS_DEBUG</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply debug values if IS_DEBUG is True.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Apply debug values if IS_DEBUG is True."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">IS_DEBUG</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">DotDict</span><span class="p">)):</span>
             <span class="k">return</span> <span class="n">config</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="c1"># YAML mapping keys can be non-string (ints, etc.) — e.g.</span>
-            <span class="c1"># SEIZURE.yaml&#39;s INT2STR / INT2COLOR carry literal integer</span>
+            <span class="c1"># SEIZURE.yaml's INT2STR / INT2COLOR carry literal integer</span>
             <span class="c1"># event-code keys. `str.startswith` would raise</span>
-            <span class="c1"># `AttributeError: &#39;int&#39; object has no attribute &#39;startswith&#39;`</span>
+            <span class="c1"># `AttributeError: 'int' object has no attribute 'startswith'`</span>
             <span class="c1"># on those, the outer try in `load_configs` would swallow it</span>
             <span class="c1"># as `Error loading configs: ...` and return an empty</span>
             <span class="c1"># DotDict — and the user sees the cryptic downstream</span>
-            <span class="c1"># `&#39;DotDict&#39; object has no attribute &#39;PAC&#39;`. Only the</span>
+            <span class="c1"># `'DotDict' object has no attribute 'PAC'`. Only the</span>
             <span class="c1"># `DEBUG_&lt;key&gt;` / `debug_&lt;key&gt;` promotion rule applies to</span>
             <span class="c1"># strings; non-string keys are silently recursed into when</span>
             <span class="c1"># they nest another mapping but never pattern-matched.</span>
             <span class="n">is_debug_prefixed</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;DEBUG_&quot;</span><span class="p">,</span> <span class="s2">&quot;debug_&quot;</span><span class="p">))</span>
+                <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"DEBUG_"</span><span class="p">,</span> <span class="s2">"debug_"</span><span class="p">))</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">is_debug_prefixed</span><span class="p">:</span>
-                <span class="n">dk_wo_debug_prefix</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">dk_wo_debug_prefix</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">config</span><span class="p">[</span><span class="n">dk_wo_debug_prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
                 <span class="k">if</span> <span class="n">show</span> <span class="ow">or</span> <span class="n">verbose</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">dk_wo_debug_prefix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">dk_wo_debug_prefix</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">DotDict</span><span class="p">)):</span>
                 <span class="n">config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">apply_debug_values</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">IS_DEBUG</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">config</span>
 
     <span class="c1"># Handle config directory parameter</span>
     <span class="k">if</span> <span class="n">config_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">config_dir</span> <span class="o">=</span> <span class="s2">&quot;./config&quot;</span>
+        <span class="n">config_dir</span> <span class="o">=</span> <span class="s2">"./config"</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config_dir</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
         <span class="n">config_dir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">config_dir</span><span class="p">)</span>
 
@@ -429,35 +433,35 @@
     <span class="c1"># IS_DEBUG.yaml surfaces as ConfigLoadError naming that file</span>
     <span class="c1"># rather than poisoning every downstream load with a swallowed</span>
     <span class="c1"># error.</span>
-    <span class="n">debug_config_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">config_dir</span><span class="si">}</span><span class="s2">/IS_DEBUG.yaml&quot;</span>
+    <span class="n">debug_config_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">config_dir</span><span class="si">}</span><span class="s2">/IS_DEBUG.yaml"</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">IS_DEBUG</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">IS_DEBUG</span>
-            <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;CI&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;True&quot;</span>
+            <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"CI"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"True"</span>
             <span class="ow">or</span> <span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">debug_config_path</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="n">load</span><span class="p">(</span><span class="n">debug_config_path</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;IS_DEBUG&quot;</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">load</span><span class="p">(</span><span class="n">debug_config_path</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"IS_DEBUG"</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">ConfigLoadError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
         <span class="k">raise</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">ConfigLoadError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;load_configs failed reading IS_DEBUG flag from &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">debug_config_path</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">"load_configs failed reading IS_DEBUG flag from "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">debug_config_path</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
     <span class="c1"># Load and merge configs (namespaced by filename)</span>
     <span class="n">CONFIGS</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_ingest</span><span class="p">(</span><span class="n">lpath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load one YAML file into ``CONFIGS`` under its filename stem.</span>
+<span class="w">        </span><span class="sd">"""Load one YAML file into ``CONFIGS`` under its filename stem.</span>
 
 <span class="sd">        Wraps the per-file load + debug walk in a fail-loud envelope so</span>
 <span class="sd">        a single bad file surfaces with its path in the error message,</span>
 <span class="sd">        instead of silently producing an empty ``DotDict`` further</span>
 <span class="sd">        downstream.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">config</span> <span class="o">:=</span> <span class="n">load</span><span class="p">(</span><span class="n">lpath</span><span class="p">):</span>
                 <span class="n">filename</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span>
@@ -469,19 +473,19 @@
             <span class="k">raise</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ConfigLoadError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;load_configs failed processing </span><span class="si">{</span><span class="n">lpath</span><span class="si">!r}</span><span class="s2">: &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"load_configs failed processing </span><span class="si">{</span><span class="n">lpath</span><span class="si">!r}</span><span class="s2">: "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
     <span class="c1"># Load from main config directory</span>
-    <span class="n">config_pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">config_dir</span><span class="si">}</span><span class="s2">/*.yaml&quot;</span>
+    <span class="n">config_pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">config_dir</span><span class="si">}</span><span class="s2">/*.yaml"</span>
     <span class="k">for</span> <span class="n">lpath</span> <span class="ow">in</span> <span class="n">glob</span><span class="p">(</span><span class="n">config_pattern</span><span class="p">):</span>
         <span class="n">_ingest</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span>
 
     <span class="c1"># Load from categories subdirectory if it exists</span>
-    <span class="n">categories_dir</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">config_dir</span><span class="si">}</span><span class="s2">/categories&quot;</span>
+    <span class="n">categories_dir</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">config_dir</span><span class="si">}</span><span class="s2">/categories"</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">categories_dir</span><span class="p">):</span>
-        <span class="n">categories_pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">categories_dir</span><span class="si">}</span><span class="s2">/*.yaml&quot;</span>
+        <span class="n">categories_pattern</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">categories_dir</span><span class="si">}</span><span class="s2">/*.yaml"</span>
         <span class="k">for</span> <span class="n">lpath</span> <span class="ow">in</span> <span class="n">glob</span><span class="p">(</span><span class="n">categories_pattern</span><span class="p">):</span>
             <span class="n">_ingest</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span>
 
@@ -489,7 +493,7 @@
     <span class="c1"># nested string key to UPPER_CASE so the loaded config is</span>
     <span class="c1"># case-stable regardless of source casing. A case collision</span>
     <span class="c1"># (e.g. MODEL.yaml + model.yaml, HIDDEN_DIM + hidden_dim,</span>
-    <span class="c1"># &quot;seizure&quot; + &quot;SEIZURE&quot;) raises a loud ValueError here, naming</span>
+    <span class="c1"># "seizure" + "SEIZURE") raises a loud ValueError here, naming</span>
     <span class="c1"># the file/path/keys (see ``_normalize_to_upper``).</span>
     <span class="n">_normalize_to_upper</span><span class="p">(</span><span class="n">CONFIGS</span><span class="p">)</span>
 

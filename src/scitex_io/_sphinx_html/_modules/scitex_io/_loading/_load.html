@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_io._loading._load &mdash; SciTeX IO v0.3.1</title>
+  <title>scitex_io._loading._load &mdash; SciTeX IO v0.4.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=4621528c"></script>
+      <script src="../../../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -158,6 +158,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_save_hook"><code class="docutils literal notranslate"><span class="pre">register_post_save_hook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">register_post_load_hook()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.iter_io_bypass_targets"><code class="docutils literal notranslate"><span class="pre">iter_io_bypass_targets()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_image"><code class="docutils literal notranslate"><span class="pre">save_image()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_text"><code class="docutils literal notranslate"><span class="pre">save_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_mp4"><code class="docutils literal notranslate"><span class="pre">save_mp4()</span></code></a></li>
@@ -165,6 +166,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_listed_scalars_as_csv"><code class="docutils literal notranslate"><span class="pre">save_listed_scalars_as_csv()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.save_optuna_study_as_csv_and_pngs"><code class="docutils literal notranslate"><span class="pre">save_optuna_study_as_csv_and_pngs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.json2md"><code class="docutils literal notranslate"><span class="pre">json2md()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.embed_metadata"><code class="docutils literal notranslate"><span class="pre">embed_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.read_metadata"><code class="docutils literal notranslate"><span class="pre">read_metadata()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#scitex_io.has_metadata"><code class="docutils literal notranslate"><span class="pre">has_metadata()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#core-i-o">Core I/O</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#registry">Registry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/scitex_io.html#cache-control">Cache Control</a></li>
@@ -202,7 +206,7 @@
   <h1>Source code for scitex_io._loading._load</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="c1"># Timestamp: &quot;2025-08-11 05:54:51 (ywatanabe)&quot;</span>
+<span class="c1"># Timestamp: "2025-08-11 05:54:51 (ywatanabe)"</span>
 <span class="c1"># File: /home/ywatanabe/proj/SciTeX-Code/src/scitex/io/_load.py</span>
 <span class="c1"># ----------------------------------------</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -235,18 +239,18 @@
     <span class="n">cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Public wrapper around :func:`_load_impl` that fires post-load hooks.</span>
+<span class="w">    </span><span class="sd">"""Public wrapper around :func:`_load_impl` that fires post-load hooks.</span>
 
 <span class="sd">    Glob expansion is handled inside ``_load_impl``; the inner</span>
 <span class="sd">    per-file recursion already routes through ``load`` so each match</span>
 <span class="sd">    fires its own hook. Only the outer non-glob path fires once here.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">_load_impl</span><span class="p">(</span>
         <span class="n">lpath</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="n">ext</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span>
     <span class="c1"># Notify observers (clew, audit, …) for non-glob loads. Glob calls</span>
     <span class="c1"># recurse through load() and fire per-file. See _hooks.</span>
-    <span class="n">is_glob</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lpath</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">&quot;?&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">&quot;[&quot;</span> <span class="ow">in</span> <span class="n">lpath</span><span class="p">)</span>
+    <span class="n">is_glob</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lpath</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">"*"</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">"?"</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">"["</span> <span class="ow">in</span> <span class="n">lpath</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_glob</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">.._observers</span><span class="w"> </span><span class="kn">import</span> <span class="n">fire_post_load</span>
 
@@ -263,7 +267,7 @@
     <span class="n">cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Load data from various file formats.</span>
 
 <span class="sd">    This function supports loading data from multiple file formats with optional caching.</span>
@@ -275,7 +279,7 @@
 <span class="sd">    ext : str, optional</span>
 <span class="sd">        File extension to use for loading. If None, automatically detects from filename.</span>
 <span class="sd">        Useful for files without extensions (e.g., UUID-named files).</span>
-<span class="sd">        Examples: &#39;pdf&#39;, &#39;json&#39;, &#39;csv&#39;</span>
+<span class="sd">        Examples: 'pdf', 'json', 'csv'</span>
 <span class="sd">    show : bool, optional</span>
 <span class="sd">        If True, display additional information during loading. Default is False.</span>
 <span class="sd">    verbose : bool, optional</span>
@@ -309,28 +313,28 @@
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; data = load(&#39;data.csv&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; image = load(&#39;image.png&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; model = load(&#39;model.pth&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; data = load('data.csv')</span>
+<span class="sd">    &gt;&gt;&gt; image = load('image.png')</span>
+<span class="sd">    &gt;&gt;&gt; model = load('model.pth')</span>
 <span class="sd">    &gt;&gt;&gt; # Load file without extension (e.g., UUID PDF)</span>
-<span class="sd">    &gt;&gt;&gt; pdf = load(&#39;f2694ccb-1b6f-4994-add8-5111fd4d52f1&#39;, ext=&#39;pdf&#39;)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &gt;&gt;&gt; pdf = load('f2694ccb-1b6f-4994-add8-5111fd4d52f1', ext='pdf')</span>
+<span class="sd">    """</span>
 
-    <span class="c1"># Don&#39;t use clean_path as it breaks relative paths like ./file.txt</span>
+    <span class="c1"># Don't use clean_path as it breaks relative paths like ./file.txt</span>
     <span class="c1"># lpath = clean_path(lpath)</span>
 
     <span class="c1"># Convert Path objects to strings for consistency</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lpath</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
         <span class="n">lpath</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] After Path conversion: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[DEBUG] After Path conversion: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-    <span class="c1"># Check if it&#39;s a glob pattern</span>
-    <span class="k">if</span> <span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">&quot;?&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">&quot;[&quot;</span> <span class="ow">in</span> <span class="n">lpath</span><span class="p">:</span>
+    <span class="c1"># Check if it's a glob pattern</span>
+    <span class="k">if</span> <span class="s2">"*"</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">"?"</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="ow">or</span> <span class="s2">"["</span> <span class="ow">in</span> <span class="n">lpath</span><span class="p">:</span>
         <span class="c1"># Handle glob pattern</span>
         <span class="n">matched_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">lpath</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">matched_files</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No files found matching pattern: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No files found matching pattern: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="c1"># Load all matched files</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">matched_files</span><span class="p">:</span>
@@ -340,7 +344,7 @@
     <span class="c1"># Handle broken symlinks - os.path.exists() returns False for broken symlinks</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">lpath</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">islink</span><span class="p">(</span><span class="n">lpath</span><span class="p">):</span>
-            <span class="c1"># For symlinks, resolve the target path relative to symlink&#39;s directory</span>
+            <span class="c1"># For symlinks, resolve the target path relative to symlink's directory</span>
             <span class="n">symlink_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">lpath</span><span class="p">))</span>
             <span class="n">target</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">readlink</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span>
             <span class="n">resolved_target</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symlink_dir</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
@@ -349,7 +353,7 @@
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">resolved_target</span><span class="p">):</span>
                 <span class="n">lpath</span> <span class="o">=</span> <span class="n">resolved_target</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Symlink target not found: </span><span class="si">{</span><span class="n">resolved_target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Symlink target not found: </span><span class="si">{</span><span class="n">resolved_target</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Try general path resolution</span>
             <span class="k">try</span><span class="p">:</span>
@@ -357,25 +361,25 @@
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">resolved_path</span><span class="p">):</span>
                     <span class="n">lpath</span> <span class="o">=</span> <span class="n">resolved_path</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"File not found: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"File not found: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="c1"># Try to get from cache first</span>
     <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
         <span class="n">cached_data</span> <span class="o">=</span> <span class="n">get_cached_data</span><span class="p">(</span><span class="n">lpath</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cached_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Cache HIT] Loaded from cache: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[Cache HIT] Loaded from cache: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">cached_data</span>
 
     <span class="c1"># Determine extension: use explicit ext parameter or detect from filename</span>
     <span class="n">compound_ext</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">ext</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">detected_ext</span> <span class="o">=</span> <span class="n">ext</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="n">detected_ext</span> <span class="o">=</span> <span class="n">ext</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Compound extensions contributed by optional providers (e.g.</span>
-        <span class="c1"># figrecipe&#39;s .fig.zip / .plt.zip) take precedence over the bare</span>
+        <span class="c1"># figrecipe's .fig.zip / .plt.zip) take precedence over the bare</span>
         <span class="c1"># last-segment extension.</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">.._optional_providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">OPTIONAL_COMPOUND_EXTS</span>
 
@@ -384,21 +388,32 @@
             <span class="k">if</span> <span class="n">_lpath_lower</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">_compound</span><span class="p">):</span>
                 <span class="n">compound_ext</span> <span class="o">=</span> <span class="n">_compound</span>
                 <span class="k">break</span>
-        <span class="n">detected_ext</span> <span class="o">=</span> <span class="n">lpath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">detected_ext</span> <span class="o">=</span> <span class="n">lpath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">"."</span> <span class="ow">in</span> <span class="n">lpath</span> <span class="k">else</span> <span class="s2">""</span>
 
     <span class="c1"># Special handling for numpy files with caching</span>
-    <span class="k">if</span> <span class="n">cache</span> <span class="ow">and</span> <span class="n">detected_ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;npy&quot;</span><span class="p">,</span> <span class="s2">&quot;npz&quot;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">cache</span> <span class="ow">and</span> <span class="n">detected_ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"npy"</span><span class="p">,</span> <span class="s2">"npz"</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">load_npy_cached</span><span class="p">(</span><span class="n">lpath</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1"># Registry lookup (normalized with dot). Compound exts win.</span>
     <span class="k">if</span> <span class="n">compound_ext</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">loader</span> <span class="o">=</span> <span class="n">get_loader</span><span class="p">(</span><span class="n">compound_ext</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">loader</span> <span class="o">=</span> <span class="n">get_loader</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">detected_ext</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">loader</span> <span class="o">=</span> <span class="n">get_loader</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">detected_ext</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">loader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;No load handler registered for &#39;.</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;Use register_loader(&#39;.</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">&#39;, your_fn) to add one.&quot;</span>
+            <span class="sa">f</span><span class="s2">"No load handler registered for '.</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">'.</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"scitex-io has a pluggable extension registry — register a loader "</span>
+            <span class="sa">f</span><span class="s2">"for this format, then retry. For example:</span><span class="se">\n\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"    from scitex_io import register_loader</span><span class="se">\n\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"    @register_loader('.</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">')</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"    def _loader(path, **kwargs):</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"        # import/install whatever runtime this format needs, e.g.</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"        #   import keras; return keras.models.load_model(path)</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"        return obj</span><span class="se">\n\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"    obj = load(path)   # now dispatches to your loader</span><span class="se">\n\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"Inspect built-ins via scitex_io.list_formats(); register_saver() is "</span>
+            <span class="sa">f</span><span class="s2">"the save-side twin. Direct form: "</span>
+            <span class="sa">f</span><span class="s2">"register_loader('.</span><span class="si">{</span><span class="n">detected_ext</span><span class="si">}</span><span class="s2">', your_fn)."</span>
         <span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -408,11 +423,11 @@
         <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
             <span class="n">cache_data</span><span class="p">(</span><span class="n">lpath</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Cache STORED] Cached data for: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[Cache STORED] Cached data for: </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">result</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">FileNotFoundError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading file </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Error loading file </span><span class="si">{</span><span class="n">lpath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 
 <span class="c1"># EOF</span>
