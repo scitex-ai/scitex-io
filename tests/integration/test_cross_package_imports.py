@@ -11,10 +11,18 @@ in its source tree. Two outcomes:
 - Module installed BUT import fails (e.g. internal rename like
   `scitex_io._load_cache` → `scitex_io._loading._load_cache`) →
   test FAILS loudly.
-- Module NOT installed (peer standalone absent in the CI env) →
-  test is SKIPPED via `pytest.importorskip`. The umbrella's CI
-  (which installs every peer) catches cross-package renames.
+- Peer distribution NOT installed (lean install / optional extra) →
+  test is SKIPPED, because a legitimate absence must not be a hard
+  failure.
+
+The skip is scoped to the ROOT package, and that scoping is the whole
+point (PS-140). `pytest.importorskip(module_name)` on the FULL dotted
+path turns a RENAMED submodule into a `ModuleNotFoundError`, which
+importorskip reports as an absence — so the gate goes green on exactly
+the failure it exists to catch.
 """
+
+import importlib
 
 import pytest
 
@@ -37,10 +45,24 @@ CROSS_PACKAGE_IMPORTS = [
 @pytest.mark.parametrize("module_name", CROSS_PACKAGE_IMPORTS)
 def test_cross_package_import_resolves_to_module(module_name):
     """Importing scitex-io's declared cross-package dependency must succeed."""
-    # Arrange
-    # (importorskip skips when peer standalone absent; otherwise asserts
-    # the imported object is the named module.)
-    # Act
-    mod = pytest.importorskip(module_name)
-    # Assert
+    # Arrange — skip on the ROOT, and only on the ROOT. Banning the skip
+    # outright would convert a legitimate absence (a lean install where the
+    # peer distribution genuinely is not there) into a hard failure — a gate
+    # that cannot PASS, in place of one that cannot FAIL.
+    #
+    # Two statements on purpose: the intermediate binding is what makes the
+    # root/full-path distinction visible to a reader, and it is the shape
+    # PS-140's checker recognises structurally.
+    root = module_name.split(".")[0]
+    pytest.importorskip(root)
+
+    # Act — a real import of the FULL dotted path. Not
+    # `importorskip(module_name)`, which skips on the full path and so
+    # reports a rename as an absence; and not `find_spec`, which only proves
+    # a module is FINDABLE while the failures this gate exists to catch (a
+    # symbol re-exported through a package __init__) happen at EXECUTION.
+    mod = importlib.import_module(module_name)
+
+    # Assert — the resolved identity, not merely non-None. scitex-io asserts
+    # deliberately harder than the generated default here.
     assert getattr(mod, "__name__", None) == module_name
