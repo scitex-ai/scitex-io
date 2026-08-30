@@ -63,7 +63,7 @@ def load_study_rdb(study_name, rdb_raw_bytes_url):
     study_name : str
         The name of the Optuna study.
     rdb_raw_bytes_url : str
-        The URL of the RDB storage, typically "sqlite:///*.db".
+        Any RDB URL accepted by ``optuna.storages.RDBStorage``.
 
     Returns
     -------

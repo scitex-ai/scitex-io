@@ -84,7 +84,7 @@ assert params_loaded == params_orig
 | Serialization | `.pkl`, `.pickle`, `.pkl.gz`, `.joblib` |
 | ML/DL | `.pth`, `.pt`, `.cbm` |
 | Config | `.json`, `.yaml`, `.yml`, `.xml` |
-| Database | `.db` (SQLite3) |
+| Database | `.db` (via `scitex-db`) |
 | Documents | `.txt`, `.md`, `.pdf`, `.docx`, `.tex`, `.log` |
 | Code | `.py`, `.sh`, `.css`, `.js` |
 | Images | `.png`, `.jpg`, `.jpeg`, `.gif`, `.tiff`, `.tif`, `.svg` |

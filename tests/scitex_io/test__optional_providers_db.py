@@ -7,7 +7,7 @@ provider pattern:
 
 - **scitex-db present** → ``.db`` dispatches through the registry to
   ``scitex_db.SQLite3(path, **kwargs)``. ``stx.io.load("foo.db")``
-  returns the full wrapper (not a raw ``sqlite3.Connection``) so
+  returns the full wrapper (not a raw driver connection) so
   callers reach ``get_rows`` / ``load_array`` / ``save_array`` without
   importing scitex_db directly.
 

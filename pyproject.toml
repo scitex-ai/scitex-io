@@ -93,11 +93,11 @@ figrecipe = [
     "figrecipe>=0.28",
 ]
 # Optional synergy: when scitex-db is installed, scitex_io.load("foo.db")
-# dispatches to scitex_db.SQLite3 (the full wrapper with mixins:
+# dispatches to scitex-db's wrapper class (the full wrapper with mixins:
 # get_rows -> DataFrame, load_array / save_array, etc.). Absent
 # scitex-db, the `.db` extension stays unregistered and stx.io.load
 # raises a clear "No load handler … install scitex-io[db]" error
-# rather than silently returning a raw sqlite3.Connection. See
+# rather than silently returning a raw driver connection. See
 # _optional_providers._register_scitex_db.
 db = [
     "scitex-db>=0.1.11",
@@ -146,7 +146,7 @@ dev = [
     "zarr>=3",            # [scientific] zarr
     "figrecipe>=0.28",    # optional synergy: .fig.zip/.plt.zip bundle dispatch
     "scitex-stats>=0.2.22",  # optional synergy: .stats.zip + Stats schema (scitex_stats._dataclasses.Stats, published in 0.2.22)
-    "scitex-db>=0.1.11",   # optional synergy: .db dispatch via SQLite3 wrapper
+    "scitex-db>=0.1.11",   # optional synergy: .db dispatch via scitex-db's wrapper
 ]
 docs = [
     "sphinx>=7.0",

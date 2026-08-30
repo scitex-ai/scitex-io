@@ -134,7 +134,7 @@ _LAZY_LOADERS: dict[str, tuple[str, str]] = {
     # scitex_dev.try_import_optional). Without scitex-db installed,
     # `stx.io.load("foo.db")` raises ValueError("No load handler …
     # install scitex-io[db]") rather than silently returning a raw
-    # sqlite3.Connection (the silent-fallback antipattern removed in
+    # driver connection (the silent-fallback antipattern removed in
     # the scitex-db standardization).
     # Scientific (heavy: scipy, h5py, zarr)
     ".npy": ("scitex_io._load_modules._numpy", "_load_npy"),

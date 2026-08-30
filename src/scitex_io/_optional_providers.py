@@ -135,9 +135,9 @@ def _register_scitex_db(importer=_import_scitex_db) -> bool:
 
     DB loading is delegated to scitex-db's ``SQLite3`` wrapper — the
     full class with mixins (``get_rows``, ``load_array``,
-    ``save_array``, etc.), not the primitive sqlite3.Connection
-    fallback that used to live in ``_load_modules/_sqlite3.py``. The
-    silent-fallback antipattern (returning a raw Connection wrapped in
+    ``save_array``, etc.), not the primitive driver connection
+    fallback that used to live in this package. The
+    silent-fallback antipattern (returning a raw connection wrapped in
     a stub) was removed during the scitex-db standardization; if
     scitex-db is NOT installed, ``stx.io.load("foo.db")`` raises a
     clear ``ValueError("No load handler registered for '.db'. …")``
@@ -163,7 +163,7 @@ def _register_scitex_db(importer=_import_scitex_db) -> bool:
         return False
 
     def _load_db(path, **kwargs):
-        # scitex_db.SQLite3 forwards **kwargs into sqlite3.connect via
+        # scitex_db.SQLite3 forwards **kwargs into the driver via
         # the wrapper — e.g. mode='ro' / timeout=5.0 from a future
         # scitex-db release. Callers write
         # ``stx.io.load("foo.db", mode='ro')`` and the kwargs flow
