@@ -24,15 +24,15 @@ permissions:
 jobs:
   call:
     uses: scitex-ai/.github/.github/workflows/cla.yml@main
-    # PS-224: map the ONE secret the callee declares, instead of
-    # `secrets: inherit`. This job is started by `issue_comment` and
-    # `pull_request_target`, which an outsider can trigger and which the
-    # fork-PR approval gate does NOT cover — so `inherit` forwarded every
-    # secret this repo holds into an outsider-triggerable job.
-    #
-    # The name is read from the callee, not assumed:
-    # scitex-ai/.github `cla.yml@main` declares exactly one secret,
-    # `GH_PERSONAL_ACCESS_TOKEN` (required: true). GITHUB_TOKEN is
-    # provided automatically and is not mapped here.
+    # NAMED SECRET, not `secrets: inherit`. This caller fires on
+    # `issue_comment` and `pull_request_target`, both of which an
+    # UNAUTHENTICATED outsider can trigger on a public repo, so `inherit`
+    # would forward EVERY secret this repository holds into a job a stranger
+    # caused to run -- on the shared, persistent self-hosted runner the
+    # callee may target. Neither file reveals that alone: the caller names no
+    # `runs-on`, so the destination lives in the callee. Pass ONLY the one
+    # secret the callee declares (`GH_PERSONAL_ACCESS_TOKEN`, required).
+    # Audit rule PS-224 flags the `inherit` form; `inherit` is not a
+    # convenience here, it is the vulnerability.
     secrets:
       GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
