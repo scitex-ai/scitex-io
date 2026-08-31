@@ -50,7 +50,9 @@ def test_audit_all_clean():
             "PA-307",
         ),
     )
-    # DO NOT ADD "§1" HERE — IT CANNOT WORK, AND IT LOOKS LIKE IT SHOULD.
+    # ADDING "§1" HERE DOES NOTHING TODAY — AND IT LOOKS LIKE IT SHOULD.
+    # It becomes the right change once scitex-dev ships the fix named at the
+    # bottom of this comment; until then it is a guard that cannot fire.
     #
     # §1 grades `scitex/_mcp_tools/io.py` in the INSTALLED `scitex`
     # umbrella distribution, not any file in this repository, so nothing
@@ -87,3 +89,18 @@ def test_audit_all_clean():
     # this repo can clear §1 — PS-139 forbids listing `scitex` in our
     # dependencies or extras, and the umbrella arrives transitively via
     # scitex-db -> scitex-core -> scitex regardless.
+    #
+    # THE FIX IS ALREADY WRITTEN AND GREEN, IN ANOTHER REPO:
+    # scitex-dev PR #744, "fix(audit): a tally line counting errors was
+    # itself read as an error" (branch fix/tally-lines-defeat-skip-rules,
+    # opened 2026-08-23, MERGEABLE/CLEAN, all checks passing). It adds
+    # `_is_tally_line` and changes the branch above to
+    # `if _is_error_tier(level) and not _is_tally_line(payload)`.
+    # The same defect was found independently by scitex-hub by the same
+    # method (skipped 65, non_skipped 3 — all three tally lines).
+    #
+    # SO THE SEQUENCE IS: merge scitex-dev #744 -> release scitex-dev ->
+    # this repo picks it up automatically (we require scitex-dev>=0.11.7,
+    # unpinned above it) -> THEN add "§1" to the tuple above with a
+    # reason, and this gate goes green. Adding it before that release
+    # buys nothing and hides the real blocker.
