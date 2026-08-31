@@ -82,7 +82,6 @@ EXPECTED_LOAD_EXTS = [
     ".xlsb",
     ".parquet",
     ".feather",
-    ".db",
     ".npy",
     ".npz",
     ".mat",

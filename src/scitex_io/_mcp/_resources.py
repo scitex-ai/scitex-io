@@ -37,7 +37,6 @@ arr  = io.load("/tmp/data.npy")
 ## Supported Load Formats
 All save formats plus:
 - **Documents**: .docx, .pdf, .log
-- **Database**: .db (SQLite3)
 - **EEG**: .vhdr, .vmrk, .edf, .bdf, .gdf, .cnt, .egi, .eeg, .set
 - **Other**: .tsv, .xlsm, .xlsb, .con, .xml
 
@@ -145,9 +144,6 @@ All save formats plus:
 - `.pdf`   — Text extraction (pdfminer or PyPDF2)
 - `.docx`  — Word documents (python-docx)
 - `.log`   — Log files (as text)
-
-### Database
-- `.db`    — SQLite3 databases (returns dict of DataFrames per table)
 
 ### EEG / Neurophysiology
 - `.vhdr`, `.vmrk` — BrainVision

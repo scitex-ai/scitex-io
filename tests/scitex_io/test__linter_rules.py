@@ -71,19 +71,6 @@ def test_receiver_agnostic_rules_are_skipped():
     assert not savefig_targets
 
 
-def test_sqlite3_connect_present_with_io015():
-    # Arrange
-    targets = list(iter_io_bypass_targets())
-    # Act
-    rule_ids = [
-        t.rule_id
-        for t in targets
-        if t.module_path == "sqlite3" and t.attr == "connect"
-    ]
-    # Assert
-    assert rule_ids == ["STX-IO015"]
-
-
 def test_severity_is_passed_through_unfiltered():
     # Arrange
     # Both warning (default IO/PA rules) and info (PA003) must survive —

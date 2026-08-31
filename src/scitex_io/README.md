@@ -23,7 +23,6 @@ The `load` function allows you to read data from various file formats. It automa
 - **Images**: `.jpg`, `.png`, `.tiff`, `.tif`, `.gif`
 - **Video**: `.mp4`
 - **EEG**: `.vhdr`, `.vmrk`, `.edf`, `.bdf`, `.gdf`, `.cnt`, `.egi`, `.eeg`, `.set`
-- **Database**: `.db` (SQLite3)
 
 ### Example Usage
 

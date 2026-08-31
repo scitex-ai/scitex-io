@@ -18,7 +18,7 @@ extension is actually used (see ``_registry.get_loader``).
 A handful of public names that the old directory-scan exposed at this
 level (``load_markdown``, ``load_pdf``, ``load_bibtex``,
 ``load_yaml_as_an_optuna_dict``, ``load_study_rdb``, ``H5Explorer``,
-``ZarrExplorer``, ``SQLite3``, ``DotDict``, …) remain reachable via
+``ZarrExplorer``, ``DotDict``, …) remain reachable via
 PEP 562 ``__getattr__`` — they resolve to the underlying submodule
 attribute on first access so existing call sites
 ``from scitex_io._load_modules import load_markdown`` keep working
@@ -36,7 +36,6 @@ _LAZY_NAMES: dict[str, tuple[str, str]] = {
     "DotDict": ("scitex_io._load_modules._pdf_utils", "DotDict"),
     "load_pdf": ("scitex_io._load_modules._pdf", "load_pdf"),
     "load_bibtex": ("scitex_io._load_modules._bibtex", "load_bibtex"),
-    "SQLite3": ("scitex_io._load_modules._sqlite3", "SQLite3"),
     "load_yaml_as_an_optuna_dict": (
         "scitex_io._load_modules._optuna",
         "load_yaml_as_an_optuna_dict",

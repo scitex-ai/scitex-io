@@ -129,13 +129,6 @@ _LAZY_LOADERS: dict[str, tuple[str, str]] = {
     ".xlsb": ("scitex_io._load_modules._pandas", "_load_excel"),
     ".parquet": ("scitex_io._load_modules._pandas", "_load_parquet"),
     ".feather": ("scitex_io._load_modules._pandas", "_load_feather"),
-    # `.db` is intentionally NOT a builtin — DB loading delegates to
-    # scitex-db via _optional_providers._register_scitex_db (gated by
-    # scitex_dev.try_import_optional). Without scitex-db installed,
-    # `stx.io.load("foo.db")` raises ValueError("No load handler …
-    # install scitex-io[db]") rather than silently returning a raw
-    # sqlite3.Connection (the silent-fallback antipattern removed in
-    # the scitex-db standardization).
     # Scientific (heavy: scipy, h5py, zarr)
     ".npy": ("scitex_io._load_modules._numpy", "_load_npy"),
     ".npz": ("scitex_io._load_modules._numpy", "_load_npy"),

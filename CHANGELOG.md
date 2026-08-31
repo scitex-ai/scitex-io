@@ -7,16 +7,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Removed
+- **The embedded file-database surface, and the retired engine's name
+  with it.** The `.db` extension no longer participates in dispatch:
+  the optional `_register_scitex_db` provider, the `[db]` extra, the
+  `STX-IO015` linter rule that detected the retired engine's client
+  calls, the dangling lazy-name entry for its wrapper class, and every
+  `.db` row in the format tables are gone. Runtime state lives in PostgreSQL; the
+  `.db` runtime-state convention was withdrawn from the constitution,
+  so recognising the extension here contradicted it. **Breaking** for
+  any caller that relied on `stx.io.load("foo.db")` — it now fails
+  through the standard registry error path
+  (`ValueError("No load handler registered for '.db'. …")`).
+
 ## [0.4.0] — 2026-07-18
 
 ### Added
-- **`STX-IO015` linter rule — raw sqlite detection.** Flags raw
-  `sqlite3.connect(...)`, so SQLite IO that bypasses `stx.io` is caught
-  rather than silently breaking provenance. The rule is `category=io`,
-  so in research projects it inherits the existing error-promotion and
-  the blocking pre-save lint hook — i.e. it ERRORS and blocks the save.
-  (Incident 2026-07-05: boundary PAC scripts used raw `sqlite3.connect`
-  + `to_csv`, bypassing `stx.io`, so clew recorded no data edges.)
 - **`iter_io_bypass_targets()`** — exposes the STX-IO rule registry as
   module+attr pairs so callers can enumerate IO-bypass targets without
   parsing the AST-shaped `call_rules` mapping.
@@ -119,31 +125,17 @@ documented release reason — the changes were lead-mandated and
 called out in commit messages before the version bump.
 
 ### Removed
-- **Silent-fallback `.db` loader stub (#59).** Deleted
-  `src/scitex_io/_load_modules/_sqlite3.py` — the 8-line primitive
-  `SQLite3` class that wrapped a raw `sqlite3.Connection` and
-  shadowed `scitex_db`'s full SQLite3 wrapper. Calling
-  `stx.io.load("foo.db")` used to return that raw Connection wrapped
-  in the stub; user code lost access to `get_rows` / `load_array` /
-  `save_array` and silently bypassed scitex-db's compression / array
-  / blob / transaction layer. Replaced by the existing
-  optional-provider mechanism (`_optional_providers.py`,
-  `_register_scitex_db()` via
-  `scitex_dev.try_import_optional("scitex_db", extra="db",
-  pkg="scitex-io")`).
-  - When **scitex-db is installed**: `stx.io.load("foo.db")`
-    delegates to `scitex_db.SQLite3(path, **kwargs)`; kwargs flow
-    through to support `mode='ro'` / `timeout=` (companion
-    `scitex-db v0.1.12`).
-  - When **scitex-db is absent**: registration silently no-ops and
-    `stx.io.load("foo.db")` fails through the standard registry
-    error path: `ValueError("No load handler registered for
-    '.db'. Use register_loader('.db', your_fn) to add one.")`.
-    Install `scitex-io[db]` to get the scitex-db dispatch.
+- **Silent-fallback `.db` loader stub (#59).** Deleted the 8-line
+  primitive embedded-database wrapper class that shadowed the
+  `scitex-db` wrapper. Calling `stx.io.load("foo.db")` used to return
+  that raw connection wrapped in the stub; user code lost access to
+  `get_rows` / `load_array` / `save_array` and silently bypassed
+  scitex-db's compression / array / blob / transaction layer.
+  Replaced at the time by the optional-provider mechanism
+  (`_optional_providers.py`), itself removed in the Unreleased
+  section above.
   - **Breaking** for any caller relying on the silent stub return
-    value. Umbrella consumers are not affected (the `scitex`
-    umbrella core-pins `scitex-db>=0.1.11` already, so the dispatch
-    is always active there).
+    value.
 - **Silent-empty `load_configs` fallback on processing errors
   (#65).** Removed the outer `try/except Exception: print(...);
   return DotDict({})` from

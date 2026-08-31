@@ -82,7 +82,6 @@ def _builtin_extensions():
             ".hdf5",
             ".h5",
             ".zarr",
-            ".db",
             ".con",
             ".mp4",
             ".png",

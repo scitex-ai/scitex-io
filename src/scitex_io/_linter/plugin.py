@@ -1,4 +1,4 @@
-"""Linter plugin for scitex-io: IO-specific rules (IO001-IO015, PA001-PA005).
+"""Linter plugin for scitex-io: IO-specific rules (IO001-IO014, PA001-PA005).
 
 Registered via entry point 'scitex_dev.linter.plugins' so scitex-linter
 discovers these rules automatically when scitex-io is installed.
@@ -110,17 +110,6 @@ def get_plugin():
         "Replace `h5py.File(path, 'w')` writes with `stx.io.save(obj, 'file.h5')`; "
         "reads with `stx.io.load('file.h5')`.",
     )
-    IO015 = _io(
-        "STX-IO015",
-        "`sqlite3.connect()` detected — raw sqlite bypasses stx.io provenance tracking",
-        "scitex_io has no built-in sqlite saver/loader yet — register one with "
-        "`register_saver('.db')` / `register_loader('.db')` and route the file "
-        "through `stx.io.save()`/`load()` so a clew data edge forms. A bare "
-        "`sqlite3.connect(path)` produces none, however deeply it's wrapped — "
-        "this rule only fires where `sqlite3.connect(` literally appears (AST "
-        "detection can't see through a custom loader wrapper around it).",
-    )
-
     # IO014 is emitted by _UnknownExtChecker (rule built lazily there so it
     # can include the offending extension verbatim). Listed here as a stub
     # so it appears in `scitex-linter list-rules`.
@@ -276,8 +265,6 @@ def get_plugin():
         ("imageio", "imread"): IO012,
         # IO013 h5py
         ("h5py", "File"): IO013,
-        # IO015 sqlite3
-        ("sqlite3", "connect"): IO015,
         # PA003/004
         ("os", "makedirs"): PA003,
         ("os", "mkdir"): PA003,
@@ -300,7 +287,6 @@ def get_plugin():
             IO012,
             IO013,
             IO014,
-            IO015,
             PA001,
             PA002,
             PA003,

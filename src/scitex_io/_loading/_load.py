@@ -100,7 +100,6 @@ def _load_impl(
     - Documents: .txt, .log, .event, .md, .docx, .pdf, .xml
     - Images: .jpg, .png, .tiff, .tif
     - EEG data: .vhdr, .vmrk, .edf, .bdf, .gdf, .cnt, .egi, .eeg, .set
-    - Database: .db
 
     Examples
     --------

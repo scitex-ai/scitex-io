@@ -126,11 +126,6 @@ Format Table
      - Yes
      - Yes
      - bibtexparser
-   * - **SQLite**
-     - ``.db``
-     - No
-     - Yes
-     - sqlite3 (stdlib)
    * - **XML**
      - ``.xml``
      - No
