@@ -5,8 +5,18 @@ after upgrading scitex-dev to refresh any pin in [dev].
 """
 
 import shutil
+from pathlib import Path
 
 import pytest
+
+# The checkout this gate must grade. Anchored on the test file itself, so
+# it is by construction the tree pytest is running against. Without it
+# `audit_all_for_package` resolves the target by import location or a
+# `~/proj/<name>` guess — on a runner or in a git worktree that guess is a
+# different tree or a different commit, and the gate then reports a
+# confident pass/fail about source that is not under test.
+# `tests/develop/test_audit.py` -> parents[2] is the repo root.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_audit_all_clean():
@@ -22,6 +32,7 @@ def test_audit_all_clean():
 
     audit_all_for_package(
         "scitex-io",
+        path=_REPO_ROOT,
         skip_rules=(
             # 28/32 Python APIs unmapped to MCP tools — surface mapping
             # backlog tracked under /overhaul-scitex.
@@ -39,3 +50,57 @@ def test_audit_all_clean():
             "PA-307",
         ),
     )
+    # ADDING "§1" HERE DOES NOTHING TODAY — AND IT LOOKS LIKE IT SHOULD.
+    # It becomes the right change once scitex-dev ships the fix named at the
+    # bottom of this comment; until then it is a guard that cannot fire.
+    #
+    # §1 grades `scitex/_mcp_tools/io.py` in the INSTALLED `scitex`
+    # umbrella distribution, not any file in this repository, so nothing
+    # here can fix it at source. The obvious next move is to mask it —
+    # and masking is structurally unable to mask it.
+    #
+    # Measured against scitex-dev 0.57.0 by applying its own classifier
+    # (`_audit_conformance`) to a real audit-all run:
+    #
+    #   SKIPPED (2):      [§1] ... umbrella bridge ...
+    #                     [§6] ... MCP tools have no matching Python API
+    #   NON_SKIPPED (1):  ERRO: scitex-io: MCP tools: 2 error(s), 0 warning(s)
+    #   MASK APPLIES?     False
+    #
+    # skip_rules DID match both findings. The mask is then discarded by
+    # the `if skipped and not non_skipped` guard, because the
+    # sub-auditor's own TALLY line carries an error-tier level word and
+    # no rule id, so the classifier files it as an unmaskable finding.
+    # A tally is a restatement of findings already classified one by one,
+    # not an independent one — `_NON_VIOLATION_RULES` already contains
+    # "TALLY" for the bracketed form, but the bare `ERRO: <pkg>: <name>:
+    # N error(s)` shape never reaches that test.
+    #
+    # The consequence is general, not specific to §1: whenever a
+    # sub-auditor reports any error, it also prints that tally, so
+    # `skip_rules` cannot mask an ERROR-tier finding at all. The same
+    # tally line is present in this repo's CI logs (run 33290251942:
+    # `ERRO: scitex-io: MCP tools: 1 error(s), 0 warning(s)`), so this is
+    # not a local-vantage artefact.
+    #
+    # The §6 / PA-306 / PA-307 entries above are kept deliberately: they
+    # are correct declarations of intent and become effective again the
+    # moment scitex-dev stops counting the tally line. Nothing else in
+    # this repo can clear §1 — PS-139 forbids listing `scitex` in our
+    # dependencies or extras, and the umbrella arrives transitively via
+    # scitex-db -> scitex-core -> scitex regardless.
+    #
+    # THE FIX IS ALREADY WRITTEN AND GREEN, IN ANOTHER REPO:
+    # scitex-dev PR #744, "fix(audit): a tally line counting errors was
+    # itself read as an error" (branch fix/tally-lines-defeat-skip-rules,
+    # opened 2026-08-23, MERGEABLE/CLEAN, all checks passing). It adds
+    # `_is_tally_line` and changes the branch above to
+    # `if _is_error_tier(level) and not _is_tally_line(payload)`.
+    # The same defect was found independently by scitex-hub by the same
+    # method (skipped 65, non_skipped 3 — all three tally lines).
+    #
+    # SO THE SEQUENCE IS: merge scitex-dev #744 -> release scitex-dev ->
+    # this repo picks it up automatically (we require scitex-dev>=0.11.7,
+    # unpinned above it) -> THEN add "§1" to the tuple above with a
+    # reason, and this gate goes green. Adding it before that release
+    # buys nothing and hides the real blocker.
