@@ -279,7 +279,7 @@ def _discover_observer_registrars() -> list:
     try:
         eps = entry_points(group="scitex_io.observers")  # Python 3.10+
     except TypeError:  # pragma: no cover — Python 3.9 signature
-        eps = entry_points().get("scitex_io.observers", [])
+        eps = entry_points().get("scitex_io.observers", [])  # type: ignore[attr-defined]
     registrars = []
     for ep in eps:
         try:

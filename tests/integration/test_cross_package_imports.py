@@ -5,16 +5,19 @@ Hand edits inside the AUTO-GENERATED block will be overwritten on
 regeneration; add hand-written cases below the second sentinel.
 
 This test imports every cross-package module that 'scitex-io' references
-in its source tree. Two outcomes:
+in its source tree. Outcomes:
 
 - Module installed AND import succeeds → test PASSES.
 - Module installed BUT import fails (e.g. internal rename like
   `scitex_io._load_cache` → `scitex_io._loading._load_cache`) →
   test FAILS loudly.
-- Module NOT installed (peer standalone absent in the CI env) →
-  test is SKIPPED via `pytest.importorskip`. The umbrella's CI
-  (which installs every peer) catches cross-package renames.
+- Peer ROOT package not installed (standalone absent in the CI env) →
+  test is SKIPPED via `pytest.importorskip(root)`. Only the ROOT is
+  skipped: the FULL submodule path is hard-imported afterwards, so an
+  internal rename fails the gate even where it is the only deviation.
 """
+
+import importlib
 
 import pytest
 
@@ -38,9 +41,9 @@ CROSS_PACKAGE_IMPORTS = [
 def test_cross_package_import_resolves_to_module(module_name):
     """Importing scitex-io's declared cross-package dependency must succeed."""
     # Arrange
-    # (importorskip skips when peer standalone absent; otherwise asserts
-    # the imported object is the named module.)
+    root = module_name.split(".")[0]
     # Act
-    mod = pytest.importorskip(module_name)
+    pytest.importorskip(root)
+    mod = importlib.import_module(module_name)
     # Assert
     assert getattr(mod, "__name__", None) == module_name
