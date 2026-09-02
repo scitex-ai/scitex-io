@@ -48,7 +48,7 @@ def test_get_zarr_compressor_none():
 def test_get_zarr_compressor_passthrough_non_string():
     # Arrange
     # Arrange
-    from numcodecs import Zstd
+    Zstd = pytest.importorskip("numcodecs").Zstd
 
     # Act
     # Act

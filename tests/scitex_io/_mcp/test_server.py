@@ -11,7 +11,12 @@ import os
 import pathlib
 
 import pandas as pd
+import pytest
 import scitex_io
+
+# `scitex_io._mcp.server` builds a FastMCP app at import time; skip
+# cleanly on installs without the [mcp] extra.
+pytest.importorskip("fastmcp")
 
 from scitex_io._mcp import server
 

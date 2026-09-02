@@ -384,6 +384,7 @@ class TestExtractMetadata:
 
     def test_pdfplumber_backend_pages_is_1(self, pdf_with_meta):
         # Arrange
+        pytest.importorskip("pdfplumber")
         # Act
         out = _extract_metadata(pdf_with_meta, "pdfplumber")
         # Assert
@@ -504,6 +505,7 @@ class TestExtractMetadataFitzDirect:
 class TestExtractMetadataPdfplumberDirect:
     def test_pdfplumber_populates_pages(self, pdf_with_meta):
         # Arrange
+        pytest.importorskip("pdfplumber")
         meta = {}
         # Act
         _extract_metadata_pdfplumber(pdf_with_meta, meta)
@@ -512,6 +514,7 @@ class TestExtractMetadataPdfplumberDirect:
 
     def test_pdfplumber_error_swallowed_leaves_meta_empty(self, tmp_path):
         # Arrange
+        pytest.importorskip("pdfplumber")
         bad = tmp_path / "bad.pdf"
         bad.write_bytes(b"not a pdf")
         meta = {}

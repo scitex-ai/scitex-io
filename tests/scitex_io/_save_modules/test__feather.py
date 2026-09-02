@@ -15,6 +15,12 @@ Feather v2 file. Tests exercise:
 
 import numpy as np
 import pandas as pd
+import pytest
+
+# Feather round-trips need pyarrow (the [scientific] extra); skip cleanly
+# on minimal installs.
+pytest.importorskip("pyarrow")
+
 import pyarrow.feather as pf
 
 from scitex_io._save_modules._feather import _save_feather

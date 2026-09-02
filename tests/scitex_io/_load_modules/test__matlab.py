@@ -408,6 +408,36 @@ def test_memory_efficiency_repeated_load_returns_consistent_shape():
         os.unlink(path)
 
 
+def test_pymatreader_fallback_loads_hdf5_mat_that_scipy_rejects():
+    """A MATLAB v7.3 file is HDF5 — ``scipy.io.loadmat`` refuses it, so
+    ``_load_matlab`` must fall back to ``pymatreader`` and still return
+    the stored array."""
+    # Arrange
+    pytest.importorskip("pymatreader")
+    import h5py
+
+    from scitex_io._load_modules._matlab import _load_matlab
+
+    values = np.arange(6.0).reshape(2, 3)
+    with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as f:
+        path = f.name
+    # HDF5 payload first; the 512-byte userblock then receives the
+    # MATLAB v7.3 header (text, then version 0x0200 + "IM" endian
+    # marker at bytes 124-127) that both readers use to sniff the type.
+    with h5py.File(path, "w", userblock_size=512) as h5:
+        h5.create_dataset("values", data=values)
+    header = b"MATLAB 7.3 MAT-file".ljust(124, b" ") + b"\x00\x02IM"
+    with open(path, "r+b") as fh:
+        fh.write(header)
+    try:
+        # Act
+        loaded = _load_matlab(path)
+        # Assert
+        assert np.asarray(loaded["values"]).size == values.size
+    finally:
+        os.unlink(path)
+
+
 if __name__ == "__main__":
     import os
 
