@@ -5,6 +5,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+
+# Excel round-trips need openpyxl (the [_dev] extra); skip cleanly on
+# minimal installs.
+pytest.importorskip("openpyxl")
+
 from openpyxl import load_workbook
 
 from scitex_io._save_modules._excel import (
