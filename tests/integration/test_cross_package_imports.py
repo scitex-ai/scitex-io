@@ -5,16 +5,21 @@ Hand edits inside the AUTO-GENERATED block will be overwritten on
 regeneration; add hand-written cases below the second sentinel.
 
 This test imports every cross-package module that 'scitex-io' references
-in its source tree. Outcomes:
+in its source tree. Two outcomes:
 
 - Module installed AND import succeeds → test PASSES.
 - Module installed BUT import fails (e.g. internal rename like
   `scitex_io._load_cache` → `scitex_io._loading._load_cache`) →
   test FAILS loudly.
-- Peer ROOT package not installed (standalone absent in the CI env) →
-  test is SKIPPED via `pytest.importorskip(root)`. Only the ROOT is
-  skipped: the FULL submodule path is hard-imported afterwards, so an
-  internal rename fails the gate even where it is the only deviation.
+- Peer distribution NOT installed (lean install / optional extra) →
+  test is SKIPPED, because a legitimate absence must not be a hard
+  failure.
+
+The skip is scoped to the ROOT package, and that scoping is the whole
+point (PS-140). `pytest.importorskip(module_name)` on the FULL dotted
+path turns a RENAMED submodule into a `ModuleNotFoundError`, which
+importorskip reports as an absence — so the gate goes green on exactly
+the failure it exists to catch.
 """
 
 import importlib
@@ -40,10 +45,24 @@ CROSS_PACKAGE_IMPORTS = [
 @pytest.mark.parametrize("module_name", CROSS_PACKAGE_IMPORTS)
 def test_cross_package_import_resolves_to_module(module_name):
     """Importing scitex-io's declared cross-package dependency must succeed."""
-    # Arrange
+    # Arrange — skip on the ROOT, and only on the ROOT. Banning the skip
+    # outright would convert a legitimate absence (a lean install where the
+    # peer distribution genuinely is not there) into a hard failure — a gate
+    # that cannot PASS, in place of one that cannot FAIL.
+    #
+    # Two statements on purpose: the intermediate binding is what makes the
+    # root/full-path distinction visible to a reader, and it is the shape
+    # PS-140's checker recognises structurally.
     root = module_name.split(".")[0]
-    # Act
     pytest.importorskip(root)
+
+    # Act — a real import of the FULL dotted path. Not
+    # `importorskip(module_name)`, which skips on the full path and so
+    # reports a rename as an absence; and not `find_spec`, which only proves
+    # a module is FINDABLE while the failures this gate exists to catch (a
+    # symbol re-exported through a package __init__) happen at EXECUTION.
     mod = importlib.import_module(module_name)
-    # Assert
+
+    # Assert — the resolved identity, not merely non-None. scitex-io asserts
+    # deliberately harder than the generated default here.
     assert getattr(mod, "__name__", None) == module_name

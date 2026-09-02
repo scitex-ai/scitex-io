@@ -66,6 +66,6 @@ Development
 
 .. code-block:: bash
 
-   git clone https://github.com/ywatanabe1989/scitex-io.git
+   git clone https://github.com/scitex-ai/scitex-io.git
    cd scitex-io
    pip install -e ".[all]"
