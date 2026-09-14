@@ -1,14 +1,23 @@
-# Smoke test (TODO: real coverage).
-def test_placeholder_true_case():
-    # Arrange
-    # Act
-    # Assert
-    # Arrange
-    # Act
-    # Assert
-    assert True
+from scitex_io._load_modules._bibtex import _load_bibtex
 
-# Add your tests here
+
+def test_single_line_and_multi_line_entries_both_parse(tmp_path):
+    # Arrange
+    bib = tmp_path / "refs.bib"
+    bib.write_text(
+        "@article{one, title={X}, author={A and B}, year={2020}}\n"
+        "@article{two,\n"
+        "  title = {The {DNA} of Y},\n"
+        "  year = 2021,\n"
+        "}\n"
+    )
+    # Act
+    entries = _load_bibtex(str(bib))
+    # Assert
+    assert [(e["key"], e["fields"]) for e in entries] == [
+        ("one", {"title": "X", "author": "A and B", "year": "2020"}),
+        ("two", {"title": "The {DNA} of Y", "year": "2021"}),
+    ]
 
 if __name__ == "__main__":
     import os

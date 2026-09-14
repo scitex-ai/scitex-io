@@ -77,15 +77,7 @@ def _parse_bibtex_content(
     """
     entries = []
 
-    # Pattern to match BibTeX entries
-    entry_pattern = r"@(\w+)\s*\{\s*([^,]+)\s*,(.*?)\n\s*\}"
-    matches = re.finditer(entry_pattern, content, re.DOTALL | re.IGNORECASE)
-
-    for match in matches:
-        entry_type = match.group(1).lower()
-        entry_key = match.group(2).strip()
-        entry_body = match.group(3)
-
+    for entry_type, entry_key, entry_body in _iter_bibtex_entries(content):
         # Parse entry fields
         entry = {"entry_type": entry_type, "key": entry_key, "fields": {}}
 
@@ -98,6 +90,45 @@ def _parse_bibtex_content(
         entries.append(entry)
 
     return entries
+
+
+_ENTRY_START = re.compile(r"@(\w+)\s*\{")
+_NON_ENTRY_TYPES = {"comment", "string", "preamble"}
+
+
+def _iter_bibtex_entries(content: str):
+    """Yield (entry_type, key, body) for each entry by matching braces.
+
+    Matching braces, not a closing-brace-on-its-own-line regex, is what lets
+    a single-line entry parse the same as a multi-line one.
+    """
+    pos = 0
+    while True:
+        match = _ENTRY_START.search(content, pos)
+        if match is None:
+            return
+        start = match.end()
+        depth = 1
+        i = start
+        while i < len(content) and depth:
+            char = content[i]
+            if char == "\\":
+                i += 2
+                continue
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+            i += 1
+        if depth:
+            return
+        pos = i
+        entry_type = match.group(1).lower()
+        inner = content[start : i - 1]
+        if entry_type in _NON_ENTRY_TYPES or "," not in inner:
+            continue
+        entry_key, entry_body = inner.split(",", 1)
+        yield entry_type, entry_key.strip(), entry_body
 
 
 def _parse_bibtex_fields(body: str) -> Dict[str, str]:
@@ -113,13 +144,14 @@ def _parse_bibtex_fields(body: str) -> Dict[str, str]:
     fields = {}
 
     # Pattern to match field = value pairs
-    # Handles both {braced} and "quoted" values
-    field_pattern = r'(\w+)\s*=\s*(?:\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}|"([^"]*)")'
+    # Handles {braced}, "quoted" and bare (year = 2020) values
+    field_pattern = (
+        r'(\w+)\s*=\s*(?:\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}|"([^"]*)"|([\w.:/-]+))'
+    )
 
     for match in re.finditer(field_pattern, body):
         field_name = match.group(1).lower()
-        # Get value from either braced or quoted group
-        field_value = match.group(2) if match.group(2) is not None else match.group(3)
+        field_value = next(g for g in match.groups()[1:] if g is not None)
 
         # Clean up the value
         field_value = field_value.strip()
