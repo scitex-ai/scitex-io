@@ -16,6 +16,10 @@ import os
 
 __all__ = ["compress_hdf5"]
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def compress_hdf5(input_file, output_file=None, compression_level=4):
     """Compress an HDF5 file by rewriting every dataset with gzip.
@@ -55,7 +59,7 @@ def compress_hdf5(input_file, output_file=None, compression_level=4):
         base, ext = os.path.splitext(input_file)
         output_file = f"{base}.compressed{ext}"
 
-    print(f"Compressing {input_file} to {output_file}")
+    log.info(f"Compressing {input_file} to {output_file}")
 
     with h5py.File(input_file, "r") as src, h5py.File(output_file, "w") as dst:
         # Copy file-level attributes.
@@ -66,7 +70,7 @@ def compress_hdf5(input_file, output_file=None, compression_level=4):
             if isinstance(obj, h5py.Dataset):
                 # Surface progress for very large datasets.
                 if len(obj.shape) > 0 and obj.shape[0] > 1000000:
-                    print(f"Processing large dataset {name} with shape {obj.shape}")
+                    log.info(f"Processing large dataset {name} with shape {obj.shape}")
 
                 # Preserve existing chunking if present, else let h5py choose.
                 chunks = True
@@ -107,10 +111,7 @@ def compress_hdf5(input_file, output_file=None, compression_level=4):
 
         src.visititems(copy_dataset)
 
-    print(
-        f"Compression complete. Original size: {os.path.getsize(input_file) / 1e9:.2f} GB, "
-        f"New size: {os.path.getsize(output_file) / 1e9:.2f} GB"
-    )
+    log.info(f"Compression complete. Original size: {os.path.getsize(input_file) / 1e9:.2f} GB, " f"New size: {os.path.getsize(output_file) / 1e9:.2f} GB")
 
     return output_file
 

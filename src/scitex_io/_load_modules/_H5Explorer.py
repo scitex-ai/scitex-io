@@ -18,8 +18,15 @@ import warnings
 
 from typing import Any, Dict, List, Optional
 
-import h5py
+try:
+    import h5py
+except ImportError:  # optional: pip install scitex-io[all]
+    h5py = None
 import numpy as np
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 
 class H5Explorer:
@@ -87,7 +94,7 @@ class H5Explorer:
 
         if isinstance(item, h5py.Group):
             if path != "/":
-                print(f"{indent}[{path.split('/')[-1]}]")
+                log.info(f"{indent}[{path.split('/')[-1]}]")
             for key in sorted(item.keys()):
                 subpath = f"{path}/{key}".replace("//", "/")
                 self.show(
@@ -98,7 +105,7 @@ class H5Explorer:
             shape = item.shape
             dtype = item.dtype
             size = item.size
-            print(f"{indent}{name}: shape={shape}, dtype={dtype}, size={size}")
+            log.info(f"{indent}{name}: shape={shape}, dtype={dtype}, size={size}")
 
     def keys(self, path: str = "/") -> List[str]:
         """Get keys at specified path.
@@ -346,7 +353,7 @@ def _delete_corrupted_entry(h5_path, key):
         with h5py.File(h5_path, "r+") as h5_file:
             if key in h5_file:
                 del h5_file[key]
-                print(f"Deleted corrupted entry: {key}")
+                log.warning(f"Deleted corrupted entry: {key}")
                 return True
     except:
         pass

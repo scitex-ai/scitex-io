@@ -108,9 +108,9 @@ if __name__ == "__main__":
 
     # Saving
     var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
-    print(var1, var2, var3)
+    sys.stdout.write(f"{var1} {var2} {var3}\n")
 
     # Loading when not all variables are defined and the id exists
     del var1, var2, var3
     var1, var2, var3 = scitex.io.cache("my_id", "var1", "var2", "var3")
-    print(var1, var2, var3)
+    sys.stdout.write(f"{var1} {var2} {var3}\n")

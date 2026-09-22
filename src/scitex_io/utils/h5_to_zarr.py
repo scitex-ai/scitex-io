@@ -10,8 +10,14 @@ import warnings
 from pathlib import Path
 from typing import Any, List, Optional, Tuple, Union
 
-import h5py
-import zarr
+try:
+    import h5py
+except ImportError:  # optional: pip install scitex-io[all]
+    h5py = None
+try:
+    import zarr
+except ImportError:  # optional: pip install scitex-io[all]
+    zarr = None
 from tqdm import tqdm
 
 from ._compat import (
@@ -27,6 +33,10 @@ from ._h5_helpers import (
     migrate_group,
     validate_migration,
 )
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 
 def migrate_h5_to_zarr(
@@ -86,10 +96,10 @@ def migrate_h5_to_zarr(
     compressor_obj = get_zarr_compressor(compressor)
 
     if show_progress:
-        print(f"Migrating HDF5 to Zarr:")
-        print(f"  Source: {h5_path}")
-        print(f"  Target: {zarr_path}")
-        print(f"  Compressor: {compressor}")
+        log.info(f"Migrating HDF5 to Zarr:")
+        log.info(f" Source: {h5_path}")
+        log.info(f" Target: {zarr_path}")
+        log.info(f" Compressor: {compressor}")
 
     try:
         with h5py.File(str(h5_path), "r") as h5_file:
@@ -103,11 +113,11 @@ def migrate_h5_to_zarr(
             migrate_group(h5_file, zarr_store, compressor_obj, chunks, show_progress)
 
             if show_progress:
-                print("Migration complete!")
+                log.info("Migration complete!")
 
             if validate:
                 if show_progress:
-                    print("Validating migration...")
+                    log.info("Validating migration...")
                 validate_migration(h5_file, zarr_store, show_progress)
 
     except OSError as e:
@@ -179,7 +189,7 @@ def migrate_h5_to_zarr_batch(
             zarr_path = output_dir_path / h5_path.with_suffix(".zarr").name
         zarr_paths.append(zarr_path)
 
-    print(f"Migrating {len(h5_paths)} HDF5 files to Zarr format...")
+    log.info(f"Migrating {len(h5_paths)} HDF5 files to Zarr format...")
 
     if parallel and len(h5_paths) > 1:
         migrated_paths = _migrate_parallel(
@@ -190,7 +200,7 @@ def migrate_h5_to_zarr_batch(
             h5_paths, zarr_paths, compressor, chunks, overwrite
         )
 
-    print(f"\nSuccessfully migrated {len(migrated_paths)}/{len(h5_paths)} files")
+    log.info(f"\nSuccessfully migrated {len(migrated_paths)}/{len(h5_paths)} files")
     return migrated_paths
 
 
@@ -202,7 +212,7 @@ def _migrate_parallel(h5_paths, zarr_paths, compressor, chunks, overwrite, n_wor
     if n_workers is None:
         n_workers = min(os.cpu_count() or 4, len(h5_paths))
 
-    print(f"Using {n_workers} parallel workers...")
+    log.info(f"Using {n_workers} parallel workers...")
 
     migrate_func = functools.partial(
         migrate_h5_to_zarr,
@@ -227,7 +237,7 @@ def _migrate_parallel(h5_paths, zarr_paths, compressor, chunks, overwrite, n_wor
                     result = future.result()
                     results.append((idx, result))
                 except Exception as e:
-                    print(f"\nError migrating {h5_paths[idx]}: {e}")
+                    log.error(f"\nError migrating {h5_paths[idx]}: {e}")
                     results.append((idx, None))
                 pbar.update(1)
 
@@ -253,6 +263,6 @@ def _migrate_sequential(h5_paths, zarr_paths, compressor, chunks, overwrite):
             )
             migrated_paths.append(result)
         except Exception as e:
-            print(f"\nError migrating {h5_path}: {e}")
+            log.error(f"\nError migrating {h5_path}: {e}")
 
     return migrated_paths

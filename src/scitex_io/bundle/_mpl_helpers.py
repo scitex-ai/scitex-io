@@ -8,7 +8,10 @@ import warnings
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from matplotlib.figure import Figure as MplFigure
+    try:
+        from matplotlib.figure import Figure as MplFigure
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        MplFigure = None
 
     from .kinds._plot._dataclasses import Encoding, Theme
 
@@ -43,7 +46,10 @@ def _build_encoding_from_csv_columns(csv_df: "Any") -> "Encoding":
     if csv_df is None or csv_df.empty:
         return Encoding(traces=[])
 
-    from figrecipe._utils._csv_column_naming import parse_csv_column_name
+    try:
+        from figrecipe._utils._csv_column_naming import parse_csv_column_name
+    except ImportError:  # optional: pip install scitex-io[all]
+        parse_csv_column_name = None
 
     # Group columns by trace (for verbose format)
     trace_columns = {}  # {(ax_row, ax_col, trace_id): {variable: column_name}}
@@ -154,7 +160,10 @@ def extract_data_from_mpl_figure(fig: "MplFigure") -> Optional[Any]:
             pass
 
     # Fallback: extract from rendered figure (limited plot types)
-    from figrecipe._hitmap import as_mpl_figure
+    try:
+        from figrecipe._hitmap import as_mpl_figure
+    except ImportError:  # optional: pip install scitex-io[all]
+        as_mpl_figure = None
 
     from ._extractors import extract_bar_data, extract_line_data, extract_scatter_data
 
@@ -205,7 +214,10 @@ def _build_encoding_from_history(
     Encoding
         Encoding object with traces referencing CSV column names.
     """
-    from figrecipe._utils._csv_column_naming import get_csv_column_name, sanitize_id
+    try:
+        from figrecipe._utils._csv_column_naming import get_csv_column_name, sanitize_id
+    except ImportError:  # optional: pip install scitex-io[all]
+        get_csv_column_name = sanitize_id = None
 
     from .kinds._plot._dataclasses import ChannelEncoding, Encoding, TraceEncoding
 
@@ -263,7 +275,10 @@ def build_encoding_from_mpl_figure(fig: "MplFigure") -> "Encoding":
             return encoding
 
     # Fallback: detect from rendered figure
-    from figrecipe._hitmap import as_mpl_figure
+    try:
+        from figrecipe._hitmap import as_mpl_figure
+    except ImportError:  # optional: pip install scitex-io[all]
+        as_mpl_figure = None
 
     from ._extractors import build_bar_traces, build_line_traces, build_scatter_traces
 

@@ -77,7 +77,7 @@ def test_verbose_saved_to_in_captured_out(tmp_path, capsys):
     captured = capsys.readouterr()
     # Assert
     # Assert
-    assert "Saved to" in captured.out
+    assert "Saved to" in captured.err
 
 
 def test_overwrite_stale_not_in_open_p_read(tmp_path):

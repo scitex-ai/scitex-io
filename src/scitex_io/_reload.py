@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 # Time-stamp: "2024-06-04 19:10:36 (ywatanabe)"
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def reload(module_or_func, verbose=False):
     """
@@ -53,26 +57,24 @@ def reload(module_or_func, verbose=False):
         # Attempt to reload its module.
         module_name = module_or_func.__module__
         if module_name not in sys.modules:
-            print(f"Module {module_name} not found in sys.modules. Cannot reload.")
+            log.warning(f"Module {module_name} not found in sys.modules. Cannot reload.")
             return
     elif hasattr(module_or_func, "__name__") and module_or_func.__name__ in sys.modules:
         # Otherwise, assume it's a module and try to get its name directly.
         module_name = module_or_func.__name__
     else:
-        print(
-            f"Provided object is neither a recognized module nor a function/class with a __module__ attribute."
-        )
+        log.warning(f"Provided object is neither a recognized module nor a function/class with a __module__ attribute.")
         return
 
     try:
         # Attempt to reload the module by name.
         importlib.reload(sys.modules[module_name])
         if verbose:
-            print(f"Successfully reloaded module: {module_name}")
+            log.info(f"Successfully reloaded module: {module_name}")
 
     except KeyError:
         # The module is not found in sys.modules, likely due to it not being imported.
-        print(f"Module {module_name} not found in sys.modules. Cannot reload.")
+        log.warning(f"Module {module_name} not found in sys.modules. Cannot reload.")
     except Exception as e:
         # Catch any other exceptions and print an error message.
-        print(f"Failed to reload module {module_name}. Error: {e}")
+        log.error(f"Failed to reload module {module_name}. Error: {e}")

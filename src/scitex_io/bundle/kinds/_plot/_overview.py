@@ -37,10 +37,22 @@ def generate_bundle_overview(
     basename : str
         Base filename for bundle files (e.g., ``"myplot"``).
     """
-    import matplotlib.gridspec as gridspec
-    import matplotlib.pyplot as plt
-    from figrecipe.presets import get_preview_dpi
-    from PIL import Image
+    try:
+        import matplotlib.gridspec as gridspec
+    except ImportError:  # optional: pip install scitex-io[all]
+        gridspec = None
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:  # optional: pip install scitex-io[all]
+        plt = None
+    try:
+        from figrecipe.presets import get_preview_dpi
+    except ImportError:  # optional: pip install scitex-io[all]
+        get_preview_dpi = None
+    try:
+        from PIL import Image
+    except ImportError:  # optional: pip install scitex-io[dev]
+        Image = None
 
     fig = plt.figure(figsize=(16, 10), facecolor="white")
     gs = gridspec.GridSpec(
@@ -273,7 +285,10 @@ def _json_to_tree(
 
 def _generate_alignment_validation(png_path: Path, hitmap_path: Path) -> List[str]:
     """Generate alignment-check text comparing the rendered PNG to its hitmap."""
-    from PIL import Image
+    try:
+        from PIL import Image
+    except ImportError:  # optional: pip install scitex-io[dev]
+        Image = None
 
     validation_text: List[str] = []
 

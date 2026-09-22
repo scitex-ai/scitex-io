@@ -13,6 +13,18 @@ import tempfile
 
 import pytest
 
+# scitex-logging defaults to WARN, which silences the log.info/log.debug
+# status output the package now emits (PS-220: print -> scitex-logging).
+# Tests asserting on that output read capsys `.err`, so the INFO level
+# must be on for the whole session.
+os.environ.setdefault("SCITEX_LOGGING_LEVEL", "INFO")
+try:
+    import scitex_logging as _slogging
+
+    _slogging.set_level("INFO")
+except Exception:  # pragma: no cover - logging must never break collection
+    pass
+
 
 @pytest.fixture
 def tmp_dir():

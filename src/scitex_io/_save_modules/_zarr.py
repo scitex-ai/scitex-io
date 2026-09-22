@@ -12,11 +12,21 @@ __DIR__ = os.path.dirname(__FILE__)
 from typing import Any, Optional
 
 import numpy as np
-import zarr
+try:
+    import zarr
+except ImportError:  # optional: pip install scitex-io[all]
+    zarr = None
 
 # Zarr v3 deprecated direct numcodecs codecs in `Group.create_array`;
 # use zarr's modern codec classes instead.
-from zarr.codecs import GzipCodec, ZstdCodec  # noqa: E402
+try:
+    from zarr.codecs import GzipCodec, ZstdCodec  # noqa: E402
+except ImportError:  # optional: pip install scitex-io[all]
+    GzipCodec = ZstdCodec = None
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 
 def _save_zarr(
@@ -63,7 +73,10 @@ def _save_zarr(
     # Create appropriate store
     if store_type == "zip":
         # Single file ZIP store. Zarr v3 moved this to zarr.storage.
-        from zarr.storage import ZipStore
+        try:
+            from zarr.storage import ZipStore
+        except ImportError:  # optional: pip install scitex-io[all]
+            ZipStore = None
 
         store = ZipStore(spath, mode="w")
         root = zarr.open(store, mode="w")
@@ -171,13 +184,11 @@ def _save_zarr(
     if store_type == "directory" and consolidate_metadata:
         try:
             zarr.consolidate_metadata(spath)
-            print(
-                f"✅ Saved to Zarr (consolidated): {spath}" + (f"/{key}" if key else "")
-            )
+            log.info(f"✅ Saved to Zarr (consolidated): {spath}" + (f"/{key}" if key else ""))
         except:
-            print(f"✅ Saved to Zarr: {spath}" + (f"/{key}" if key else ""))
+            log.info(f"✅ Saved to Zarr: {spath}" + (f"/{key}" if key else ""))
     else:
-        print(f"✅ Saved to Zarr ({store_type}): {spath}" + (f"/{key}" if key else ""))
+        log.info(f"✅ Saved to Zarr ({store_type}): {spath}" + (f"/{key}" if key else ""))
 
 
 # EOF

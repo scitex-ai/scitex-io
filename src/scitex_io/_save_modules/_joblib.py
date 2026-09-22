@@ -3,7 +3,10 @@
 # Timestamp: "2025-05-16 12:22:56 (ywatanabe)"
 # File: /data/gpfs/projects/punim2354/ywatanabe/scitex_repo/src/scitex/io/_save_modules/_joblib.py
 
-import joblib
+try:
+    import joblib
+except ImportError:  # optional: pip install scitex-io[dev]
+    joblib = None
 
 
 def _save_joblib(obj, spath):

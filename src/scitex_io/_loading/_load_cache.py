@@ -14,14 +14,9 @@ import weakref
 from functools import lru_cache
 from typing import Any, Dict, Optional, Tuple
 
-try:
-    import scitex_logging as logging
+import scitex_logging as slogging
 
-    SCITEX_LOGGING_AVAILABLE = True
-except ImportError:
-    import logging
-
-    SCITEX_LOGGING_AVAILABLE = False
+log = slogging.getLogger(__name__)
 
 # Cache for file metadata (path -> (mtime, size, hash))
 _file_metadata_cache: Dict[str, Tuple[float, int, str]] = {}
@@ -136,7 +131,7 @@ def get_cached_data(file_path: str) -> Optional[Any]:
     if abs_path in _file_data_cache:
         _cache_stats["hits"] += 1
         if _cache_config["verbose"]:
-            logging.info(f"[Cache HIT] {file_path}")
+            log.info(f"[Cache HIT] {file_path}")
         return _file_data_cache[abs_path]
 
     _cache_stats["misses"] += 1
@@ -175,7 +170,7 @@ def cache_data(file_path: str, data: Any) -> None:
     except TypeError:
         # Some objects can't be weakly referenced
         if _cache_config["verbose"]:
-            logging.debug(f"Cannot cache {type(data).__name__} objects")
+            log.debug(f"Cannot cache {type(data).__name__} objects")
 
     # Implement cache size limit
     if len(_file_metadata_cache) > _cache_config["max_size"]:
@@ -326,11 +321,11 @@ def load_npy_cached(file_path: str, **kwargs) -> Any:
     if file_key in _numpy_cache_keys:
         _cache_stats["hits"] += 1
         if _cache_config["verbose"]:
-            print(f"[Cache HIT] Loaded from cache: {file_path}")
+            log.info(f"[Cache HIT] Loaded from cache: {file_path}")
     else:
         _cache_stats["misses"] += 1
         if _cache_config["verbose"]:
-            print(f"[Cache MISS] Loading from disk: {file_path}")
+            log.info(f"[Cache MISS] Loading from disk: {file_path}")
 
     # Use LRU cache for numpy files
     return _cached_load_npy(file_key)

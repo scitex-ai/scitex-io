@@ -469,7 +469,7 @@ class TestDebugPromotion:
         # Act
         load_configs(IS_DEBUG=True, show=True, config_dir=config_dir)
         # Assert
-        assert "DEBUG_param -> param" in capsys.readouterr().out
+        assert "DEBUG_param -> param" in capsys.readouterr().err
 
     def test_debug_mode_preserves_int_key_in_nested_mapping(
         self, config_dir, ci_env_unset

@@ -765,7 +765,7 @@ def test_migrate_dataset_large_show_progress_migrating_large_dataset_in_captured
     # Act
     captured = capsys.readouterr()
     # Assert
-    assert "Migrating large dataset" in captured.out
+    assert "Migrating large dataset" in captured.err
 
 
 

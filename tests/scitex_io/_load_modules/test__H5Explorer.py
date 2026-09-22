@@ -13,7 +13,7 @@ from __future__ import annotations
 import io
 import pickle
 import warnings
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr
 
 import h5py
 import numpy as np
@@ -156,22 +156,22 @@ def test_h5explorer_keys_dataset_returns_empty_list(sample_h5):
 
 
 def test_h5explorer_show_prints_dataset_name(sample_h5):
-    """``show()`` includes a dataset's name in stdout."""
+    """``show()`` includes a dataset's name in stderr (scitex-logging)."""
     # Arrange
     buf = io.StringIO()
     # Act
-    with redirect_stdout(buf), H5Explorer(sample_h5) as exp:
+    with redirect_stderr(buf), H5Explorer(sample_h5) as exp:
         exp.show()
     # Assert
     assert "ints" in buf.getvalue()
 
 
 def test_h5explorer_show_prints_top_dataset_name(sample_h5):
-    """``show()`` includes top-level dataset names in stdout."""
+    """``show()`` includes top-level dataset names in stderr (scitex-logging)."""
     # Arrange
     buf = io.StringIO()
     # Act
-    with redirect_stdout(buf), H5Explorer(sample_h5) as exp:
+    with redirect_stderr(buf), H5Explorer(sample_h5) as exp:
         exp.show()
     # Assert
     assert "top_dataset" in buf.getvalue()
@@ -182,7 +182,7 @@ def test_h5explorer_show_at_path_prints_group_children(sample_h5):
     # Arrange
     buf = io.StringIO()
     # Act
-    with redirect_stdout(buf), H5Explorer(sample_h5) as exp:
+    with redirect_stderr(buf), H5Explorer(sample_h5) as exp:
         exp.show("/group1")
     # Assert
     assert "ints" in buf.getvalue()
@@ -425,7 +425,7 @@ def test_explore_h5_prints_top_group(sample_h5):
     # Arrange
     buf = io.StringIO()
     # Act
-    with redirect_stdout(buf):
+    with redirect_stderr(buf):
         explore_h5(sample_h5)
     # Assert
     assert "group1" in buf.getvalue()

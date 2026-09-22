@@ -87,7 +87,7 @@ def test_custom_column_and_suffix_logs_saved_message(tmp_path, capsys):
     # Act
     captured = capsys.readouterr()
     # Assert
-    assert "Saved to" in captured.out
+    assert "Saved to" in captured.err
 
 
 

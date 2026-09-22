@@ -14,7 +14,10 @@ TORCH_AVAILABLE = _importlib_util.find_spec("torch") is not None
 def _load_torch(lpath, **kwargs):
     """Load PyTorch model/checkpoint file."""
     # Lazy import to avoid circular import issues
-    import torch
+    try:
+        import torch
+    except ImportError:  # optional: pip install scitex-io[dev]
+        torch = None
 
     if not lpath.endswith((".pth", ".pt")):
         raise ValueError("File must have .pth or .pt extension")

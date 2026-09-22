@@ -6,7 +6,7 @@
 
 Real-collaborator tests: we register a real ``types.ModuleType`` in
 ``sys.modules`` so ``importlib.reload`` is actually invoked, and capture
-its print output via ``capsys`` to assert the branch that executed.
+its log output via ``capsys`` (.err) to assert the branch that executed.
 """
 
 import sys
@@ -50,7 +50,7 @@ def test_real_module_reload_verbose_prints_success(real_module, capsys):
     # Act
     reload(mod, verbose=True)
     # Assert
-    assert "Successfully reloaded module" in capsys.readouterr().out
+    assert "Successfully reloaded module" in capsys.readouterr().err
 
 
 def test_real_module_reload_silent_when_verbose_false(real_module, capsys):
@@ -59,7 +59,8 @@ def test_real_module_reload_silent_when_verbose_false(real_module, capsys):
     # Act
     reload(mod, verbose=False)
     # Assert
-    assert capsys.readouterr().out == ""
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +79,7 @@ def test_function_reload_uses_function_module_name(real_module, capsys):
     # Act
     reload(fn, verbose=True)
     # Assert
-    out = capsys.readouterr().out
+    out = capsys.readouterr().err
     assert f"Successfully reloaded module: {mod_name}" in out
 
 
@@ -92,7 +93,7 @@ def test_function_module_not_in_sys_modules_prints_error(capsys):
     # Act
     reload(fn)
     # Assert
-    out = capsys.readouterr().out
+    out = capsys.readouterr().err
     assert "Module scitex_io_test_missing_module not found in sys.modules" in out
 
 
@@ -112,7 +113,7 @@ def test_class_reload_uses_class_module_name(real_module, capsys):
     # Act
     reload(TheClass, verbose=True)
     # Assert
-    out = capsys.readouterr().out
+    out = capsys.readouterr().err
     assert f"Successfully reloaded module: {mod_name}" in out
 
 
@@ -127,7 +128,7 @@ def test_unrecognised_object_prints_error(capsys):
     # Act
     reload(target)
     # Assert
-    out = capsys.readouterr().out
+    out = capsys.readouterr().err
     assert "neither a recognized module nor a function/class" in out
 
 
@@ -153,7 +154,7 @@ def test_module_not_in_sys_modules_returns_without_reload(capsys):
     # Act
     reload(orphan)
     # Assert
-    out = capsys.readouterr().out
+    out = capsys.readouterr().err
     assert "neither a recognized module" in out
 
 

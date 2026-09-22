@@ -23,10 +23,11 @@ Usage from an observer
 from __future__ import annotations
 
 import logging
+import scitex_logging as slogging
 from pathlib import Path
 from typing import Any, Callable, List
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 PostSaveHook = Callable[[Path, Any, dict], None]

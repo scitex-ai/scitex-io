@@ -77,7 +77,7 @@ def _warn_notebook_path_unresolved_once(fallback_sdir: str) -> None:
         "  Or pass an absolute path to bypass routing: sio.save(obj, '/abs/path.ext').\n"
         "  (This message prints at most once per process.)"
     )
-    print(msg, file=__import__("sys").stderr, flush=True)
+    logger.warning(msg)
 
 
 def save(
@@ -331,7 +331,6 @@ def save(
             except ValueError:
                 rel_path = spath
             if verbose:
-                print()
                 logger.success(
                     color_text(f"(dry run) Saved to: ./{rel_path}", "yellow")
                 )
@@ -478,7 +477,6 @@ def _save(
                 rel_path = _os.path.relpath(spath, _os.getcwd())
             except ValueError:
                 rel_path = spath
-            print()
             logger.success(f"Saved to: ./{rel_path} ({file_size})")
 
 

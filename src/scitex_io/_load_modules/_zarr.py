@@ -11,7 +11,10 @@ __DIR__ = os.path.dirname(__FILE__)
 import pickle
 from typing import Any, Optional
 
-import zarr
+try:
+    import zarr
+except ImportError:  # optional: pip install scitex-io[all]
+    zarr = None
 
 
 def _load_zarr(lpath: str, key: Optional[str] = None, **kwargs) -> Any:

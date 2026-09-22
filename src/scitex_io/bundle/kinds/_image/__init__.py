@@ -17,8 +17,14 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 if TYPE_CHECKING:
     import numpy as np
-    from matplotlib.axes import Axes
-    from matplotlib.image import AxesImage
+    try:
+        from matplotlib.axes import Axes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Axes = None
+    try:
+        from matplotlib.image import AxesImage
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        AxesImage = None
 
 
 def render_image(
@@ -65,7 +71,10 @@ def render_image(
 
             img_data = np.array(Image.open(image))
         except ImportError:
-            import matplotlib.pyplot as plt
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError:  # optional: pip install scitex-io[all]
+                plt = None
 
             img_data = plt.imread(str(image))
     else:
@@ -123,7 +132,10 @@ def load_image(path: Union[str, Path]) -> "np.ndarray":
 
         return np.array(Image.open(path))
     except ImportError:
-        import matplotlib.pyplot as plt
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:  # optional: pip install scitex-io[all]
+            plt = None
 
         return plt.imread(str(path))
 

@@ -14,8 +14,15 @@ import shutil
 import tempfile
 import time
 
-import h5py
+try:
+    import h5py
+except ImportError:  # optional: pip install scitex-io[all]
+    h5py = None
 import numpy as np
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 
 class SWMRFile:
@@ -269,6 +276,6 @@ def _save_dataset(group, name, data, compression, compression_opts, **kwargs):
                 group.create_dataset(name, data=np.void(pickled_data))
 
     except Exception as e:
-        print(f"Warning: Could not save dataset '{name}': {e}")
+        log.warning(f"Warning: Could not save dataset '{name}': {e}")
 
 # EOF

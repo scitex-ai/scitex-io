@@ -18,6 +18,10 @@ from .._glob import glob
 from .._utils import DotDict
 from ._load import load
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 class ConfigLoadError(Exception):
     """Raised by :func:`load_configs` when a YAML config fails to load/process.
@@ -210,7 +214,7 @@ def load_configs(
                 dk_wo_debug_prefix = key.split("_", 1)[1]
                 config[dk_wo_debug_prefix] = value
                 if show or verbose:
-                    print(f"{key} -> {dk_wo_debug_prefix}")
+                    log.info(f"{key} -> {dk_wo_debug_prefix}")
             elif isinstance(value, (dict, DotDict)):
                 config[key] = apply_debug_values(value, IS_DEBUG)
         return config

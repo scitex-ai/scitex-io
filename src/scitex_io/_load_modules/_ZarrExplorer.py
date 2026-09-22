@@ -10,8 +10,15 @@ __DIR__ = os.path.dirname(__FILE__)
 
 from typing import Any, List, Optional
 
-import zarr
+try:
+    import zarr
+except ImportError:  # optional: pip install scitex-io[all]
+    zarr = None
 from ._zarr import _load_zarr_dataset
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 
 class ZarrExplorer:
@@ -50,7 +57,7 @@ class ZarrExplorer:
 
         if hasattr(target, "keys"):  # Group
             if path != "/":
-                print(f"{indent}[{path.split('/')[-1]}]")
+                log.info(f"{indent}[{path.split('/')[-1]}]")
 
             for key in sorted(target.keys()):
                 subpath = f"{path}/{key}".replace("//", "/")
@@ -66,11 +73,7 @@ class ZarrExplorer:
             compressor = getattr(target, "compressor", None)
             compressed_size = getattr(target, "nbytes_stored", "unknown")
 
-            print(
-                f"{indent}{name}: shape={shape}, dtype={dtype}, "
-                f"size={size}, compressor={compressor}, "
-                f"compressed_size={compressed_size}"
-            )
+            log.info(f"{indent}{name}: shape={shape}, dtype={dtype}, " f"size={size}, compressor={compressor}, " f"compressed_size={compressed_size}")
 
     def keys(self, path: str = "/") -> List[str]:
         """Get keys at specified path."""

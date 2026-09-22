@@ -244,9 +244,9 @@ def _activate_observers(observers=None) -> None:
     Cheap: accessing ``register_post_save_hook`` is registry-independent
     (see ``__getattr__``), so this does NOT pull in format handlers.
     """
-    import logging
+    import scitex_logging as slogging
 
-    log = logging.getLogger(__name__)
+    log = slogging.getLogger(__name__)
     if observers is None:
         observers = _discover_observer_registrars()
     for name, registrar in observers:
@@ -269,9 +269,9 @@ def _discover_observer_registrars() -> list:
     """Load ``(name, 0-arg registrar)`` pairs from the ``scitex_io.observers``
     entry-point group. A registrar that fails to *load* is logged and skipped
     (never fatal to the import)."""
-    import logging
+    import scitex_logging as slogging
 
-    log = logging.getLogger(__name__)
+    log = slogging.getLogger(__name__)
     try:
         from importlib.metadata import entry_points
     except ImportError:  # pragma: no cover
