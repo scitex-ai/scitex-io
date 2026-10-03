@@ -186,7 +186,8 @@ def test_zarrexplorer_missing_zarr_refuses_constructor(tmp_path, attr_restore):
     module = importlib.import_module("scitex_io._load_modules._ZarrExplorer")
     attr_restore.set(module, "zarr", None)
     target = tmp_path / "absent.zarr"
-    # Act / Assert
+    # Act
+    # Assert
     with pytest.raises(ImportError, match="ZarrExplorer requires zarr"):
         module.ZarrExplorer(str(target), mode="w")
 
@@ -196,6 +197,7 @@ def test_has_zarr_key_missing_zarr_refuses_before_open(tmp_path, attr_restore):
     module = importlib.import_module("scitex_io._load_modules._ZarrExplorer")
     attr_restore.set(module, "zarr", None)
     target = tmp_path / "absent.zarr"
-    # Act / Assert
+    # Act
+    # Assert
     with pytest.raises(ImportError, match="has_zarr_key requires zarr"):
         module.has_zarr_key(str(target), "group")

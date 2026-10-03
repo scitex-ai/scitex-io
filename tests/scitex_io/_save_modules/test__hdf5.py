@@ -311,11 +311,27 @@ def test_missing_h5py_refuses_before_directory_lock_or_destination_mutation(miss
     saver = importlib.import_module("scitex_io._save_modules._hdf5")
     target, before, expected = missing_hdf5_destination
     attr_restore.set(saver, "h5py", None)
-    # Act / Assert
-    with pytest.raises(ImportError, match="requires h5py"):
+    # Act
+    try:
         saver._save_hdf5({"data": [1, 2]}, str(target))
+    except ImportError:
+        pass
+    # Assert
     after = sorted(str(p.relative_to(tmp_path)) for p in tmp_path.rglob("*"))
     assert (after, target.read_bytes() if target.exists() else False) == (before, expected)
+
+
+def test_missing_h5py_refuses_before_directory_lock_or_destination_mutation_raises_required_dependency_error(missing_hdf5_destination, tmp_path, attr_restore):
+    # Arrange: genuine destination states provided by the owned fixture.
+    import importlib
+
+    saver = importlib.import_module("scitex_io._save_modules._hdf5")
+    target, before, expected = missing_hdf5_destination
+    attr_restore.set(saver, "h5py", None)
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="requires h5py"):
+        saver._save_hdf5({"data": [1, 2]}, str(target))
 
 
 def test_missing_h5py_swmr_entry_refuses_before_timeout_or_file_open(tmp_path, attr_restore):
@@ -325,8 +341,25 @@ def test_missing_h5py_swmr_entry_refuses_before_timeout_or_file_open(tmp_path, a
     saver = importlib.import_module("scitex_io._save_modules._hdf5")
     target = tmp_path / "result.h5"
     attr_restore.set(saver, "h5py", None)
-    # Act / Assert
+    # Act
+    try:
+        with saver.SWMRFile(str(target), mode="w", timeout=0):
+            raise AssertionError("missing h5py entered the context")
+    except ImportError:
+        pass
+    # Assert
+    assert not target.exists()
+
+
+def test_missing_h5py_swmr_entry_refuses_before_timeout_or_file_open_raises_required_dependency_error(tmp_path, attr_restore):
+    # Arrange: real SWMR context manager, including an immediate timeout.
+    import importlib
+
+    saver = importlib.import_module("scitex_io._save_modules._hdf5")
+    target = tmp_path / "result.h5"
+    attr_restore.set(saver, "h5py", None)
+    # Act
+    # Assert
     with pytest.raises(ImportError, match="requires h5py"):
         with saver.SWMRFile(str(target), mode="w", timeout=0):
             raise AssertionError("missing h5py entered the context")
-    assert not target.exists()

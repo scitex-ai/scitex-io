@@ -660,7 +660,8 @@ def test_h5explorer_missing_h5py_refuses_constructor(tmp_path, attr_restore):
     module = importlib.import_module("scitex_io._load_modules._H5Explorer")
     attr_restore.set(module, "h5py", None)
     target = tmp_path / "absent.h5"
-    # Act / Assert
+    # Act
+    # Assert
     with pytest.raises(ImportError, match="H5Explorer requires h5py"):
         module.H5Explorer(str(target), mode="w")
 
@@ -673,6 +674,7 @@ def test_has_h5_key_missing_h5py_refuses_existing_path(tmp_path, attr_restore):
     target = tmp_path / "existing.h5"
     target.write_bytes(b"dependency-refusal-fixture")
     attr_restore.set(module, "h5py", None)
-    # Act / Assert
+    # Act
+    # Assert
     with pytest.raises(ImportError, match="has_h5_key requires h5py"):
         module.has_h5_key(str(target), "group")

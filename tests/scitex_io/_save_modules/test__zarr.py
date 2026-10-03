@@ -247,10 +247,25 @@ def test_missing_zarr_preserves_existing_directory_store_target(tmp_path, attr_r
     target.write_bytes(original)
     attr_restore.set(module, "zarr", None)
     # Act
-    with pytest.raises(ImportError, match="Zarr saving requires zarr"):
+    try:
         module._save_zarr(np.arange(3), str(target), compressor=None)
+    except ImportError:
+        pass
     # Assert
     assert target.read_bytes() == original
+
+
+def test_missing_zarr_preserves_existing_directory_store_target_raises_required_dependency_error(tmp_path, attr_restore):
+    # Arrange
+    module = importlib.import_module("scitex_io._save_modules._zarr")
+    target = tmp_path / "existing.zarr"
+    original = b"caller-owned regular file"
+    target.write_bytes(original)
+    attr_restore.set(module, "zarr", None)
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="Zarr saving requires zarr"):
+        module._save_zarr(np.arange(3), str(target), compressor=None)
 
 
 @pytest.mark.parametrize("store_type", ["directory", "zip"])
@@ -264,12 +279,32 @@ def test_missing_codecs_preserves_existing_target(tmp_path, attr_restore, store_
     attr_restore.set(module, "GzipCodec", None)
     attr_restore.set(module, "ZstdCodec", None)
     # Act
+    try:
+        module._save_zarr(
+            np.arange(3), str(target), store_type=store_type, compressor="zstd"
+        )
+    except ImportError:
+        pass
+    # Assert
+    assert target.read_bytes() == original
+
+
+@pytest.mark.parametrize("store_type", ["directory", "zip"])
+def test_missing_codecs_preserves_existing_target_raises_required_dependency_error(tmp_path, attr_restore, store_type):
+    """Codec refusal must precede directory replacement and ZIP write-mode opening."""
+    # Arrange
+    module = importlib.import_module("scitex_io._save_modules._zarr")
+    target = tmp_path / "existing.bin"
+    original = b"caller-owned content before codec failure"
+    target.write_bytes(original)
+    attr_restore.set(module, "GzipCodec", None)
+    attr_restore.set(module, "ZstdCodec", None)
+    # Act
+    # Assert
     with pytest.raises(ImportError, match="requires GzipCodec and ZstdCodec"):
         module._save_zarr(
             np.arange(3), str(target), store_type=store_type, compressor="zstd"
         )
-    # Assert
-    assert target.read_bytes() == original
 
 
 def test_missing_zipstore_preserves_existing_target(tmp_path, attr_restore):
@@ -281,10 +316,26 @@ def test_missing_zipstore_preserves_existing_target(tmp_path, attr_restore):
     target.write_bytes(original)
     attr_restore.delete(storage, "ZipStore")
     # Act
-    with pytest.raises(ImportError, match="requires zarr.storage.ZipStore"):
+    try:
         module._save_zarr(np.arange(3), str(target), compressor=None)
+    except ImportError:
+        pass
     # Assert
     assert target.read_bytes() == original
+
+
+def test_missing_zipstore_preserves_existing_target_raises_required_dependency_error(tmp_path, attr_restore):
+    # Arrange
+    module = importlib.import_module("scitex_io._save_modules._zarr")
+    storage = importlib.import_module("zarr.storage")
+    target = tmp_path / "existing.zip"
+    original = b"caller-owned archive content"
+    target.write_bytes(original)
+    attr_restore.delete(storage, "ZipStore")
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="requires zarr.storage.ZipStore"):
+        module._save_zarr(np.arange(3), str(target), compressor=None)
 
 
 @pytest.mark.parametrize("compression", ["none", "custom"])

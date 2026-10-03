@@ -1024,6 +1024,7 @@ def test_string_compressor_missing_codec_refuses_before_construction(missing_cod
 
     helpers = importlib.import_module("scitex_io.utils._h5_helpers")
     attr_restore.set(helpers, missing_codec, None)
-    # Act / Assert: string lookup still requires both eagerly constructed codecs.
+    # Act
+    # Assert: string lookup still requires both eagerly constructed codecs.
     with pytest.raises(ImportError, match="GzipCodec and ZstdCodec"):
         helpers.get_zarr_compressor("zstd")
