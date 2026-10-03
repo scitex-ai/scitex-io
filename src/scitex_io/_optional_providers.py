@@ -107,10 +107,13 @@ def _register_scitex_stats(importer=_import_scitex_stats) -> bool:
     # ``scitex_stats.__init__`` does not auto-import the ``io`` subpackage;
     # bind the bundle entry points eagerly here so the registry callbacks
     # never have to do attribute walks on every call.
-    from scitex_stats.io import (  # type: ignore[import-not-found]
-        load_stats_bundle,
-        save_stats_bundle,
-    )
+    try:
+        from scitex_stats.io import (  # type: ignore[import-not-found]
+            load_stats_bundle,
+            save_stats_bundle,
+        )
+    except ImportError:  # optional: pip install scitex-io[dev]
+        return False
 
     def _save_stats_bundle(obj, path, **kwargs):
         # scitex_stats.io.save_stats_bundle takes (data: dict, path).

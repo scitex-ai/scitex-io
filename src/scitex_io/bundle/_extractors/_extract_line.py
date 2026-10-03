@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    try:
+        from matplotlib.axes import Axes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Axes = None
 
     from ..._fig._dataclasses import TraceEncoding
 

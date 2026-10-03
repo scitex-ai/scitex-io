@@ -47,7 +47,10 @@ def load_bundle_components(
     """
     from scitex_io.bundle._dataclasses import DataInfo, Spec
     from .kinds._plot._dataclasses import Encoding, Theme
-    from scitex_stats._dataclasses import Stats
+    try:
+        from scitex_stats._dataclasses import Stats
+    except ImportError:  # optional: pip install scitex-io[dev]
+        Stats = None
 
     storage = get_storage(path)
 

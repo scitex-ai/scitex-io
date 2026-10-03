@@ -170,9 +170,9 @@ def save_figure_bundle(data: Dict[str, Any], dir_path: Path) -> None:
         data: Bundle data dictionary.
         dir_path: Path to the bundle directory.
     """
-    import logging
+    import scitex_logging as slogging
 
-    logger = logging.getLogger("scitex")
+    logger = slogging.getLogger("scitex")
 
     # Get basename from directory name (e.g., "Figure1" from "Figure1.figure")
     basename = dir_path.stem.replace(".figure", "")
@@ -305,9 +305,9 @@ def _save_figure_exports(
             try:
                 _embed_metadata_in_export(out_file, spec, fmt)
             except Exception as e:
-                import logging
+                import scitex_logging as slogging
 
-                logging.getLogger("scitex").debug(
+                slogging.getLogger("scitex").debug(
                     f"Could not embed metadata in {out_file}: {e}"
                 )
 
@@ -334,9 +334,9 @@ def _save_exports(
             try:
                 _embed_metadata_in_export(out_file, spec, fmt)
             except Exception as e:
-                import logging
+                import scitex_logging as slogging
 
-                logging.getLogger("scitex").debug(
+                slogging.getLogger("scitex").debug(
                     f"Could not embed metadata in {out_file}: {e}"
                 )
 
@@ -416,10 +416,19 @@ def _generate_figure_overview(
     import warnings
     import zipfile
 
-    import matplotlib.gridspec as gridspec
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.gridspec as gridspec
+    except ImportError:  # optional: pip install scitex-io[all]
+        gridspec = None
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:  # optional: pip install scitex-io[all]
+        plt = None
     import numpy as np
-    from PIL import Image
+    try:
+        from PIL import Image
+    except ImportError:  # optional: pip install scitex-io[dev]
+        Image = None
 
     # Find all panel bundles (both .plot directories and .plot.zip files)
     panel_dirs = []
@@ -699,7 +708,10 @@ def _draw_single_bbox(ax, bbox: List, color: str, label: str, lw: int = 2) -> No
         label: Label text.
         lw: Line width.
     """
-    import matplotlib.patches as patches
+    try:
+        import matplotlib.patches as patches
+    except ImportError:  # optional: pip install scitex-io[all]
+        patches = None
 
     # bbox is [x0, y0, x1, y1] format
     x0, y0, x1, y1 = bbox
@@ -725,7 +737,10 @@ def _generate_composed_figure(dir_path: Path, spec: Dict, basename: str) -> None
         basename: Base filename for exports.
     """
 
-    from PIL import Image
+    try:
+        from PIL import Image
+    except ImportError:  # optional: pip install scitex-io[dev]
+        Image = None
 
     exports_dir = dir_path / "exports"
     exports_dir.mkdir(parents=True, exist_ok=True)

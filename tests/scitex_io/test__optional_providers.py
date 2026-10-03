@@ -128,3 +128,53 @@ class TestGracefulAbsent:
         _optional_providers._register_figrecipe(importer=absent_importer)
         # Assert: an absent provider never mutates the registry.
         assert get_saver(".plt.zip") is before
+
+
+def test_stats_missing_bundle_entrypoints_do_not_advertise_callbacks(tmp_path):
+    """Refuse a real submodule import; retain the existing registry identities."""
+    # Arrange: use real IO and installed Stats in an isolated interpreter.
+    import subprocess
+    import sys
+
+    script = """
+import sys
+sys.path[:] = PATHS
+import importlib
+import importlib.abc
+import json
+import scitex_stats
+from scitex_stats.io import load_stats_bundle, save_stats_bundle
+from scitex_io import _optional_providers as providers
+from scitex_io._registry import get_loader, get_saver
+before = (get_loader('.stats.zip'), get_saver('.stats.zip'))
+class MissingStatsIO(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'scitex_stats.io' or fullname.startswith('scitex_stats.io.'):
+            raise ImportError('controlled missing Stats IO entrypoints', name=fullname)
+for name in tuple(sys.modules):
+    if name == 'scitex_stats.io' or name.startswith('scitex_stats.io.'):
+        del sys.modules[name]
+sys.meta_path.insert(0, MissingStatsIO())
+registered = providers._register_scitex_stats()
+after = (get_loader('.stats.zip'), get_saver('.stats.zip'))
+sys.stdout.write(json.dumps([registered, after[0] is before[0], after[1] is before[1]]))
+""".replace("PATHS", repr(sys.path), 1)
+    # Act
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", "-B", "-c", script],
+        cwd=tmp_path, capture_output=True, text=True, timeout=7,
+    )
+    # Assert: no fake Stats package, callback, or registry function was supplied.
+    import json
+
+    assert (result.returncode, json.loads(result.stdout)) == (0, [False, True, True])
+
+
+def test_stats_available_bundle_entrypoints_register_real_callbacks():
+    # Arrange: genuine declared companion exports, not replacement functions.
+    from scitex_stats.io import load_stats_bundle, save_stats_bundle
+
+    # Act
+    registered = _optional_providers._register_scitex_stats()
+    # Assert
+    assert (registered, callable(load_stats_bundle), callable(save_stats_bundle), callable(get_loader(".stats.zip")), callable(get_saver(".stats.zip"))) == (True, True, True, True, True)

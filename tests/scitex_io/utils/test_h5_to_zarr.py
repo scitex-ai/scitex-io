@@ -372,3 +372,98 @@ def test_migrate_h5_to_zarr_chunks_false(tmp_path):
     # Assert
     # Assert
     assert Path(out).exists()
+
+
+
+def test_missing_zarr_preserves_existing_overwrite_target(tmp_path, attr_restore):
+    """A caller-side unavailable Zarr must refuse before an owned destination rmtree."""
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io.utils.h5_to_zarr")
+    source = _build_h5(tmp_path / "source.h5")
+    target = tmp_path / "existing.zarr"
+    target.mkdir()
+    marker = target / "retained.txt"
+    original = b"caller-owned existing destination"
+    marker.write_bytes(original)
+    attr_restore.set(module, "zarr", None)
+    # Act
+    try:
+        module.migrate_h5_to_zarr(
+            source, zarr_path=target, overwrite=True,
+            compressor=None, show_progress=False,
+        )
+    except ImportError:
+        pass
+    # Assert
+    assert marker.read_bytes() == original
+
+
+def test_missing_zarr_preserves_existing_overwrite_target_raises_required_dependency_error(tmp_path, attr_restore):
+    """A caller-side unavailable Zarr must refuse before an owned destination rmtree."""
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io.utils.h5_to_zarr")
+    source = _build_h5(tmp_path / "source.h5")
+    target = tmp_path / "existing.zarr"
+    target.mkdir()
+    marker = target / "retained.txt"
+    original = b"caller-owned existing destination"
+    marker.write_bytes(original)
+    attr_restore.set(module, "zarr", None)
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="migration requires zarr"):
+        module.migrate_h5_to_zarr(
+            source, zarr_path=target, overwrite=True,
+            compressor=None, show_progress=False,
+        )
+
+
+def test_missing_zarr_batch_refuses_before_output_directory(tmp_path, attr_restore):
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io.utils.h5_to_zarr")
+    source = _build_h5(tmp_path / "source.h5")
+    target = tmp_path / "absent-output"
+    attr_restore.set(module, "zarr", None)
+    # Act
+    try:
+        module.migrate_h5_to_zarr_batch(
+            [source], output_dir=target, compressor=None, parallel=False
+        )
+    except ImportError:
+        pass
+    # Assert
+    assert not target.exists()
+
+
+def test_missing_zarr_batch_refuses_before_output_directory_raises_required_dependency_error(tmp_path, attr_restore):
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io.utils.h5_to_zarr")
+    source = _build_h5(tmp_path / "source.h5")
+    target = tmp_path / "absent-output"
+    attr_restore.set(module, "zarr", None)
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="batch migration requires zarr"):
+        module.migrate_h5_to_zarr_batch(
+            [source], output_dir=target, compressor=None, parallel=False
+        )
+
+
+def test_missing_zarr_empty_batch_retains_no_work_result(tmp_path, attr_restore):
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io.utils.h5_to_zarr")
+    attr_restore.set(module, "zarr", None)
+    # Act
+    result = module.migrate_h5_to_zarr_batch([], output_dir=tmp_path / "unused")
+    # Assert
+    assert result == []

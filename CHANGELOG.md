@@ -7,6 +7,11 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-10-03
+
+### Fixed
+- Preserve valid YAML for nested mappings and sequences by reserving space for the sequence dash and separator. Mapping and sequence indentation stay unchanged; path conversion and the safe loader retain their existing behavior.
+
 ## [0.4.0] — 2026-07-18
 
 ### Added

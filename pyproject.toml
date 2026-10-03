@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-io"
-version = "0.4.1"
+version = "0.4.2"
 description = "Universal scientific data I/O with plugin registry"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -206,6 +206,10 @@ library_dirs = ["src", "tests", "examples"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "smoke: fast (<60s) subprocess-driven CLI happy-path tests",
+    "e2e: end-to-end workflows against real subsystems (gate: RUN_E2E=1)",
+]
 addopts = "-v --tb=short"
 # Dump every thread's stack if a test runs longer than 120s. Pytest
 # never finishes silently — if something deadlocks (waiting on torch

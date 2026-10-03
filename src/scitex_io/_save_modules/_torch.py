@@ -29,6 +29,9 @@ def _save_torch(obj, spath, **kwargs):
     None
     """
     # Lazy import to avoid circular import issues
-    import torch
+    try:
+        import torch
+    except ImportError:  # optional: pip install scitex-io[dev]
+        torch = None
 
     torch.save(obj, spath, **kwargs)

@@ -16,7 +16,7 @@ Content extraction functions for PDF loading:
 tables, images, sections, and metadata.
 """
 
-import logging
+import scitex_logging as slogging
 import re
 from typing import Any, Dict, List
 
@@ -35,7 +35,7 @@ from ._pdf_utils import (
 
 fitz = try_import_optional("fitz")
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +60,10 @@ def _extract_tables(
         raise ImportError("pandas required for table extraction")
 
     import pandas as pd
-    import pdfplumber
+    try:
+        import pdfplumber
+    except ImportError:  # optional: pip install scitex-io[dev]
+        pdfplumber = None
 
     tables_dict = {}
     table_settings = table_settings or {}
@@ -356,7 +359,10 @@ def _extract_metadata_fitz(lpath: str, metadata: Dict) -> None:
 
 def _extract_metadata_pdfplumber(lpath: str, metadata: Dict) -> None:
     """Populate metadata dict using pdfplumber backend (in-place)."""
-    import pdfplumber
+    try:
+        import pdfplumber
+    except ImportError:  # optional: pip install scitex-io[dev]
+        pdfplumber = None
 
     try:
         with pdfplumber.open(lpath) as pdf:
@@ -369,7 +375,10 @@ def _extract_metadata_pdfplumber(lpath: str, metadata: Dict) -> None:
 
 def _extract_metadata_pypdf2(lpath: str, metadata: Dict) -> None:
     """Populate metadata dict using pypdf backend (in-place)."""
-    import pypdf as PyPDF2  # type: ignore[import-not-found]
+    try:
+        import pypdf as PyPDF2  # type: ignore[import-not-found]
+    except ImportError:  # optional: pip install scitex-io[dev]
+        PyPDF2 = None
 
     try:
         reader = PyPDF2.PdfReader(lpath)

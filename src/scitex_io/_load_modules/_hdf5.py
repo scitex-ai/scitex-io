@@ -10,7 +10,10 @@ __DIR__ = os.path.dirname(__FILE__)
 
 import time
 
-import h5py
+try:
+    import h5py
+except ImportError:  # optional: pip install scitex-io[all]
+    h5py = None
 import numpy as np
 
 from .._save_modules._hdf5 import SWMRFile

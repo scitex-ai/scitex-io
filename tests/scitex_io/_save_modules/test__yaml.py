@@ -339,6 +339,79 @@ class TestSaveYaml:
         assert loaded["x"] == 1
 
 
-# --- _text.py ---------------------------------------------------------------
+class TestNestedYamlCompatibility:
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            pytest.param(
+                {
+                    "results": [
+                        {
+                            "name": "first",
+                            "value": 0.0,
+                            "details": {"count": 2, "missing": None},
+                        },
+                        {
+                            "name": "second",
+                            "value": -1.5,
+                            "details": {"count": 3, "missing": None},
+                        },
+                    ]
+                },
+                id="mapping-sequence-of-nested-mappings",
+            ),
+            pytest.param(
+                [
+                    {"name": "first", "values": [0, 1], "enabled": True},
+                    {"name": "second", "values": [2, 3], "enabled": False},
+                ],
+                id="root-sequence-of-mappings",
+            ),
+            pytest.param(
+                {"groups": [{"values": [[0, 1], [2, 3]], "label": "世界"}]},
+                id="nested-mapping-and-sequences",
+            ),
+        ],
+    )
+    def test_nested_mapping_sequences_round_trip_with_safe_loader(
+        self, tmp_path, payload
+    ):
+        # Arrange
+        from scitex_io._load_modules._yaml import _load_yaml
 
+        out = tmp_path / "nested.yaml"
+
+        # Act
+        _save_yaml(payload, str(out))
+        loaded = _load_yaml(str(out))
+
+        # Assert
+        assert loaded == payload
+
+    def test_nested_mapping_sequences_preserve_path_conversion(self, tmp_path):
+        # Arrange
+        from scitex_io._load_modules._yaml import _load_yaml
+
+        payload = {
+            "files": [
+                {"path": Path("first.txt"), "details": {"count": 0}},
+                {"path": Path("second.txt"), "details": {"count": 1}},
+            ]
+        }
+        out = tmp_path / "paths.yaml"
+
+        # Act
+        _save_yaml(payload, str(out))
+        loaded = _load_yaml(str(out))
+
+        # Assert
+        assert loaded == {
+            "files": [
+                {"path": "first.txt", "details": {"count": 0}},
+                {"path": "second.txt", "details": {"count": 1}},
+            ]
+        }
+
+
+# --- _text.py ---------------------------------------------------------------
 

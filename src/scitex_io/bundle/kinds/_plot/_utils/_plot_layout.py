@@ -24,10 +24,22 @@ Usage:
 
 from typing import Any, Dict, List, Optional, Tuple
 
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
+try:
+    import matplotlib.patches as mpatches
+except ImportError:  # optional: pip install scitex-io[all]
+    mpatches = None
+try:
+    import matplotlib.pyplot as plt
+except ImportError:  # optional: pip install scitex-io[all]
+    plt = None
+try:
+    from matplotlib.axes import Axes
+except ImportError:  # optional: pip install scitex-io[all]
+    Axes = None
+try:
+    from matplotlib.figure import Figure
+except ImportError:  # optional: pip install scitex-io[all]
+    Figure = None
 
 from ._calc_bounds import element_bounds
 from ._normalize import normalize_size

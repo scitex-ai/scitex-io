@@ -4,8 +4,14 @@
 
 """PNG metadata embedding using tEXt chunks."""
 
-from PIL import Image
-from PIL.PngImagePlugin import PngInfo
+try:
+    from PIL import Image
+except ImportError:  # optional: pip install scitex-io[dev]
+    Image = None
+try:
+    from PIL.PngImagePlugin import PngInfo
+except ImportError:  # optional: pip install scitex-io[dev]
+    PngInfo = None
 
 
 def embed_metadata_png(image_path: str, metadata_json: str) -> None:

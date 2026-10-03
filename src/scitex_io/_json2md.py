@@ -11,9 +11,13 @@ __FILE__ = (
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
 
+import argparse
 import json
 import sys
-import argparse
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 def json2md(obj, level=1):
     output = []
@@ -51,10 +55,10 @@ def main():
             with open(args.output, "w") as f:
                 f.write(result)
         else:
-            print(result)
+            sys.stdout.write(result + "\n")
 
     except FileNotFoundError:
-        print(f"Error: File {args.input} not found", file=sys.stderr)
+        log.error(f"Error: File {args.input} not found")
         sys.exit(1)
 
 

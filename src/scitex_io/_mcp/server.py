@@ -12,7 +12,12 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-from fastmcp import FastMCP
+try:
+    from fastmcp import FastMCP
+except ImportError as exc:
+    raise ImportError(
+        "MCP requires fastmcp; install scitex-io[mcp]."
+    ) from exc
 
 mcp = FastMCP(
     name="scitex-io",
