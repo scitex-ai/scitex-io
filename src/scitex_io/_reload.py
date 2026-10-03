@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Time-stamp: "2024-06-04 19:10:36 (ywatanabe)"
 
+import click
 import scitex_logging as slogging
 
 log = slogging.getLogger(__name__)
@@ -70,7 +71,7 @@ def reload(module_or_func, verbose=False):
         # Attempt to reload the module by name.
         importlib.reload(sys.modules[module_name])
         if verbose:
-            log.info(f"Successfully reloaded module: {module_name}")
+            click.echo(f"Successfully reloaded module: {module_name}", color=True)
 
     except KeyError:
         # The module is not found in sys.modules, likely due to it not being imported.

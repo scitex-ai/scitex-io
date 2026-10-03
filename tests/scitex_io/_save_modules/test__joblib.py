@@ -100,3 +100,35 @@ class TestSaveJoblib:
 # --- _torch.py -------------------------------------------------------------
 
 
+
+
+
+def test_missing_joblib_preserves_existing_target(tmp_path, attr_restore):
+    """A failed optional import must not truncate the caller's existing file."""
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io._save_modules._joblib")
+    target = tmp_path / "existing.joblib"
+    original = b"existing caller-owned content"
+    target.write_bytes(original)
+    attr_restore.set(module, "joblib", None)
+    # Act
+    with pytest.raises(ImportError, match="requires joblib"):
+        module._save_joblib([1, 2, 3], str(target))
+    # Assert
+    assert target.read_bytes() == original
+
+
+def test_missing_joblib_does_not_create_target(tmp_path, attr_restore):
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io._save_modules._joblib")
+    target = tmp_path / "absent.joblib"
+    attr_restore.set(module, "joblib", None)
+    # Act
+    with pytest.raises(ImportError, match="requires joblib"):
+        module._save_joblib([1, 2, 3], str(target))
+    # Assert
+    assert not target.exists()

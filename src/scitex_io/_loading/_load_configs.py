@@ -18,6 +18,7 @@ from .._glob import glob
 from .._utils import DotDict
 from ._load import load
 
+import click
 import scitex_logging as slogging
 
 log = slogging.getLogger(__name__)
@@ -214,7 +215,7 @@ def load_configs(
                 dk_wo_debug_prefix = key.split("_", 1)[1]
                 config[dk_wo_debug_prefix] = value
                 if show or verbose:
-                    log.info(f"{key} -> {dk_wo_debug_prefix}")
+                    click.echo(f"{key} -> {dk_wo_debug_prefix}", color=True)
             elif isinstance(value, (dict, DotDict)):
                 config[key] = apply_debug_values(value, IS_DEBUG)
         return config

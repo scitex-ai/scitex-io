@@ -138,3 +138,64 @@ if __name__ == "__main__":
 # --------------------------------------------------------------------------------
 # End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/io/_load_modules/_ZarrExplorer.py
 # --------------------------------------------------------------------------------
+
+
+import importlib
+
+import numpy as np
+import pytest
+
+
+@pytest.mark.parametrize(
+    ("level", "disabled"),
+    [("INFO", False), ("WARNING", False), ("CRITICAL", False), ("WARNING", True)],
+    ids=["info", "warning", "critical", "disabled"],
+)
+def test_zarrexplorer_show_stdout_is_exact_and_level_independent(
+    tmp_path, capsys, level, disabled
+):
+    """Use genuine Zarr v2 storage through supported Zarr>=3, preserving its metadata."""
+    # Arrange
+    import zarr
+
+    module = importlib.import_module("scitex_io._load_modules._ZarrExplorer")
+    target = tmp_path / "display.zarr"
+    root = zarr.open_group(str(target), mode="w", zarr_format=2)
+    array = root.create_array("ints", data=np.arange(3, dtype=np.int32))
+    expected = (
+        f"..ints: shape={array.shape}, dtype={array.dtype}, size={array.size}, "
+        f"compressor={array.compressor}, compressed_size={array.nbytes_stored}\n"
+    )
+    old_level, old_disabled = module.log.level, module.log.disabled
+    module.log.setLevel(level)
+    module.log.disabled = disabled
+    # Act
+    try:
+        explorer = module.ZarrExplorer(str(target))
+        result = explorer.show("/ints", indent="..")
+        output = capsys.readouterr()
+    finally:
+        module.log.setLevel(old_level)
+        module.log.disabled = old_disabled
+    # Assert
+    assert (output.out, output.err, result) == (expected, "", None)
+
+
+def test_zarrexplorer_missing_zarr_refuses_constructor(tmp_path, attr_restore):
+    # Arrange
+    module = importlib.import_module("scitex_io._load_modules._ZarrExplorer")
+    attr_restore.set(module, "zarr", None)
+    target = tmp_path / "absent.zarr"
+    # Act / Assert
+    with pytest.raises(ImportError, match="ZarrExplorer requires zarr"):
+        module.ZarrExplorer(str(target), mode="w")
+
+
+def test_has_zarr_key_missing_zarr_refuses_before_open(tmp_path, attr_restore):
+    # Arrange
+    module = importlib.import_module("scitex_io._load_modules._ZarrExplorer")
+    attr_restore.set(module, "zarr", None)
+    target = tmp_path / "absent.zarr"
+    # Act / Assert
+    with pytest.raises(ImportError, match="has_zarr_key requires zarr"):
+        module.has_zarr_key(str(target), "group")

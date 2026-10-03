@@ -37,6 +37,10 @@ class SWMRFile:
         self.temp_file = None
 
     def __enter__(self):
+        if h5py is None:
+            raise ImportError(
+                "HDF5 file access requires h5py; install scitex-io[scientific]."
+            )
         start_time = time.time()
 
         while time.time() - start_time < self.timeout:
@@ -115,6 +119,14 @@ class SWMRFile:
             os.unlink(self.temp_file.name)
 
 
+def _require_hdf5_save():
+    """Refuse an unavailable HDF5 backend before public or direct save writes."""
+    if h5py is None:
+        raise ImportError(
+            "HDF5 saving requires h5py; install scitex-io[scientific]."
+        )
+
+
 def _save_hdf5(
     obj,
     spath,
@@ -148,6 +160,7 @@ def _save_hdf5(
     max_retries : int
         Maximum number of retry attempts
     """
+    _require_hdf5_save()
     if not isinstance(obj, dict):
         obj = {"data": obj}
 

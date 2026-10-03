@@ -73,6 +73,11 @@ def migrate_h5_to_zarr(
     str
         Path to created Zarr store
     """
+    if zarr is None:
+        raise ImportError(
+            "HDF5-to-Zarr migration requires zarr; install scitex-io[scientific]."
+        )
+
     h5_path = Path(h5_path)
     if not h5_path.is_absolute():
         check_file_exists(str(h5_path))
@@ -178,6 +183,11 @@ def migrate_h5_to_zarr_batch(
         Paths to created Zarr stores
     """
     h5_paths = [Path(p) for p in h5_paths]
+    if h5_paths and zarr is None:
+        raise ImportError(
+            "HDF5-to-Zarr batch migration requires zarr; "
+            "install scitex-io[scientific]."
+        )
 
     zarr_paths = []
     for h5_path in h5_paths:

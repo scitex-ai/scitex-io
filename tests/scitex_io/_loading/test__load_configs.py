@@ -469,7 +469,7 @@ class TestDebugPromotion:
         # Act
         load_configs(IS_DEBUG=True, show=True, config_dir=config_dir)
         # Assert
-        assert "DEBUG_param -> param" in capsys.readouterr().err
+        assert "DEBUG_param -> param" in capsys.readouterr().out
 
     def test_debug_mode_preserves_int_key_in_nested_mapping(
         self, config_dir, ci_env_unset
@@ -833,3 +833,25 @@ class TestRealFilesystemRoundTrip:
 
 if __name__ == "__main__":
     pytest.main([os.path.abspath(__file__)])
+
+
+@pytest.mark.parametrize("level, disabled", [("CRITICAL", False), ("INFO", True)])
+def test_requested_display_survives_logging_threshold_and_disabled_logger(config_dir, ci_env_unset, capsys, level, disabled):
+    # Arrange: actual module logger; neither global configuration nor INFO masking.
+    import importlib
+
+    module = importlib.import_module('scitex_io._loading._load_configs')
+    previous = (module.log.level, module.log.disabled)
+    _write_configs(config_dir, {"config1": {"DEBUG_param": "debug_value"}})
+    capsys.readouterr()
+    try:
+        module.log.setLevel(level)
+        module.log.disabled = disabled
+        # Act
+        load_configs(IS_DEBUG=True, show=True, config_dir=config_dir)
+        actual = capsys.readouterr().out
+    finally:
+        module.log.setLevel(previous[0])
+        module.log.disabled = previous[1]
+    # Assert: exact requested stdout payload and newline, independent of logger.
+    assert actual == "DEBUG_param -> param\n"

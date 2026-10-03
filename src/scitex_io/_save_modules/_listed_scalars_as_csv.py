@@ -14,6 +14,7 @@ import numpy as np
 
 from .._path_modules._mv_to_tmp import _mv_to_tmp
 
+import click
 import scitex_logging as slogging
 
 log = slogging.getLogger(__name__)
@@ -40,7 +41,7 @@ def _save_listed_scalars_as_csv(
     ).round(round)
     df.to_csv(spath_csv)
     if verbose:
-        log.info("\nSaved to: {}\n".format(spath_csv))
+        click.echo("\nSaved to: {}\n".format(spath_csv), color=True)
 
 
 # EOF

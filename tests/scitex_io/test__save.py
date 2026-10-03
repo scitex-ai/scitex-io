@@ -999,3 +999,263 @@ class TestSaveFailsLoudOnUnknownEnvTypeEndToEnd:
             f"fail-loud raise must NOT silently write anywhere; "
             f"found writes at: {existing}"
         )
+
+
+# Public preflight — real source, disposable files and actual registry entries.
+_PREFLIGHT_BACKENDS = [
+    ("h5py", ".h5", {}),
+    ("h5py", ".hdf5", {"key": "existing"}),
+    ("zarr", ".zarr", {}),
+    ("zarr.codecs", ".zarr", {}),
+    ("zarr.storage", ".zarr", {"store_type": "zip", "compressor": None}),
+]
+
+
+def _run_public_preflight_child(tmp_path, missing, body):
+    """Execute real package source with one named import refusal, never a fake provider."""
+    import json
+
+    prefix = """
+import sys
+sys.path[:] = PATHS
+import importlib.abc
+import json
+import os
+from pathlib import Path
+missing = MISSING
+if missing in ('zarr.codecs', 'zarr.storage'):
+    # Keep genuine core Zarr available; refuse only the requested component.
+    import zarr
+    for module_name in tuple(sys.modules):
+        if module_name == missing or module_name.startswith(missing + '.'):
+            del sys.modules[module_name]
+class MissingBackend(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if missing and (fullname == missing or fullname.startswith(missing + '.')):
+            raise ImportError('controlled missing backend: ' + fullname, name=fullname)
+sys.meta_path.insert(0, MissingBackend())
+import scitex_io as sio
+assert Path(sio.__file__).resolve() == Path(EXPECTED_SOURCE)
+"""
+    script = prefix.replace("PATHS", repr(sys.path), 1)
+    script = script.replace("MISSING", repr(missing), 1)
+    script = script.replace("EXPECTED_SOURCE", repr(str(Path(sio.__file__).resolve())), 1)
+    script += "\n" + _textwrap.dedent(body)
+    result = _subproc.run(
+        [_sys_module.executable, "-I", "-S", "-B", "-c", script],
+        cwd=tmp_path, capture_output=True, text=True, timeout=7,
+        env={**_os_module.environ, "SCITEX_DIR": str(tmp_path / "state")},
+    )
+    return result, json.loads(result.stdout or "null")
+
+
+@pytest.mark.parametrize("missing,suffix,save_kwargs", _PREFLIGHT_BACKENDS)
+@pytest.mark.parametrize("layout", ["existing", "interactive", "broken_anchor"])
+def test_public_preflight_refusal_preserves_owned_paths(
+    tmp_path, missing, suffix, save_kwargs, layout
+):
+    # Arrange: destination bytes, a genuine broken cwd anchor, or absent cache.
+    body = r"""
+suffix, options, layout = SUFFIX, OPTIONS, LAYOUT
+target = Path.cwd() / ('result' + suffix)
+state = Path(os.environ['SCITEX_DIR'])
+cache = state / 'io/runtime/cache'
+anchor = Path.cwd() / ('anchor' + suffix)
+if layout == 'existing':
+    target.write_bytes(b'original destination\n')
+    specified = str(target)
+    detector = lambda: 'script'
+elif layout == 'interactive':
+    specified = 'nested/result' + suffix
+    detector = lambda: 'interactive'
+else:
+    anchor.symlink_to('missing-target')
+    specified = anchor.name
+    detector = lambda: 'script'
+refusal = None
+try:
+    sio.save('no serialization', specified, verbose=False, env_detector=detector, **options)
+except ImportError as exc:
+    refusal = str(exc)
+if layout == 'existing':
+    preserved = target.read_bytes() == b'original destination\n'
+elif layout == 'interactive':
+    preserved = not (state / 'io').exists()
+else:
+    preserved = anchor.is_symlink() and os.readlink(anchor) == 'missing-target'
+sys.stdout.write(json.dumps([refusal is not None, preserved, not (Path.cwd() / 'missing-target').exists()]))
+""".replace("SUFFIX", repr(suffix), 1).replace("OPTIONS", repr(save_kwargs), 1).replace("LAYOUT", repr(layout), 1)
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, missing, body)
+    # Assert: actual component refusal precedes every relevant public mutation.
+    assert (result.returncode, observed) == (0, [True, True, True]), result.stderr
+
+
+@pytest.mark.parametrize("suffix,missing", [(".h5", "h5py"), (".ZARR", "zarr")])
+def test_custom_saver_bypasses_unrelated_builtin_refusal_and_keeps_kwargs(tmp_path, suffix, missing):
+    # Arrange: genuine caller registration, not a replacement builtin.
+    body = r"""
+calls = []
+def custom(obj, path, **kw):
+    calls.append([obj, kw])
+    Path(path).write_bytes(b'custom current output\n')
+sio.register_saver(SUFFIX, custom)
+target = Path.cwd() / ('result' + SUFFIX)
+target.write_bytes(b'old output\n')
+saved = sio.save('caller value', target, verbose=False, handler='caller keyword', track=False)
+sys.stdout.write(json.dumps([calls, target.read_bytes().decode(), str(saved) == str(target)]))
+""".replace("SUFFIX", repr(suffix))
+    # Act: both builtin backends unavailable; user priority remains authoritative.
+    result, observed = _run_public_preflight_child(tmp_path, missing, body)
+    # Assert: selected callable runs once and handler= reaches it unchanged.
+    assert (result.returncode, observed) == (0, [[["caller value", {"handler": "caller keyword"}]], "custom current output\n", True]), result.stderr
+
+
+@pytest.mark.parametrize(
+    "filename,expected", [("result.FIG.ZIP", "compound"), ("result.pkl.gz", "pickle"), ("result.PKL.GZ", "bare")]
+)
+def test_public_preflight_keeps_compound_and_case_sensitive_pickle_selection(tmp_path, filename, expected):
+    # Arrange: three ordinary caller savers with distinct real output bytes.
+    body = r"""
+def compound(obj, path, **kw):
+    Path(path).write_text('compound')
+def pickle(obj, path, **kw):
+    Path(path).write_text('pickle')
+def bare(obj, path, **kw):
+    Path(path).write_text('bare')
+sio.register_saver('.fig.zip', compound)
+sio.register_saver('.pkl.gz', pickle)
+sio.register_saver('.gz', bare)
+sio.register_saver('.zip', bare)
+target = Path.cwd() / FILENAME
+saved = sio.save('caller data', target, verbose=False, track=False)
+sys.stdout.write(json.dumps([target.read_text(), str(saved) == str(target)]))
+""".replace("FILENAME", repr(filename), 1)
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, "", body)
+    # Assert: no competing extension map or second selection changes priority.
+    assert (result.returncode, observed) == (0, [expected, True]), result.stderr
+
+
+@pytest.mark.parametrize("layout", ["existing", "interactive", "broken_anchor"])
+def test_public_dry_run_preserves_files_anchors_and_absent_cache_without_saver(tmp_path, layout):
+    # Arrange: deliberately unregistered extension, so dry run cannot depend on dispatch.
+    body = r"""
+layout = LAYOUT
+target = Path.cwd() / 'result.unregistered-preflight'
+anchor = Path.cwd() / 'anchor.unregistered-preflight'
+if layout == 'existing':
+    target.write_bytes(b'original\n')
+    specified, detector = str(target), lambda: 'script'
+elif layout == 'interactive':
+    specified, detector = 'nested/result.unregistered-preflight', lambda: 'interactive'
+else:
+    anchor.symlink_to('missing-target')
+    specified, detector = anchor.name, lambda: 'script'
+saved = sio.save('unused', specified, dry_run=True, verbose=False, env_detector=detector)
+if layout == 'existing':
+    preserved = target.read_bytes() == b'original\n'
+elif layout == 'interactive':
+    preserved = not (Path(os.environ['SCITEX_DIR']) / 'io').exists()
+else:
+    preserved = anchor.is_symlink() and os.readlink(anchor) == 'missing-target'
+sys.stdout.write(json.dumps([saved is None, preserved]))
+""".replace("LAYOUT", repr(layout), 1)
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, "h5py", body)
+    # Assert: the documented dry run does not resolve handlers or write.
+    assert (result.returncode, observed) == (0, [True, True]), result.stderr
+
+
+def test_public_missing_registered_handler_preserves_destination(tmp_path):
+    # Arrange
+    body = r"""
+target = Path.cwd() / 'result.unregistered-preflight'
+target.write_bytes(b'original\n')
+refused = False
+try:
+    sio.save('unused', target, verbose=False)
+except ValueError as exc:
+    refused = "No save handler registered" in str(exc)
+sys.stdout.write(json.dumps([refused, target.read_bytes() == b'original\n']))
+"""
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, "", body)
+    # Assert
+    assert (result.returncode, observed) == (0, [True, True]), result.stderr
+
+
+def test_successful_interactive_save_keeps_cache_with_makedirs_false(tmp_path):
+    # Arrange
+    body = r"""
+saved = sio.save('ordinary text', 'result.txt', makedirs=False, verbose=False, env_detector=lambda: 'interactive', track=False)
+target = Path(os.environ['SCITEX_DIR']) / 'io/runtime/cache/result.txt'
+sys.stdout.write(json.dumps([target.read_text(), str(saved) == str(target)]))
+"""
+    # Act: genuine builtin text saver, no optional scientific serializer.
+    result, observed = _run_public_preflight_child(tmp_path, "", body)
+    # Assert: successful legacy cache creation remains, even with makedirs=False.
+    assert (result.returncode, observed) == (0, ["ordinary text", True]), result.stderr
+
+
+def test_image_selection_retains_existing_csv_wrapper():
+    # Arrange: selection only, not rendering or image-backend qualification.
+    from scitex_io._save import _resolve_save_handler
+    from scitex_io._image_csv_handler import handle_image_with_csv
+
+    # Act
+    selected = _resolve_save_handler("result.PNG")
+    # Assert
+    assert selected is handle_image_with_csv
+
+
+@pytest.mark.parametrize("mode", ["none", "custom"])
+def test_zarr_readiness_keeps_nonstring_compressors_without_codecs(tmp_path, mode):
+    # Arrange: genuine Zarr core, absent codec imports and no storage operation.
+    body = r"""
+from scitex_io._save_modules._zarr import _require_zarr_save
+compressor = {'none': None, 'custom': object()}[MODE]
+target = Path.cwd() / 'result.zarr'
+selected = _require_zarr_save(str(target), compressor, 'directory')
+sys.stdout.write(json.dumps([selected is None, not target.exists()]))
+""".replace("MODE", repr(mode), 1)
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, "zarr.codecs", body)
+    # Assert
+    assert (result.returncode, observed) == (0, [True, True]), result.stderr
+
+
+def test_zarr_readiness_resolves_actual_zipstore_without_opening(tmp_path):
+    # Arrange: genuine ZipStore class resolution, no constructor or codec call.
+    body = r"""
+from scitex_io._save_modules._zarr import _require_zarr_save
+from zarr.storage import ZipStore
+target = Path.cwd() / 'result.zarr'
+selected = _require_zarr_save(str(target), None, 'zip')
+sys.stdout.write(json.dumps([selected is ZipStore, not target.exists()]))
+"""
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, "", body)
+    # Assert
+    assert (result.returncode, observed) == (0, [True, True]), result.stderr
+
+
+def test_resolved_builtin_readiness_survives_module_cache_removal(tmp_path):
+    # Arrange: actual cached registry callable, without replacing its source/globals.
+    body = r"""
+selected = sio.get_saver('.h5')
+assert selected is not None
+del sys.modules[selected.__module__]
+target = Path.cwd() / 'result.h5'
+target.write_bytes(b'original\n')
+refused = False
+try:
+    sio.save('unused', target, verbose=False)
+except ImportError:
+    refused = True
+sys.stdout.write(json.dumps([refused, target.read_bytes() == b'original\n']))
+"""
+    # Act
+    result, observed = _run_public_preflight_child(tmp_path, "h5py", body)
+    # Assert
+    assert (result.returncode, observed) == (0, [True, True]), result.stderr

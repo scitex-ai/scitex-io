@@ -30,6 +30,7 @@ __FILE__ = __file__
 """Imports"""
 import inspect
 import os as _os
+from types import FunctionType as _FunctionType
 from pathlib import Path
 from typing import Any, Union
 
@@ -164,6 +165,7 @@ def save(
         # DO NOT MODIFY THIS SECTION
         ########################################
         spath, sfname = None, None
+        _cache_dir_to_create = None
 
         # f-expression handling - safely parse f-strings
         if specified_path.startswith('f"') or specified_path.startswith("f'"):
@@ -267,7 +269,7 @@ def save(
                     _os.path.join(_os.path.expanduser("~"), ".scitex"),
                 )
                 sdir = _os.path.join(_scitex_dir, "io", "runtime", "cache")
-                _os.makedirs(sdir, exist_ok=True)
+                _cache_dir_to_create = sdir
                 spath = _os.path.join(sdir, specified_path)
 
             else:
@@ -295,6 +297,27 @@ def save(
 
         spath_final = clean(spath)
         ########################################
+
+        # A dry run resolves the path only: no handler imports, directory
+        # creation, anchor cleanup or destination removal.
+        if dry_run:
+            try:
+                rel_path = _os.path.relpath(spath, _os.getcwd())
+            except ValueError:
+                rel_path = spath
+            if verbose:
+                logger.success(
+                    color_text(f"(dry run) Saved to: ./{rel_path}", "yellow")
+                )
+            return
+
+        # Select once, using the same registry/compound-suffix rules as direct
+        # dispatch. Refuse missing builtin capabilities before touching paths.
+        handler = _resolve_save_handler(spath_final)
+        _preflight_save_handler(handler, spath_final, kwargs)
+        if _cache_dir_to_create is not None:
+            # Retain the historical interactive cache even with makedirs=False.
+            _os.makedirs(_cache_dir_to_create, exist_ok=True)
 
         spath_cwd = _os.getcwd() + "/" + specified_path
         # scitex-io#55: spath_cwd is the LITERAL location of the cwd
@@ -325,21 +348,11 @@ def save(
             for path in [spath_final, spath_cwd]:
                 sh(["rm", "-f", f"{path}"], verbose=False)
 
-        if dry_run:
-            try:
-                rel_path = _os.path.relpath(spath, _os.getcwd())
-            except ValueError:
-                rel_path = spath
-            if verbose:
-                logger.success(
-                    color_text(f"(dry run) Saved to: ./{rel_path}", "yellow")
-                )
-            return
-
         if makedirs:
             _os.makedirs(_os.path.dirname(spath_final), exist_ok=True)
 
-        _save(
+        _execute_save_handler(
+            handler,
             obj,
             spath_final,
             verbose=verbose,
@@ -420,6 +433,19 @@ def _save(
     **kwargs,
 ):
     """Dispatch save to the appropriate handler based on file extension."""
+    handler = _resolve_save_handler(spath)
+    # The image wrapper historically returns before imports on a direct dry run.
+    if handler is not handle_image_with_csv or not dry_run:
+        _preflight_save_handler(handler, spath, kwargs)
+    _execute_save_handler(
+        handler, obj, spath, verbose=verbose,
+        symlink_from_cwd=symlink_from_cwd, dry_run=dry_run, no_csv=no_csv,
+        symlink_to=symlink_to, **kwargs,
+    )
+
+
+def _resolve_save_handler(spath):
+    """Resolve the actual dispatcher callable without serializing or writing."""
     ext = _os.path.splitext(spath)[1].lower()
 
     # Special case: compound extension .pkl.gz
@@ -438,6 +464,56 @@ def _save(
             break
 
     if ext in _IMAGE_EXTS:
+        return handle_image_with_csv
+    handler = get_saver(ext)
+    if handler is None:
+        raise ValueError(
+            f"No save handler registered for '{ext}'.\n"
+            f"scitex-io has a pluggable extension registry — register a saver "
+            f"for this format, then retry. For example:\n\n"
+            f"    from scitex_io import register_saver\n\n"
+            f"    @register_saver('{ext}')\n"
+            f"    def _saver(obj, path, **kwargs):\n"
+            f"        # serialize obj however this format needs, e.g.\n"
+            f"        #   obj.save(path)   # many objects self-serialize\n"
+            f"        ...\n\n"
+            f"    save(obj, path)   # now dispatches to your saver\n\n"
+            f"Inspect built-ins via scitex_io.list_formats(); register_loader() "
+            f"is the load-side twin. Direct form: "
+            f"register_saver('{ext}', your_fn)."
+        )
+    return handler
+
+
+def _preflight_save_handler(handler, spath, kwargs):
+    """Check only the genuinely selected builtin; custom savers stay independent."""
+    # A resolved registry callable keeps its real globals even if a caller
+    # later removes the module-cache entry. Do not import unrelated builtins.
+    namespace = handler.__globals__ if isinstance(handler, _FunctionType) else {}
+    if (
+        namespace.get("__name__") == __package__ + "._save_modules._hdf5"
+        and handler is namespace.get("_save_hdf5")
+    ):
+        namespace["_require_hdf5_save"]()
+    if (
+        namespace.get("__name__") == __package__ + "._save_modules._zarr"
+        and handler is namespace.get("_save_zarr")
+    ):
+        namespace["_require_zarr_save"](
+            spath, kwargs.get("compressor", "zstd"), kwargs.get("store_type", "auto")
+        )
+    if handler is handle_image_with_csv:
+        from ._image_csv_handler import _get_save_image
+
+        _get_save_image()  # resolve imports only; never render as a readiness check
+
+
+def _execute_save_handler(
+    handler, /, obj, spath, verbose=True, symlink_from_cwd=False,
+    dry_run=False, no_csv=False, symlink_to=None, **kwargs,
+):
+    """Execute the already-selected callable, retaining wrapper/output semantics."""
+    if handler is handle_image_with_csv:
         handle_image_with_csv(
             obj,
             spath,
@@ -451,23 +527,6 @@ def _save(
             **kwargs,
         )
     else:
-        handler = get_saver(ext)
-        if handler is None:
-            raise ValueError(
-                f"No save handler registered for '{ext}'.\n"
-                f"scitex-io has a pluggable extension registry — register a saver "
-                f"for this format, then retry. For example:\n\n"
-                f"    from scitex_io import register_saver\n\n"
-                f"    @register_saver('{ext}')\n"
-                f"    def _saver(obj, path, **kwargs):\n"
-                f"        # serialize obj however this format needs, e.g.\n"
-                f"        #   obj.save(path)   # many objects self-serialize\n"
-                f"        ...\n\n"
-                f"    save(obj, path)   # now dispatches to your saver\n\n"
-                f"Inspect built-ins via scitex_io.list_formats(); register_loader() "
-                f"is the load-side twin. Direct form: "
-                f"register_saver('{ext}', your_fn)."
-            )
         handler(obj, spath, **kwargs)
 
     if verbose:

@@ -24,5 +24,9 @@ def _save_joblib(obj, spath):
     -------
     None
     """
+    if joblib is None:
+        raise ImportError(
+            "Joblib serialization requires joblib; install scitex-io[dev]."
+        )
     with open(spath, "wb") as s:
         joblib.dump(obj, s, compress=3)

@@ -975,3 +975,55 @@ def test_validate_migration_dtype_warning(tmp_path):
     # Assert
     # Assert
     assert any("Dtype mismatch" in str(w.message) for w in caught)
+
+
+@pytest.mark.parametrize("missing_dependency", ["h5py", "zarr"])
+def test_cold_helper_import_refuses_before_optional_annotations(missing_dependency, tmp_path):
+    # Arrange: real IO package, then a cold helper import with one absent dependency.
+    import subprocess
+    import sys
+
+    script = """
+import sys
+sys.path[:] = PATHS
+import importlib
+import importlib.abc
+import json
+import scitex_io
+missing = MISSING
+class MissingFeature(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == missing or fullname.startswith(missing + '.'):
+            raise ImportError('controlled missing ' + missing, name=fullname)
+for name in tuple(sys.modules):
+    if name == missing or name.startswith(missing + '.') or name == 'scitex_io.utils' or name.startswith('scitex_io.utils.'):
+        del sys.modules[name]
+sys.meta_path.insert(0, MissingFeature())
+try:
+    importlib.import_module('scitex_io.utils._h5_helpers')
+except ImportError as exc:
+    sys.stdout.write(json.dumps([type(exc).__name__, missing in str(exc)]))
+else:
+    raise AssertionError('missing dependency was advertised as available')
+""".replace("PATHS", repr(sys.path), 1).replace("MISSING", repr(missing_dependency), 1)
+    # Act
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", "-B", "-c", script],
+        cwd=tmp_path, capture_output=True, text=True, timeout=7,
+    )
+    # Assert: ImportError is the public optional-feature refusal, not AttributeError.
+    import json
+
+    assert (result.returncode, json.loads(result.stdout)) == (0, ["ImportError", True])
+
+
+@pytest.mark.parametrize("missing_codec", ["GzipCodec", "ZstdCodec"])
+def test_string_compressor_missing_codec_refuses_before_construction(missing_codec, attr_restore):
+    # Arrange: actual helpers and existing hand-restored optional-attribute seam.
+    import importlib
+
+    helpers = importlib.import_module("scitex_io.utils._h5_helpers")
+    attr_restore.set(helpers, missing_codec, None)
+    # Act / Assert: string lookup still requires both eagerly constructed codecs.
+    with pytest.raises(ImportError, match="GzipCodec and ZstdCodec"):
+        helpers.get_zarr_compressor("zstd")

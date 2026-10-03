@@ -13,13 +13,17 @@ from typing import Any, Optional, Tuple, Union
 
 try:
     import h5py
-except ImportError:  # optional: pip install scitex-io[all]
-    h5py = None
+except ImportError as exc:
+    raise ImportError(
+        "HDF5-to-Zarr helpers require h5py; install scitex-io[scientific]."
+    ) from exc
 import numpy as np
 try:
     import zarr
-except ImportError:  # optional: pip install scitex-io[all]
-    zarr = None
+except ImportError as exc:
+    raise ImportError(
+        "HDF5-to-Zarr helpers require zarr; install scitex-io[scientific]."
+    ) from exc
 
 # zarr v3: BytesBytesCodec instances live in ``zarr.codecs``.
 try:
@@ -50,6 +54,12 @@ def get_zarr_compressor(
     if not isinstance(compressor, str):
         # Already a codec instance or list — pass through.
         return compressor
+
+    if GzipCodec is None or ZstdCodec is None:
+        raise ImportError(
+            "Zarr string compression requires GzipCodec and ZstdCodec; "
+            "install scitex-io[scientific] with Zarr>=3."
+        )
 
     # lz4/blosc have no native zarr v3 codec class — alias to zstd.
     compressor_map = {

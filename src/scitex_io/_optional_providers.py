@@ -113,7 +113,7 @@ def _register_scitex_stats(importer=_import_scitex_stats) -> bool:
             save_stats_bundle,
         )
     except ImportError:  # optional: pip install scitex-io[dev]
-        load_stats_bundle = save_stats_bundle = None
+        return False
 
     def _save_stats_bundle(obj, path, **kwargs):
         # scitex_stats.io.save_stats_bundle takes (data: dict, path).

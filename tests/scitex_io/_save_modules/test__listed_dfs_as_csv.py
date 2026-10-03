@@ -77,7 +77,7 @@ def test_verbose_saved_to_in_captured_out(tmp_path, capsys):
     captured = capsys.readouterr()
     # Assert
     # Assert
-    assert "Saved to" in captured.err
+    assert "Saved to" in captured.out
 
 
 def test_overwrite_stale_not_in_open_p_read(tmp_path):
@@ -93,3 +93,28 @@ def test_overwrite_stale_not_in_open_p_read(tmp_path):
     # Assert
     # Assert
     assert "stale" not in open(p).read()
+
+
+import pytest
+
+
+@pytest.mark.parametrize("level, disabled", [("CRITICAL", False), ("INFO", True)])
+def test_requested_display_survives_logging_threshold_and_disabled_logger(tmp_path, capsys, level, disabled):
+    # Arrange: actual module logger; neither global configuration nor INFO masking.
+    import importlib
+
+    module = importlib.import_module('scitex_io._save_modules._listed_dfs_as_csv')
+    previous = (module.log.level, module.log.disabled)
+    path = str(tmp_path / "visible.csv")
+    capsys.readouterr()
+    try:
+        module.log.setLevel(level)
+        module.log.disabled = disabled
+        # Act
+        _save_listed_dfs_as_csv([pd.DataFrame({"x": [1]})], path, verbose=True)
+        actual = capsys.readouterr().out
+    finally:
+        module.log.setLevel(previous[0])
+        module.log.disabled = previous[1]
+    # Assert: exact requested stdout payload and newline, independent of logger.
+    assert actual == f"Saved to: {path}\n"

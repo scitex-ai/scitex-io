@@ -12,6 +12,8 @@ import random
 import time
 import warnings
 
+import click
+
 # Time-stamp: "2025-06-13 21:00:00 (ywatanabe)"
 
 """HDF5 file explorer for interactive data inspection."""
@@ -49,6 +51,10 @@ class H5Explorer:
             filepath: Path to HDF5 file
             mode: File opening mode ('r' for read, 'r+' for read/write)
         """
+        if h5py is None:
+            raise ImportError(
+                "H5Explorer requires h5py; install scitex-io[scientific]."
+            )
         self.filepath = filepath
         self.mode = mode
         self.file = h5py.File(filepath, mode)
@@ -94,7 +100,7 @@ class H5Explorer:
 
         if isinstance(item, h5py.Group):
             if path != "/":
-                log.info(f"{indent}[{path.split('/')[-1]}]")
+                click.echo(f"{indent}[{path.split('/')[-1]}]", color=True)
             for key in sorted(item.keys()):
                 subpath = f"{path}/{key}".replace("//", "/")
                 self.show(
@@ -105,7 +111,7 @@ class H5Explorer:
             shape = item.shape
             dtype = item.dtype
             size = item.size
-            log.info(f"{indent}{name}: shape={shape}, dtype={dtype}, size={size}")
+            click.echo(f"{indent}{name}: shape={shape}, dtype={dtype}, size={size}", color=True)
 
     def keys(self, path: str = "/") -> List[str]:
         """Get keys at specified path.
@@ -285,6 +291,11 @@ def has_h5_key(h5_path, key, max_retries=3, action_on_corrupted="delete"):
 
     if not os.path.exists(h5_path):
         return False
+
+    if h5py is None:
+        raise ImportError(
+            "has_h5_key requires h5py; install scitex-io[scientific]."
+        )
 
     for attempt in range(max_retries):
         try:

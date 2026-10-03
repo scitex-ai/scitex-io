@@ -29,6 +29,32 @@ import scitex_logging as slogging
 log = slogging.getLogger(__name__)
 
 
+def _require_zarr_save(spath, compressor, store_type):
+    """Resolve required Zarr components without creating a codec or store."""
+    if zarr is None:
+        raise ImportError(
+            "Zarr saving requires zarr; install scitex-io[scientific]."
+        )
+    if isinstance(compressor, str) and (GzipCodec is None or ZstdCodec is None):
+        raise ImportError(
+            "Zarr string compression requires GzipCodec and ZstdCodec; "
+            "install scitex-io[scientific] with Zarr>=3."
+        )
+    if store_type == "zip" or (
+        store_type == "auto" and (spath.endswith(".zip") or spath.endswith(".zarr.zip"))
+    ):
+        try:
+            from zarr.storage import ZipStore
+        except ImportError:  # optional: pip install scitex-io[all]
+            ZipStore = None
+        if ZipStore is None:
+            raise ImportError(
+                "Zarr ZIP saving requires zarr.storage.ZipStore; "
+                "install scitex-io[scientific] with Zarr>=3."
+            )
+        return ZipStore
+
+
 def _save_zarr(
     obj: Any,
     spath: str,
@@ -59,6 +85,8 @@ def _save_zarr(
     consolidate_metadata : bool
         Consolidate metadata to reduce file count (directory stores only)
     """
+    ZipStore = _require_zarr_save(spath, compressor, store_type)
+
     # Convert to dict if needed
     if not isinstance(obj, dict):
         obj = {"data": obj}
@@ -72,12 +100,6 @@ def _save_zarr(
 
     # Create appropriate store
     if store_type == "zip":
-        # Single file ZIP store. Zarr v3 moved this to zarr.storage.
-        try:
-            from zarr.storage import ZipStore
-        except ImportError:  # optional: pip install scitex-io[all]
-            ZipStore = None
-
         store = ZipStore(spath, mode="w")
         root = zarr.open(store, mode="w")
     else:

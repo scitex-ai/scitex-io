@@ -10,6 +10,8 @@ __DIR__ = os.path.dirname(__FILE__)
 
 from typing import Any, List, Optional
 
+import click
+
 try:
     import zarr
 except ImportError:  # optional: pip install scitex-io[all]
@@ -25,6 +27,10 @@ class ZarrExplorer:
     """Interactive Zarr store explorer."""
 
     def __init__(self, storepath: str, mode: str = "r"):
+        if zarr is None:
+            raise ImportError(
+                "ZarrExplorer requires zarr; install scitex-io[scientific]."
+            )
         self.storepath = storepath
         self.mode = mode
         self.store = zarr.open(storepath, mode=mode)
@@ -57,7 +63,7 @@ class ZarrExplorer:
 
         if hasattr(target, "keys"):  # Group
             if path != "/":
-                log.info(f"{indent}[{path.split('/')[-1]}]")
+                click.echo(f"{indent}[{path.split('/')[-1]}]", color=True)
 
             for key in sorted(target.keys()):
                 subpath = f"{path}/{key}".replace("//", "/")
@@ -73,7 +79,7 @@ class ZarrExplorer:
             compressor = getattr(target, "compressor", None)
             compressed_size = getattr(target, "nbytes_stored", "unknown")
 
-            log.info(f"{indent}{name}: shape={shape}, dtype={dtype}, " f"size={size}, compressor={compressor}, " f"compressed_size={compressed_size}")
+            click.echo(f"{indent}{name}: shape={shape}, dtype={dtype}, " f"size={size}, compressor={compressor}, " f"compressed_size={compressed_size}", color=True)
 
     def keys(self, path: str = "/") -> List[str]:
         """Get keys at specified path."""
@@ -107,6 +113,10 @@ def explore_zarr(storepath: str) -> None:
 
 def has_zarr_key(zarr_path: str, key: str) -> bool:
     """Check if key exists in Zarr store (no locking issues!)."""
+    if zarr is None:
+        raise ImportError(
+            "has_zarr_key requires zarr; install scitex-io[scientific]."
+        )
     try:
         store = zarr.open(zarr_path, mode="r")
         _ = store[key.lstrip("/")]

@@ -87,7 +87,7 @@ def test_custom_column_and_suffix_logs_saved_message(tmp_path, capsys):
     # Act
     captured = capsys.readouterr()
     # Assert
-    assert "Saved to" in captured.err
+    assert "Saved to" in captured.out
 
 
 
@@ -104,3 +104,28 @@ def test_overwrite_stale_not_in_text(tmp_path):
     # Assert
     # Assert
     assert "stale" not in text
+
+
+import pytest
+
+
+@pytest.mark.parametrize("level, disabled", [("CRITICAL", False), ("INFO", True)])
+def test_requested_display_survives_logging_threshold_and_disabled_logger(tmp_path, capsys, level, disabled):
+    # Arrange: actual module logger; neither global configuration nor INFO masking.
+    import importlib
+
+    module = importlib.import_module('scitex_io._save_modules._listed_scalars_as_csv')
+    previous = (module.log.level, module.log.disabled)
+    path = str(tmp_path / "visible.csv")
+    capsys.readouterr()
+    try:
+        module.log.setLevel(level)
+        module.log.disabled = disabled
+        # Act
+        _save_listed_scalars_as_csv([1, 2], path, verbose=True)
+        actual = capsys.readouterr().out
+    finally:
+        module.log.setLevel(previous[0])
+        module.log.disabled = previous[1]
+    # Assert: exact requested stdout payload and newline, independent of logger.
+    assert actual == f"\nSaved to: {path}\n\n"

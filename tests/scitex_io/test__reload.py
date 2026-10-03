@@ -6,7 +6,7 @@
 
 Real-collaborator tests: we register a real ``types.ModuleType`` in
 ``sys.modules`` so ``importlib.reload`` is actually invoked, and capture
-its log output via ``capsys`` (.err) to assert the branch that executed.
+requested success output on stdout and diagnostics on stderr via ``capsys``.
 """
 
 import sys
@@ -50,7 +50,7 @@ def test_real_module_reload_verbose_prints_success(real_module, capsys):
     # Act
     reload(mod, verbose=True)
     # Assert
-    assert "Successfully reloaded module" in capsys.readouterr().err
+    assert "Successfully reloaded module" in capsys.readouterr().out
 
 
 def test_real_module_reload_silent_when_verbose_false(real_module, capsys):
@@ -79,7 +79,7 @@ def test_function_reload_uses_function_module_name(real_module, capsys):
     # Act
     reload(fn, verbose=True)
     # Assert
-    out = capsys.readouterr().err
+    out = capsys.readouterr().out
     assert f"Successfully reloaded module: {mod_name}" in out
 
 
@@ -113,7 +113,7 @@ def test_class_reload_uses_class_module_name(real_module, capsys):
     # Act
     reload(TheClass, verbose=True)
     # Assert
-    out = capsys.readouterr().err
+    out = capsys.readouterr().out
     assert f"Successfully reloaded module: {mod_name}" in out
 
 
@@ -171,3 +171,25 @@ def test_reload_real_json_module_does_not_raise():
     reload(json)
     # Assert
     assert sys.modules["json"] is json or hasattr(sys.modules["json"], "loads")
+
+
+@pytest.mark.parametrize("level, disabled", [("CRITICAL", False), ("INFO", True)])
+def test_requested_display_survives_logging_threshold_and_disabled_logger(real_module, capsys, level, disabled):
+    # Arrange: actual module logger; neither global configuration nor INFO masking.
+    import importlib
+
+    module = importlib.import_module('scitex_io._reload')
+    previous = (module.log.level, module.log.disabled)
+    mod_name, mod = real_module
+    capsys.readouterr()
+    try:
+        module.log.setLevel(level)
+        module.log.disabled = disabled
+        # Act
+        reload(mod, verbose=True)
+        actual = capsys.readouterr().out
+    finally:
+        module.log.setLevel(previous[0])
+        module.log.disabled = previous[1]
+    # Assert: exact requested stdout payload and newline, independent of logger.
+    assert actual == f"Successfully reloaded module: {mod_name}\n"

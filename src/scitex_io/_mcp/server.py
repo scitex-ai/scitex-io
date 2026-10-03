@@ -14,8 +14,10 @@ from typing import Any, Dict, Optional
 
 try:
     from fastmcp import FastMCP
-except ImportError:  # optional: pip install scitex-io[all]
-    FastMCP = None
+except ImportError as exc:
+    raise ImportError(
+        "MCP requires fastmcp; install scitex-io[mcp]."
+    ) from exc
 
 mcp = FastMCP(
     name="scitex-io",
