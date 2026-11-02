@@ -16,10 +16,22 @@ generated metadata before requesting an OIDC token. Revalidation includes the
 release tag and promoted source commit. The GitHub release receives the same
 verified wheel and source distribution.
 
-This migration is not yet registered for publication. The IO native profile,
-its complete helper closure and actual immutable-image execution must qualify
-before its central registration and final caller pin are approved. No tag or
-publication is performed by adding these source files.
+The IO native profile is registered in accepted central revision
+`e4bfcdaad61a29b00616222d5503da21f61b55af`, the immutable caller pin in the tag
+workflow. Qualification of source `618e79b88615002cf3264435cf349911be34bb7c`
+used the verified whole E846 image and native runtime: actual Python 3.11.17,
+3.12.15 and 3.13.16 each passed the complete all/dev suite (2,680 passed, seven
+existing skips), first-citation persistence, private-store isolation and guarded
+teardown. The Python 3.12 normal wheel/sdist build, core-wheel dependency check,
+isolated imports and source/metadata/RECORD controls passed on admitted
+compute-03. The earlier compute-04 initdb timeout remains a failed attempt; no
+operation deadline or filesystem was substituted to obtain qualification.
+
+The caller-pin and documentation successor preserves all ten qualified native
+helper bytes. Its own normal CI must still pass before protected-main promotion.
+Registration does not authorize a tag or publication: the existing tag/main
+preflight, source/artifact revalidation and separate OIDC publisher remain
+mandatory. No tag or publication is performed by adding these source files.
 
 
 ### Owned cleanup resource policy
