@@ -69,7 +69,8 @@ def trained_classifier_path(tmp_path, catboost_module):
     X = np.random.rand(100, 5)
     y = np.random.randint(0, 2, 100)
     model = catboost_module.CatBoostClassifier(
-        iterations=10, verbose=False, random_seed=42
+        iterations=10, verbose=False, random_seed=42,
+        train_dir=str(tmp_path / "catboost-training"),
     )
     model.fit(X, y)
     out = tmp_path / "classifier.cbm"
@@ -84,7 +85,8 @@ def trained_regressor_path(tmp_path, catboost_module):
     X = np.random.rand(100, 5)
     y = np.random.rand(100) * 100
     model = catboost_module.CatBoostRegressor(
-        iterations=10, verbose=False, random_seed=42
+        iterations=10, verbose=False, random_seed=42,
+        train_dir=str(tmp_path / "catboost-training"),
     )
     model.fit(X, y)
     out = tmp_path / "regressor.cbm"
@@ -99,7 +101,8 @@ def trained_multiclass_path(tmp_path, catboost_module):
     X = np.random.rand(150, 4)
     y = np.random.randint(0, 3, 150)
     model = catboost_module.CatBoostClassifier(
-        iterations=10, verbose=False, random_seed=42
+        iterations=10, verbose=False, random_seed=42,
+        train_dir=str(tmp_path / "catboost-training"),
     )
     model.fit(X, y)
     out = tmp_path / "multiclass.cbm"
@@ -253,7 +256,7 @@ def test_load_catboost_multiclass_predictions_are_valid_classes(
     # Act
     predictions = loaded.predict(X[:5])
     # Assert
-    assert all(int(pred) in (0, 1, 2) for pred in predictions)
+    assert np.isin(predictions, (0, 1, 2)).all()
 
 
 def test_load_catboost_multiclass_probabilities_have_three_columns(
