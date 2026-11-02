@@ -23,9 +23,10 @@ Usage from an observer
 from __future__ import annotations
 
 import logging
-import scitex_logging as slogging
 from pathlib import Path
 from typing import Any, Callable, List
+
+import scitex_logging as slogging
 
 logger = slogging.getLogger(__name__)
 
@@ -58,6 +59,9 @@ def register_post_load_hook(fn: PostLoadHook) -> None:
 
 def fire_post_save(path: Path, obj: Any, kwargs: dict) -> None:
     """Internal: invoke registered post-save hooks. Never raises."""
+    from scitex_io import _ensure_observers_activated
+
+    _ensure_observers_activated()
     # Diagnosability (auto-provenance incident, 2026-07-04): log the FIRING
     # instance's fingerprint so a single DEBUG smoke pinpoints a dead hook.
     # `count == 0` here while an observer logged a successful registration
@@ -81,6 +85,9 @@ def fire_post_save(path: Path, obj: Any, kwargs: dict) -> None:
 
 def fire_post_load(path: Path, result: Any) -> None:
     """Internal: invoke registered post-load hooks. Never raises."""
+    from scitex_io import _ensure_observers_activated
+
+    _ensure_observers_activated()
     for fn in _post_load_hooks:
         try:
             fn(path, result)

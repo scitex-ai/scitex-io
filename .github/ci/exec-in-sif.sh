@@ -20,6 +20,13 @@ VALUE="$(sha256sum -- "$RUNTIME")"
 for name in GITHUB_RUN_ID GITHUB_RUN_ATTEMPT RELEASE_TAG RELEASE_COMMIT; do
     [ -n "${!name:-}" ] || { echo "::error::missing release context $name" >&2; exit 1; }
 done
+# The reviewed IO profile admits at most four workers per runner service.
+io_worker_env=()
+if [ "$INNER" = run-in-sif.sh ]; then
+    : "${CI_XDIST_WORKERS:?registered IO worker budget required}"
+    [[ "$CI_XDIST_WORKERS" =~ ^[1-4]$ ]]
+    io_worker_env=(--env "CI_XDIST_WORKERS=$CI_XDIST_WORKERS")
+fi
 # The admitted runner owns this root. Bind only our exclusive child as /tmp,
 # keeping large normal all/dev environments off the shared host root disk.
 : "${RUNNER_TEMP:?owned runner temporary parent required}"
@@ -34,6 +41,6 @@ driver_body() {
     "$RUNTIME" exec --cleanenv --pwd "$PWD" --bind "$PWD:$PWD" --bind "$TMPDIR:/tmp" \
         --env "GITHUB_RUN_ID=$GITHUB_RUN_ID" --env "GITHUB_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT" \
         --env "RELEASE_TAG=$RELEASE_TAG" --env "RELEASE_COMMIT=$RELEASE_COMMIT" \
-        "$SIF" bash ".github/ci/$INNER" "$V"
+        "${io_worker_env[@]}" "$SIF" bash ".github/ci/$INNER" "$V"
 }
 run_owned_body
