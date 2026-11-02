@@ -25,7 +25,7 @@ IO
 
 Dependencies
 ------------
-- Hard: `tqdm`, `PyYAML`, `ruamel.yaml`, `mne`, `numpy`, `pandas`,
+- Hard: `tqdm`, `PyYAML`, `ruamel.yaml`, `numpy`, `pandas`,
   `click`, `rich`, `natsort`, `scitex-dev`, `scitex-logging`.
 - Optional (`[scientific]`): `scipy`, `h5py`, `zarr>=3`, `numcodecs`,
   `matplotlib`. (`[mcp]`): `fastmcp`.
@@ -47,20 +47,59 @@ Public symbols load on first attribute access. See
 
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# Version
-# ---------------------------------------------------------------------------
-try:
-    from importlib.metadata import PackageNotFoundError
-    from importlib.metadata import version as _v
+# Observer imports and distribution metadata wait for actual API access.
+# The condition protects state only: provider imports/calls run outside it.
+from threading import Condition as _Condition
+from threading import RLock as _RLock
+from threading import get_ident as _get_ident
 
+_OBSERVER_CONDITION = _Condition(_RLock())
+_OBSERVERS_READY = False
+_OBSERVERS_OWNER = None
+
+
+def _resolve_version():
+    with _OBSERVER_CONDITION:
+        value = globals().get("__version__")
+        if isinstance(value, str):
+            return value
+        try:
+            from importlib.metadata import PackageNotFoundError, version
+
+            try:
+                value = version("scitex-io")
+            except PackageNotFoundError:
+                value = "0.0.0+local"
+        except ImportError:
+            value = "0.0.0+local"
+        globals()["__version__"] = value
+        return value
+
+
+def _ensure_observers_activated():
+    """Serialize first IO while keeping provider imports outside our lock."""
+    global _OBSERVERS_READY, _OBSERVERS_OWNER
+    owner = _get_ident()
+    with _OBSERVER_CONDITION:
+        while _OBSERVERS_OWNER is not None and not _OBSERVERS_READY:
+            if _OBSERVERS_OWNER == owner:
+                return
+            _OBSERVER_CONDITION.wait()
+        if _OBSERVERS_READY:
+            return
+        _OBSERVERS_OWNER = owner
     try:
-        __version__ = _v("scitex-io")
-    except PackageNotFoundError:
-        __version__ = "0.0.0+local"
-    del _v, PackageNotFoundError
-except ImportError:  # pragma: no cover — only on ancient Pythons
-    __version__ = "0.0.0+local"
+        _activate_observers()
+    except BaseException:
+        with _OBSERVER_CONDITION:
+            _OBSERVERS_OWNER = None
+            _OBSERVER_CONDITION.notify_all()
+        raise
+    else:
+        with _OBSERVER_CONDITION:
+            _OBSERVERS_READY = True
+            _OBSERVERS_OWNER = None
+            _OBSERVER_CONDITION.notify_all()
 
 
 # ---------------------------------------------------------------------------
@@ -191,6 +230,12 @@ def _ensure_builtin_handlers_registered() -> None:
 
 def __getattr__(name: str):
     """PEP 562 lazy-loader: import on first access, cache, return."""
+    if name == "__version__":
+        return _resolve_version()
+    if (name in _LAZY_ATTRS or name in _OPTIONAL_ATTRS) and _LAZY_ATTRS.get(
+        name
+    ) != "._observers":
+        _ensure_observers_activated()
     # Built-in handlers must be registered before any registry-facing call
     # (save/load/list_formats/get_saver/…). The observer hook-registry
     # functions (mapped to ``._observers``) are registry-INDEPENDENT, so
@@ -210,43 +255,27 @@ def __getattr__(name: str):
 
 
 def __dir__() -> list[str]:
-    return sorted(set(_LAZY_ATTRS) | set(_OPTIONAL_ATTRS) | set(globals()))
+    return sorted(
+        set(_LAZY_ATTRS) | set(_OPTIONAL_ATTRS) | set(globals()) | {"__version__"}
+    )
 
 
 def _activate_observers(observers=None) -> None:
-    """Activate post-save/load observers registered by OTHER packages under
-    the ``scitex_io.observers`` entry-point group — WITHOUT importing them.
+    """Invoke generic observer registrars discovered through entry points.
 
-    ``observers`` is an optional iterable of ``(name, 0-arg registrar)`` pairs
-    for explicit injection (and unit testing); when ``None`` it is discovered
-    from the ``scitex_io.observers`` entry-point group via
-    ``_discover_observer_registrars()``.
+    Provider modules are loaded through their registered metadata, never named
+    by scitex-io. Normal activation runs once before first public IO access or
+    event dispatch. Neutral register_post_* APIs do not activate providers, so
+    provider import-time registration remains reentrant and caller registration
+    order stays literal. Automatic providers follow this deferred timing.
 
-    R6 (observer self-registration) let a package like scitex-clew call
-    ``register_post_save_hook`` from its own module, but that only ran if
-    the user's script IMPORTED that package. The clean provenance idiom
-    (``@stx.session.start`` + ``stx.io.save`` with no explicit clew calls)
-    imports scitex_io + scitex_session but NOT scitex_clew, so clew's
-    io-observer subscription never activated → ``on_io_save`` had no
-    subscriber → ``file_hashes`` stayed empty (auto-provenance incident,
-    2026-07-04). This scan closes that gap: on ``import scitex_io`` we
-    discover each observer's 0-arg registrar via entry-point METADATA and
-    call it, so the subscription self-activates from importing scitex_io
-    alone. scitex_io NEVER imports its observers by name — acyclicity holds
-    (discovery is via importlib.metadata, dependency direction unchanged).
-
-    Contract (``scitex_io.observers`` group): each entry point loads to a
-    ZERO-ARG callable returning ``bool`` (True registered / False skipped).
-    It self-registers via ``register_post_save_hook`` / ``register_post_
-    load_hook`` and MUST be idempotent (a package's own import-time
-    bootstrap may also call it during rollout). A registrar that raises or
-    returns False is LOGGED (never silent, never fatal to the import).
-    Cheap: accessing ``register_post_save_hook`` is registry-independent
-    (see ``__getattr__``), so this does NOT pull in format handlers.
+    Explicit ``observers`` injection remains available for direct activation.
+    Registrars are zero-argument, idempotent callables returning bool; failures
+    are logged and isolated so a broken observer does not break ordinary IO.
     """
-    import logging
+    import scitex_logging as slogging
 
-    log = logging.getLogger(__name__)
+    log = slogging.getLogger(__name__)
     if observers is None:
         observers = _discover_observer_registrars()
     for name, registrar in observers:
@@ -269,9 +298,9 @@ def _discover_observer_registrars() -> list:
     """Load ``(name, 0-arg registrar)`` pairs from the ``scitex_io.observers``
     entry-point group. A registrar that fails to *load* is logged and skipped
     (never fatal to the import)."""
-    import logging
+    import scitex_logging as slogging
 
-    log = logging.getLogger(__name__)
+    log = slogging.getLogger(__name__)
     try:
         from importlib.metadata import entry_points
     except ImportError:  # pragma: no cover
@@ -293,9 +322,8 @@ def _discover_observer_registrars() -> list:
     return registrars
 
 
-# Activate registered observers at import time (once per process). This is
-# the ONLY eager work `import scitex_io` does beyond version resolution.
-_activate_observers()
+# Activation occurs once before public IO access/event dispatch, never on a
+# bare import. Provider packages remain discovered through the neutral SPI.
 
 
 __all__ = [

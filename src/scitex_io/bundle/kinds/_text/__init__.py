@@ -15,7 +15,10 @@ Structure:
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    try:
+        from matplotlib.axes import Axes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Axes = None
 
 
 def render_text(

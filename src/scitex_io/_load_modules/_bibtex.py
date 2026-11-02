@@ -18,17 +18,11 @@ returning structured data that can be used by other SciTeX modules.
 
 import re
 
-try:
-    import scitex_logging as logging
+import scitex_logging as slogging
 
-    SCITEX_LOGGING_AVAILABLE = True
-except ImportError:
-    import logging
-
-    SCITEX_LOGGING_AVAILABLE = False
 from typing import List, Dict, Any
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 def _load_bibtex(lpath: str, **kwargs) -> List[Dict[str, Any]]:

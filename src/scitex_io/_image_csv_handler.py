@@ -29,9 +29,18 @@ def _get_save_image():
 
 def _get_figure_with_data(obj):
     """Extract figure/axes object that may contain plotting data for CSV export."""
-    import matplotlib.axes
-    import matplotlib.figure
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.axes
+    except ImportError:  # optional: pip install scitex-io[all]
+        matplotlib = None
+    try:
+        import matplotlib.figure
+    except ImportError:  # optional: pip install scitex-io[all]
+        matplotlib = None
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:  # optional: pip install scitex-io[all]
+        plt = None
 
     if hasattr(obj, "export_as_csv"):
         return obj
@@ -84,8 +93,14 @@ def _save_separate_legends(obj, spath, symlink_from_cwd=False, dry_run=False, **
     if dry_run:
         return
 
-    import matplotlib.figure
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.figure
+    except ImportError:  # optional: pip install scitex-io[all]
+        matplotlib = None
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:  # optional: pip install scitex-io[all]
+        plt = None
 
     fig = None
     if isinstance(obj, matplotlib.figure.Figure):

@@ -46,7 +46,10 @@ except ImportError:  # noqa: PERF203
 
 
 if TYPE_CHECKING:
-    from matplotlib.figure import Figure as MplFigure
+    try:
+        from matplotlib.figure import Figure as MplFigure
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        MplFigure = None
 
 
 class Bundle:
@@ -332,7 +335,10 @@ class Bundle:
 
     def _render_composite(self) -> Optional["MplFigure"]:
         """Render composite figure with children."""
-        import figrecipe as splt
+        try:
+            import figrecipe as splt
+        except ImportError:  # optional: pip install scitex-io[all]
+            splt = None
 
         size_mm = (
             self._spec.size_mm.to_dict()
@@ -373,7 +379,10 @@ class Bundle:
         if self._encoding is None:
             return None
 
-        import figrecipe as splt
+        try:
+            import figrecipe as splt
+        except ImportError:  # optional: pip install scitex-io[all]
+            splt = None
 
         size_mm = (
             self._spec.size_mm.to_dict()
@@ -425,7 +434,10 @@ class Bundle:
 
     def _render_annotation(self) -> Optional["MplFigure"]:
         """Render annotation (text/shape) from spec parameters."""
-        import figrecipe as splt
+        try:
+            import figrecipe as splt
+        except ImportError:  # optional: pip install scitex-io[all]
+            splt = None
 
         size_mm = (
             self._spec.size_mm.to_dict()
@@ -483,7 +495,10 @@ class Bundle:
 
     def _render_image(self) -> Optional["MplFigure"]:
         """Render image from payload."""
-        import figrecipe as splt
+        try:
+            import figrecipe as splt
+        except ImportError:  # optional: pip install scitex-io[all]
+            splt = None
         import numpy as np
 
         size_mm = (
@@ -503,7 +518,10 @@ class Bundle:
             if self.storage.exists(path):
                 from io import BytesIO
 
-                from PIL import Image
+                try:
+                    from PIL import Image
+                except ImportError:  # optional: pip install scitex-io[dev]
+                    Image = None
 
                 img_bytes = self.storage.read(path)
                 img = Image.open(BytesIO(img_bytes))
@@ -697,8 +715,14 @@ class Bundle:
                     source_hash=source_hash,
                     theme_hash=theme_hash,
                 )
-                import matplotlib.pyplot as plt
-                from matplotlib.figure import Figure as MplFigure
+                try:
+                    import matplotlib.pyplot as plt
+                except ImportError:  # optional: pip install scitex-io[all]
+                    plt = None
+                try:
+                    from matplotlib.figure import Figure as MplFigure
+                except ImportError:  # optional: pip install scitex-io[all]
+                    MplFigure = None
 
                 # Handle FigWrapper from scitex.plt
                 if isinstance(fig, MplFigure):

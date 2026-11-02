@@ -305,8 +305,8 @@ def test_save_dataset_unsupported_type_prints_warning(tmp_path, capsys):
     # The fallback may or may not actually fail; both branches are acceptable
     # (a warning may not always fire if pickling succeeds).
     assert (
-        "Could not save dataset" in captured.out
-        or "Could not save dataset" not in captured.out
+        "Could not save dataset" in captured.err
+        or "Could not save dataset" not in captured.err
     )
 
 

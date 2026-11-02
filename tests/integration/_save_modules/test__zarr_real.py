@@ -185,7 +185,7 @@ class TestSaveZarrDirectoryStore:
         captured = capsys.readouterr()
         # Assert
         # Assert
-        assert "Saved to Zarr" in captured.out
+        assert "Saved to Zarr" in captured.err
 
 
 class TestSaveZarrZipStore:

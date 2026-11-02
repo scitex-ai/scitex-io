@@ -29,6 +29,10 @@ from typing import TYPE_CHECKING, Optional
 
 from .._validator import ValidationResult, validate_latex
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from scitex_io.bundle import Bundle as FTS
 
@@ -492,7 +496,10 @@ class LaTeXEditor:
         """
         # Lazy flask import so ``import scitex.io`` does not require
         # flask. See module docstring and ywatanabe1989/todo#441.
-        from flask import Flask  # noqa: PLC0415
+        try:
+            from flask import Flask  # noqa: PLC0415
+        except ImportError:  # optional: pip install scitex-io[all]
+            Flask = None
 
         self.latex_code = latex_code
         self.bundle = bundle
@@ -506,11 +513,14 @@ class LaTeXEditor:
         """Setup Flask routes."""
         # Lazy flask imports so ``import scitex.io`` does not require
         # flask. See module docstring and ywatanabe1989/todo#441.
-        from flask import (  # noqa: PLC0415
-            jsonify,
-            render_template_string,
-            request,
-        )
+        try:
+            from flask import (  # noqa: PLC0415
+                jsonify,
+                render_template_string,
+                request,
+            )
+        except ImportError:  # optional: pip install scitex-io[all]
+            jsonify = render_template_string = request = None
 
         @self.app.route("/")
         def index():
@@ -659,7 +669,10 @@ class LaTeXEditor:
         @self.app.route("/preview")
         def preview():
             if self._compiled_pdf and self._compiled_pdf.exists():
-                from flask import send_file
+                try:
+                    from flask import send_file
+                except ImportError:  # optional: pip install scitex-io[all]
+                    send_file = None
 
                 return send_file(self._compiled_pdf, mimetype="application/pdf")
             return "No preview available", 404
@@ -682,7 +695,7 @@ class LaTeXEditor:
         port = _find_available_port(port)
 
         url = f"http://127.0.0.1:{port}"
-        print(f"LaTeX Editor running at {url}")
+        log.info(f"LaTeX Editor running at {url}")
 
         if open_browser:
             webbrowser.open(url)

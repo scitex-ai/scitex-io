@@ -304,7 +304,10 @@ def validate_spec(
         if "axes" in spec and not isinstance(spec["axes"], (dict, list)):
             errors.append("'axes' must be a dictionary or list")
     elif bundle_type == BundleType.STATS:
-        from scitex_stats.io import validate_stats_spec
+        try:
+            from scitex_stats.io import validate_stats_spec
+        except ImportError:  # optional: pip install scitex-io[dev]
+            validate_stats_spec = None
 
         errors.extend(validate_stats_spec(spec))
     else:
@@ -459,7 +462,10 @@ def load(path: Union[str, Path], in_memory: bool = True) -> Dict[str, Any]:
 
         result.update(load_plot_bundle(bundle_dir))
     elif bundle_type == BundleType.STATS:
-        from scitex_stats.io import load_stats_bundle
+        try:
+            from scitex_stats.io import load_stats_bundle
+        except ImportError:  # optional: pip install scitex-io[dev]
+            load_stats_bundle = None
 
         result.update(load_stats_bundle(bundle_dir))
 
@@ -560,7 +566,10 @@ def save(
 
         save_plot_bundle(data, dir_path)
     elif bundle_type == BundleType.STATS:
-        from scitex_stats.io import save_stats_bundle
+        try:
+            from scitex_stats.io import save_stats_bundle
+        except ImportError:  # optional: pip install scitex-io[dev]
+            save_stats_bundle = None
 
         save_stats_bundle(data, dir_path)
     else:

@@ -15,8 +15,14 @@ Structure:
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.patches import Patch
+    try:
+        from matplotlib.axes import Axes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Axes = None
+    try:
+        from matplotlib.patches import Patch
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Patch = None
 
 
 def render_shape(
@@ -70,8 +76,14 @@ def render_shape(
     Patch or None
         The created matplotlib patch, or None for lines
     """
-    from matplotlib.lines import Line2D
-    from matplotlib.patches import Circle, Ellipse, FancyArrowPatch, Rectangle
+    try:
+        from matplotlib.lines import Line2D
+    except ImportError:  # optional: pip install scitex-io[all]
+        Line2D = None
+    try:
+        from matplotlib.patches import Circle, Ellipse, FancyArrowPatch, Rectangle
+    except ImportError:  # optional: pip install scitex-io[all]
+        Circle = Ellipse = FancyArrowPatch = Rectangle = None
 
     patch_kwargs = {
         "linewidth": linewidth,

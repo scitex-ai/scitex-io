@@ -13,6 +13,29 @@ import tempfile
 
 import pytest
 
+# Store safety must be established before test modules can fire IO callbacks.
+# Load the same stdlib-only resource guard used by the native PG wrapper.
+import importlib.util as _guard_import
+from pathlib import Path as _GuardPath
+
+_guard_path = _GuardPath(__file__).resolve().parents[1] / ".github/ci/io_test_store.py"
+_guard_spec = _guard_import.spec_from_file_location("_io_test_store_guard", _guard_path)
+_guard_module = _guard_import.module_from_spec(_guard_spec)
+_guard_spec.loader.exec_module(_guard_module)
+_IO_STORE_GUARD = _guard_module.protect_suite_store(os.environ)
+
+# scitex-logging defaults to WARN, which silences the log.info/log.debug
+# status output the package now emits (PS-220: print -> scitex-logging).
+# Tests asserting on that output read capsys `.err`, so the INFO level
+# must be on for the whole session.
+os.environ.setdefault("SCITEX_LOGGING_LEVEL", "INFO")
+try:
+    import scitex_logging as _slogging
+
+    _slogging.set_level("INFO")
+except Exception:  # pragma: no cover - logging must never break collection
+    pass
+
 
 @pytest.fixture
 def tmp_dir():

@@ -4,7 +4,10 @@
 
 """JPEG metadata embedding using EXIF ImageDescription field."""
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:  # optional: pip install scitex-io[dev]
+    Image = None
 
 
 def embed_metadata_jpeg(image_path: str, metadata_json: str) -> None:

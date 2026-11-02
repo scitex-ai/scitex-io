@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    try:
+        from matplotlib.axes import Axes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Axes = None
 
     from ..._fig._dataclasses import TraceEncoding
 
@@ -24,7 +27,10 @@ def extract_scatter_data(ax: "Axes", ax_idx: int) -> Dict[str, np.ndarray]:
     Returns:
         Dict mapping column names to data arrays
     """
-    from matplotlib.collections import PathCollection
+    try:
+        from matplotlib.collections import PathCollection
+    except ImportError:  # optional: pip install scitex-io[all]
+        PathCollection = None
 
     data = {}
     scatter_idx = 0
@@ -52,7 +58,10 @@ def build_scatter_traces(ax: "Axes", ax_idx: int) -> List["TraceEncoding"]:
     Returns:
         List of TraceEncoding objects
     """
-    from matplotlib.collections import PathCollection
+    try:
+        from matplotlib.collections import PathCollection
+    except ImportError:  # optional: pip install scitex-io[all]
+        PathCollection = None
 
     from ..._fig._dataclasses import ChannelEncoding, TraceEncoding
 

@@ -16,10 +16,10 @@ Utility classes and functions for PDF loading.
 """
 
 import hashlib
-import logging
+import scitex_logging as slogging
 import re
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Optional library availability flags

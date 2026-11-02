@@ -16,6 +16,11 @@ import numpy as np
 
 from .._path_modules._mv_to_tmp import _mv_to_tmp
 
+import click
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def _save_listed_dfs_as_csv(
     listed_dfs,
@@ -50,7 +55,7 @@ def _save_listed_dfs_as_csv(
             f_writer = csv.writer(f)
             f_writer.writerow([""])
     if verbose:
-        print("Saved to: {}".format(spath_csv))
+        click.echo("Saved to: {}".format(spath_csv), color=True)
 
 
 # EOF

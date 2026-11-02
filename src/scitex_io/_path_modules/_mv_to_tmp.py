@@ -5,6 +5,10 @@
 
 from shutil import move
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def _mv_to_tmp(fpath, L=2, *, move_fn=None, tmp_dir="/tmp"):
     """Move ``fpath`` into ``tmp_dir`` joining the last ``L`` path components.
@@ -19,7 +23,7 @@ def _mv_to_tmp(fpath, L=2, *, move_fn=None, tmp_dir="/tmp"):
         tgt_fname = "-".join(fpath.split("/")[-L:])
         tgt_fpath = "{}/{}".format(tmp_dir, tgt_fname)
         move_fn(fpath, tgt_fpath)
-        print("Moved to: {}".format(tgt_fpath))
+        log.info("Moved to: {}".format(tgt_fpath))
     except Exception:
         pass
 

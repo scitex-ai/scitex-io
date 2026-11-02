@@ -2,7 +2,7 @@
 # File: ./src/scitex/vis/backend/render.py
 """Render figure models to matplotlib figures using scitex.plt."""
 
-import logging
+import scitex_logging as slogging
 from typing import Any, Dict
 
 import numpy as np
@@ -10,7 +10,7 @@ import numpy as np
 from .._models import AnnotationModel, AxesModel, FigureModel, GuideModel, PlotModel
 from ._parser import parse_figure_json
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 def render_figure(fig_model: FigureModel):

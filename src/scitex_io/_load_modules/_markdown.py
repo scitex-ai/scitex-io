@@ -37,8 +37,14 @@ def _load_markdown(lpath_md, style="plain_text", **kwargs):
     This function uses the 'markdown' library to convert Markdown to HTML,
     and 'html2text' to convert HTML to plain text when necessary.
     """
-    import html2text
-    import markdown
+    try:
+        import html2text
+    except ImportError:  # optional: pip install scitex-io[dev]
+        html2text = None
+    try:
+        import markdown
+    except ImportError:  # optional: pip install scitex-io[dev]
+        markdown = None
 
     # Load Markdown content from a file
     with open(lpath_md, "r") as file:
@@ -74,8 +80,14 @@ def load_markdown(lpath_md, style="plain_text"):
     str
         The converted content of the Markdown file.
     """
-    import html2text
-    import markdown
+    try:
+        import html2text
+    except ImportError:  # optional: pip install scitex-io[dev]
+        html2text = None
+    try:
+        import markdown
+    except ImportError:  # optional: pip install scitex-io[dev]
+        markdown = None
 
     # Load Markdown content from a file
     with open(lpath_md, "r") as file:

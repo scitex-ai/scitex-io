@@ -11,7 +11,10 @@ OPTUNA_AVAILABLE = optuna is not None
 
 
 def save_optuna_study_as_csv_and_pngs(study, sdir):
-    import optuna
+    try:
+        import optuna
+    except ImportError:  # optional: pip install scitex-io[all]
+        optuna = None
 
     from .._save import save
 

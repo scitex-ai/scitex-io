@@ -7,7 +7,10 @@
 import json
 from typing import Any, Dict, Optional
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:  # optional: pip install scitex-io[dev]
+    Image = None
 
 
 def read_metadata_png(image_path: str) -> Optional[Dict[str, Any]]:

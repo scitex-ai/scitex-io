@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Tests for import-time observer activation (the ``scitex_io.observers`` scan).
+"""Tests for explicit observer activation (the ``scitex_io.observers`` scan).
 
 Per SOC.md R6: scitex-io discovers observer registrars via the
-``scitex_io.observers`` entry-point group and calls each on import, so a
-subscriber (e.g. scitex-clew) self-activates from ``import scitex_io`` alone
+``scitex_io.observers`` entry-point group and activates before first IO access/event, so a
+subscriber (e.g. scitex-clew) self-activates from ordinary scitex_io save/load calls
 without scitex-io ever importing it by name. ``_activate_observers`` takes the
 registrars as a parameter (real dependency injection — no fixture patches
 production internals); these tests pass hand-rolled ``(name, registrar)``

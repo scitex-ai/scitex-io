@@ -22,6 +22,10 @@ from ._load_cache import (
     load_npy_cached,
 )
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def load(
     lpath: Union[str, Path],
@@ -118,7 +122,7 @@ def _load_impl(
     if isinstance(lpath, Path):
         lpath = str(lpath)
         if verbose:
-            print(f"[DEBUG] After Path conversion: {lpath}")
+            log.debug(f"[DEBUG] After Path conversion: {lpath}")
 
     # Check if it's a glob pattern
     if "*" in lpath or "?" in lpath or "[" in lpath:
@@ -161,7 +165,7 @@ def _load_impl(
         cached_data = get_cached_data(lpath)
         if cached_data is not None:
             if verbose:
-                print(f"[Cache HIT] Loaded from cache: {lpath}")
+                log.info(f"[Cache HIT] Loaded from cache: {lpath}")
             return cached_data
 
     # Determine extension: use explicit ext parameter or detect from filename
@@ -214,7 +218,7 @@ def _load_impl(
         if cache:
             cache_data(lpath, result)
             if verbose:
-                print(f"[Cache STORED] Cached data for: {lpath}")
+                log.info(f"[Cache STORED] Cached data for: {lpath}")
 
         return result
     except (ValueError, FileNotFoundError) as e:

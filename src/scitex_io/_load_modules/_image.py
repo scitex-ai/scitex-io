@@ -5,7 +5,10 @@
 
 from typing import Any
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:  # optional: pip install scitex-io[dev]
+    Image = None
 
 
 def _load_image(lpath: str, **kwargs) -> Any:

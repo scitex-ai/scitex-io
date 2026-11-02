@@ -45,12 +45,12 @@ def _require_stats_dataclasses():
     Deferred so importing this module never hard-depends on scitex_stats.
     """
     mod = try_import_optional(
-        "scitex_stats._dataclasses", extra="stats", pkg="scitex-io"
+        "scitex_stats._dataclasses", extra="all", pkg="scitex-io"
     )
     if mod is None:
         raise ImportError(
             "scitex_stats is required for .stats.zip bundle integration; "
-            "install with `pip install scitex-io[stats]`."
+            "install with `pip install scitex-io[all]`."
         )
     return mod
 

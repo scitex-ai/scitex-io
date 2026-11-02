@@ -3,6 +3,10 @@
 # Time-stamp: "2024-11-02 16:57:29 (ywatanabe)"
 # File: ./scitex_repo/src/scitex/io/_save_mp4.py
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def _mk_mp4(fig, spath_mp4):
     """Create an MP4 animation from a matplotlib figure.
@@ -16,7 +20,10 @@ def _mk_mp4(fig, spath_mp4):
     ``scitex.io.save(dict, "out.json")`` who had no business needing
     matplotlib.
     """
-    from matplotlib import animation  # lazy: see todo#443
+    try:
+        from matplotlib import animation  # lazy: see todo#443
+    except ImportError:  # optional: pip install scitex-io[all]
+        animation = None
 
     axes = fig.get_axes()
 
@@ -34,7 +41,7 @@ def _mk_mp4(fig, spath_mp4):
 
     writermp4 = animation.FFMpegWriter(fps=60, extra_args=["-vcodec", "libx264"])
     anim.save(spath_mp4, writer=writermp4)
-    print("\nSaving to: {}\n".format(spath_mp4))
+    log.info("\nSaving to: {}\n".format(spath_mp4))
 
 
 # EOF

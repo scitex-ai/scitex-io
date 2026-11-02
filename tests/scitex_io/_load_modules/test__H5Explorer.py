@@ -156,7 +156,7 @@ def test_h5explorer_keys_dataset_returns_empty_list(sample_h5):
 
 
 def test_h5explorer_show_prints_dataset_name(sample_h5):
-    """``show()`` includes a dataset's name in stdout."""
+    """``show()`` includes a dataset's name on stdout."""
     # Arrange
     buf = io.StringIO()
     # Act
@@ -167,7 +167,7 @@ def test_h5explorer_show_prints_dataset_name(sample_h5):
 
 
 def test_h5explorer_show_prints_top_dataset_name(sample_h5):
-    """``show()`` includes top-level dataset names in stdout."""
+    """``show()`` includes top-level dataset names on stdout."""
     # Arrange
     buf = io.StringIO()
     # Act
@@ -621,3 +621,60 @@ def test_delete_corrupted_entry_returns_true_for_present_key(tmp_path):
     result = _delete_corrupted_entry(str(p), "present")
     # Assert
     assert result is True
+
+
+@pytest.mark.parametrize(
+    ("level", "disabled"),
+    [("INFO", False), ("WARNING", False), ("CRITICAL", False), ("WARNING", True)],
+    ids=["info", "warning", "critical", "disabled"],
+)
+def test_h5explorer_show_stdout_is_exact_and_level_independent(
+    sample_h5, capsys, level, disabled
+):
+    """Explicit show output is data/display, independent of its diagnostic logger."""
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io._load_modules._H5Explorer")
+    old_level, old_disabled = module.log.level, module.log.disabled
+    module.log.setLevel(level)
+    module.log.disabled = disabled
+    # Act
+    try:
+        with H5Explorer(sample_h5) as explorer:
+            result = explorer.show("/group1/ints", indent="..")
+        output = capsys.readouterr()
+    finally:
+        module.log.setLevel(old_level)
+        module.log.disabled = old_disabled
+    # Assert
+    assert (output.out, output.err, result) == (
+        "..ints: shape=(10,), dtype=int32, size=10\n", "", None
+    )
+
+
+def test_h5explorer_missing_h5py_refuses_constructor(tmp_path, attr_restore):
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io._load_modules._H5Explorer")
+    attr_restore.set(module, "h5py", None)
+    target = tmp_path / "absent.h5"
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="H5Explorer requires h5py"):
+        module.H5Explorer(str(target), mode="w")
+
+
+def test_has_h5_key_missing_h5py_refuses_existing_path(tmp_path, attr_restore):
+    # Arrange
+    import importlib
+
+    module = importlib.import_module("scitex_io._load_modules._H5Explorer")
+    target = tmp_path / "existing.h5"
+    target.write_bytes(b"dependency-refusal-fixture")
+    attr_restore.set(module, "h5py", None)
+    # Act
+    # Assert
+    with pytest.raises(ImportError, match="has_h5_key requires h5py"):
+        module.has_h5_key(str(target), "group")

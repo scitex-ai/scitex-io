@@ -113,7 +113,7 @@ def test_load_study_rdb_prints_loaded_message(tmp_path, capsys):
     s.optimize(lambda t: t.suggest_float("x", -1, 1) ** 2, n_trials=3)
     # Act
     load_study_rdb("t", url)
-    out = capsys.readouterr().out
+    out = capsys.readouterr().err
     # Assert
     assert "Loaded" in out
 

@@ -629,3 +629,36 @@ def test_io_skills_get_when_path_raises_returns_success_false(attr_restore):
 
 
 # EOF
+
+
+def test_missing_fastmcp_preserves_friendly_cli_import_refusal(tmp_path):
+    # Arrange: import the genuine CLI with only the optional feature import refused.
+    import subprocess
+    import sys
+
+    script = """
+import sys
+sys.path[:] = PATHS
+import importlib
+import importlib.abc
+import json
+from click.testing import CliRunner
+from scitex_io._cli._mcp import mcp
+class MissingFastMCP(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'fastmcp' or fullname.startswith('fastmcp.'):
+            raise ImportError('controlled missing fastmcp', name=fullname)
+for name in tuple(sys.modules):
+    if name == 'fastmcp' or name.startswith('fastmcp.') or name == 'scitex_io._mcp.server':
+        del sys.modules[name]
+sys.meta_path.insert(0, MissingFastMCP())
+result = CliRunner().invoke(mcp, ['start', '--yes'])
+sys.stdout.write(json.dumps([result.exit_code, 'MCP not available.' in result.output, 'scitex-io[mcp]' in result.output]))
+""".replace("PATHS", repr(sys.path), 1)
+    # Act: absent FastMCP prevents reaching the server run call.
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", "-B", "-c", script],
+        cwd=tmp_path, capture_output=True, text=True, timeout=7,
+    )
+    # Assert
+    assert (result.returncode, json.loads(result.stdout)) == (0, [1, True, True])

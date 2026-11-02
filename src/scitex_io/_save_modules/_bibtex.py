@@ -16,18 +16,12 @@ This module provides functionality to save data in BibTeX format,
 supporting both individual entries and collections.
 """
 
-try:
-    import scitex_logging as logging
+import scitex_logging as slogging
 
-    SCITEX_LOGGING_AVAILABLE = True
-except ImportError:
-    import logging
-
-    SCITEX_LOGGING_AVAILABLE = False
 from typing import List, Dict, Any, Union
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 def save_bibtex(obj: Union[Dict, List[Dict]], spath: str, **kwargs) -> None:

@@ -10,6 +10,10 @@ from ._yaml import _load_yaml
 optuna = try_import_optional("optuna", extra="optuna", pkg="scitex-io")
 OPTUNA_AVAILABLE = optuna is not None
 
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
 
 def load_yaml_as_an_optuna_dict(fpath_yaml, trial):
     """
@@ -77,11 +81,14 @@ def load_study_rdb(study_name, rdb_raw_bytes_url):
     ...     rdb_raw_bytes_url="sqlite:///path/to/your/study.db"
     ... )
     """
-    import optuna
+    try:
+        import optuna
+    except ImportError:  # optional: pip install scitex-io[all]
+        optuna = None
 
     storage = optuna.storages.RDBStorage(url=rdb_raw_bytes_url)
     study = optuna.load_study(study_name=study_name, storage=storage)
-    print(f"\nLoaded: {rdb_raw_bytes_url}\n")
+    log.info(f"\nLoaded: {rdb_raw_bytes_url}\n")
     return study
 
 

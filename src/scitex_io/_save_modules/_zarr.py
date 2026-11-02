@@ -12,11 +12,47 @@ __DIR__ = os.path.dirname(__FILE__)
 from typing import Any, Optional
 
 import numpy as np
-import zarr
+try:
+    import zarr
+except ImportError:  # optional: pip install scitex-io[all]
+    zarr = None
 
 # Zarr v3 deprecated direct numcodecs codecs in `Group.create_array`;
 # use zarr's modern codec classes instead.
-from zarr.codecs import GzipCodec, ZstdCodec  # noqa: E402
+try:
+    from zarr.codecs import GzipCodec, ZstdCodec  # noqa: E402
+except ImportError:  # optional: pip install scitex-io[all]
+    GzipCodec = ZstdCodec = None
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
+
+
+def _require_zarr_save(spath, compressor, store_type):
+    """Resolve required Zarr components without creating a codec or store."""
+    if zarr is None:
+        raise ImportError(
+            "Zarr saving requires zarr; install scitex-io[scientific]."
+        )
+    if isinstance(compressor, str) and (GzipCodec is None or ZstdCodec is None):
+        raise ImportError(
+            "Zarr string compression requires GzipCodec and ZstdCodec; "
+            "install scitex-io[scientific] with Zarr>=3."
+        )
+    if store_type == "zip" or (
+        store_type == "auto" and (spath.endswith(".zip") or spath.endswith(".zarr.zip"))
+    ):
+        try:
+            from zarr.storage import ZipStore
+        except ImportError:  # optional: pip install scitex-io[all]
+            ZipStore = None
+        if ZipStore is None:
+            raise ImportError(
+                "Zarr ZIP saving requires zarr.storage.ZipStore; "
+                "install scitex-io[scientific] with Zarr>=3."
+            )
+        return ZipStore
 
 
 def _save_zarr(
@@ -49,6 +85,8 @@ def _save_zarr(
     consolidate_metadata : bool
         Consolidate metadata to reduce file count (directory stores only)
     """
+    ZipStore = _require_zarr_save(spath, compressor, store_type)
+
     # Convert to dict if needed
     if not isinstance(obj, dict):
         obj = {"data": obj}
@@ -62,9 +100,6 @@ def _save_zarr(
 
     # Create appropriate store
     if store_type == "zip":
-        # Single file ZIP store. Zarr v3 moved this to zarr.storage.
-        from zarr.storage import ZipStore
-
         store = ZipStore(spath, mode="w")
         root = zarr.open(store, mode="w")
     else:
@@ -171,13 +206,11 @@ def _save_zarr(
     if store_type == "directory" and consolidate_metadata:
         try:
             zarr.consolidate_metadata(spath)
-            print(
-                f"✅ Saved to Zarr (consolidated): {spath}" + (f"/{key}" if key else "")
-            )
+            log.info(f"✅ Saved to Zarr (consolidated): {spath}" + (f"/{key}" if key else ""))
         except:
-            print(f"✅ Saved to Zarr: {spath}" + (f"/{key}" if key else ""))
+            log.info(f"✅ Saved to Zarr: {spath}" + (f"/{key}" if key else ""))
     else:
-        print(f"✅ Saved to Zarr ({store_type}): {spath}" + (f"/{key}" if key else ""))
+        log.info(f"✅ Saved to Zarr ({store_type}): {spath}" + (f"/{key}" if key else ""))
 
 
 # EOF

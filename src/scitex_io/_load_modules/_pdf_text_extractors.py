@@ -15,7 +15,7 @@ __DIR__ = os.path.dirname(__FILE__)
 Text extraction functions for PDF loading.
 """
 
-import logging
+import scitex_logging as slogging
 from typing import Any, Dict, List
 
 # Module-level handles so tests can `mock.patch(<module>.fitz)` etc.
@@ -33,7 +33,7 @@ pdfplumber = try_import_optional("pdfplumber")
 # pypdf is the maintained successor to PyPDF2 (drop-in for PdfReader).
 PyPDF2 = try_import_optional("pypdf")
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------

@@ -3,7 +3,10 @@
 # Timestamp: "2025-05-16 12:28:15 (ywatanabe)"
 # File: /data/gpfs/projects/punim2354/ywatanabe/scitex_repo/src/scitex/io/_save_modules/_matlab.py
 
-import scipy.io
+try:
+    import scipy.io
+except ImportError:  # optional: pip install scitex-io[all]
+    scipy = None
 
 
 def _save_matlab(obj, spath):

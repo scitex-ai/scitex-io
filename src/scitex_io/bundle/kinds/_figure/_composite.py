@@ -19,8 +19,14 @@ import io
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes as MplAxes
-    from matplotlib.figure import Figure as MplFigure
+    try:
+        from matplotlib.axes import Axes as MplAxes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        MplAxes = None
+    try:
+        from matplotlib.figure import Figure as MplFigure
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        MplFigure = None
 
     from .._bundle._FTS import FTS
     from ._dataclasses import Theme
@@ -47,8 +53,14 @@ def render_composite(
     Returns:
         (figure, geometry_data)
     """
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:  # optional: pip install scitex-io[all]
+        plt = None
+    try:
+        from matplotlib.gridspec import GridSpec
+    except ImportError:  # optional: pip install scitex-io[all]
+        GridSpec = None
 
     # Default size
     if size_mm is None:
@@ -161,7 +173,10 @@ def _render_leaf_in_axes(
     """
     import io
 
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:  # optional: pip install scitex-io[all]
+        plt = None
 
     geometry = {"elements": []}
 

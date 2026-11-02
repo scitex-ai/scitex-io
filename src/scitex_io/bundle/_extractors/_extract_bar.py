@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    try:
+        from matplotlib.axes import Axes
+    except ImportError:  # optional: pip install scitex-io[scientific]
+        Axes = None
 
     from ..._fig._dataclasses import TraceEncoding
 
@@ -55,7 +58,10 @@ def extract_bar_data(ax: "Axes", ax_idx: int) -> Dict[str, np.ndarray]:
     Returns:
         Dict mapping column names to data arrays
     """
-    from matplotlib.patches import Rectangle
+    try:
+        from matplotlib.patches import Rectangle
+    except ImportError:  # optional: pip install scitex-io[all]
+        Rectangle = None
 
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
@@ -84,7 +90,10 @@ def extract_bar_data(ax: "Axes", ax_idx: int) -> Dict[str, np.ndarray]:
 
 def count_valid_bars(ax: "Axes") -> int:
     """Count valid bar rectangles in axes."""
-    from matplotlib.patches import Rectangle
+    try:
+        from matplotlib.patches import Rectangle
+    except ImportError:  # optional: pip install scitex-io[all]
+        Rectangle = None
 
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()

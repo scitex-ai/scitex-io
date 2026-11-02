@@ -22,7 +22,7 @@ This module provides advanced PDF extraction for scientific papers, including:
 - Multiple extraction modes for different use cases
 """
 
-import logging
+import scitex_logging as slogging
 import tempfile
 from typing import Any, Dict
 
@@ -55,7 +55,7 @@ from ._pdf_content_extractors import (
 )
 from ._pdf_text_extractors import _extract_pages, _extract_text
 
-logger = logging.getLogger(__name__)
+logger = slogging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------

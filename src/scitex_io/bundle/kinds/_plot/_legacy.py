@@ -130,9 +130,9 @@ def save_plot_bundle(data: Dict[str, Any], dir_path: Path) -> None:
 
         generate_bundle_overview(dir_path, spec, data, basename)
     except Exception as e:
-        import logging
+        import scitex_logging as slogging
 
-        logging.getLogger("scitex").debug(f"Could not generate overview: {e}")
+        slogging.getLogger("scitex").debug(f"Could not generate overview: {e}")
 
 
 def _save_exports(data: Dict[str, Any], dir_path: Path, basename: str = "plot") -> None:

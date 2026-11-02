@@ -11,14 +11,31 @@ Migrated to zarr v3 API:
 import warnings
 from typing import Any, Optional, Tuple, Union
 
-import h5py
+try:
+    import h5py
+except ImportError as exc:
+    raise ImportError(
+        "HDF5-to-Zarr helpers require h5py; install scitex-io[scientific]."
+    ) from exc
 import numpy as np
-import zarr
+try:
+    import zarr
+except ImportError as exc:
+    raise ImportError(
+        "HDF5-to-Zarr helpers require zarr; install scitex-io[scientific]."
+    ) from exc
 
 # zarr v3: BytesBytesCodec instances live in ``zarr.codecs``.
-from zarr.codecs import GzipCodec, ZstdCodec
+try:
+    from zarr.codecs import GzipCodec, ZstdCodec
+except ImportError:  # optional: pip install scitex-io[all]
+    GzipCodec = ZstdCodec = None
 
 from ._compat import SciTeXIOError, warn_data_loss
+
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 
 def get_zarr_compressor(
@@ -37,6 +54,12 @@ def get_zarr_compressor(
     if not isinstance(compressor, str):
         # Already a codec instance or list — pass through.
         return compressor
+
+    if GzipCodec is None or ZstdCodec is None:
+        raise ImportError(
+            "Zarr string compression requires GzipCodec and ZstdCodec; "
+            "install scitex-io[scientific] with Zarr>=3."
+        )
 
     # lz4/blosc have no native zarr v3 codec class — alias to zstd.
     compressor_map = {
@@ -143,7 +166,7 @@ def migrate_dataset(
         return _migrate_object_dataset(h5_dataset, zarr_parent, name, compressor, shape)
 
     if show_progress and shape and np.prod(shape) > 1e6:
-        print(f"  Migrating large dataset '{name}' {shape} {dtype}...")
+        log.info(f" Migrating large dataset '{name}' {shape} {dtype}...")
 
     # Translate to zarr v3 chunk argument.
     z_chunks = _normalize_chunks(dataset_chunks if chunks is not True else True, shape)
@@ -289,10 +312,10 @@ def migrate_group(
                 item, zarr_parent, key, compressor, chunks, show_progress
             )
             if result is None:
-                print(f"  Warning: Skipped corrupted dataset '{key}'")
+                log.warning(f" Warning: Skipped corrupted dataset '{key}'")
         elif isinstance(item, h5py.Group):
             if show_progress and _level < 2:
-                print(f"{'  ' * _level}Migrating group '{key}'...")
+                log.info(f"{' ' * _level}Migrating group '{key}'...")
             zarr_subgroup = zarr_parent.create_group(key)
             migrate_group(
                 item, zarr_subgroup, compressor, chunks, show_progress, _level + 1
@@ -341,4 +364,4 @@ def validate_migration(
     validate_item(h5_file, zarr_store)
 
     if show_progress:
-        print("  Validation passed")
+        log.info(" Validation passed")

@@ -28,6 +28,7 @@
   <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-io/pytest-matrix-on-ubuntu-py3-11-3-12-3-13.yml?branch=develop&label=tests" alt="tests"></a>
   <a href="https://github.com/ywatanabe1989/scitex-io/actions/workflows/import-smoke-on-ubuntu-py3-12.yml"><img src="https://img.shields.io/github/actions/workflow/status/ywatanabe1989/scitex-io/import-smoke-on-ubuntu-py3-12.yml?branch=develop&label=install-check" alt="install-check"></a>
   <a href="https://codecov.io/gh/ywatanabe1989/scitex-io"><img src="https://img.shields.io/codecov/c/github/ywatanabe1989/scitex-io/develop?label=cov" alt="cov"></a>
+  <a href='https://scitex-io.readthedocs.io/en/latest/'><img src='https://img.shields.io/readthedocs/scitex-io?label=docs' alt='Read the Docs'></a>
 </p>
 <!-- scitex-badges:end -->
 
@@ -114,6 +115,11 @@ assert sio.load("data.custom") == "hello"
 
 </details>
 
+`import scitex_io` keeps metadata and observer providers lazy. Automatic
+provenance observers activate before the first IO access/event; manual hook
+registration preserves actual callback registration order. See
+[the native release contract](docs/native-release.md) for qualification details.
+
 ## Installation
 
 ```bash
@@ -164,6 +170,8 @@ flowchart LR
     B -->|.bib .pdf .docx ...| J[30+ handlers]
     B -.->|register_*| K[Custom format]
 ```
+
+<sub><b>Figure 1.</b> Extension-based dispatch: <code>save()</code>/<code>load()</code> resolve the handler from the file extension via the plugin registry.</sub>
 
 ### 2. `save(obj, out.ext)` in `/path/to/script.py` → `/path/to/script_out/out.ext`
 

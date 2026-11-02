@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scitex-io"
-version = "0.4.1"
+version = "0.4.2"
 description = "Universal scientific data I/O with plugin registry"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -105,6 +105,12 @@ db = [
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "pytest-xdist>=3.0.0",
+    "build>=1.0",
+    "hatchling",
+    "catboost",
+    "scitex-dev>=0.62.7",  # public owned PostgreSQL testing SPI
+    "scitex-clew==0.21.0",  # actual observer consumer integration controls
     "matplotlib",
     "plotly",
     "Pillow",
@@ -206,6 +212,10 @@ library_dirs = ["src", "tests", "examples"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "smoke: fast (<60s) subprocess-driven CLI happy-path tests",
+    "e2e: end-to-end workflows against real subsystems (gate: RUN_E2E=1)",
+]
 addopts = "-v --tb=short"
 # Dump every thread's stack if a test runs longer than 120s. Pytest
 # never finishes silently — if something deadlocks (waiting on torch

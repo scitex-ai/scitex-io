@@ -5,7 +5,10 @@
 
 from typing import Any
 
-import joblib
+try:
+    import joblib
+except ImportError:  # optional: pip install scitex-io[dev]
+    joblib = None
 
 
 def _load_joblib(lpath: str, **kwargs) -> Any:
