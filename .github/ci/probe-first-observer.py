@@ -3,16 +3,24 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import json
 import os
 import signal
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from scitex_dev.store.testing import ephemeral_cluster_dsn
+_guard_path = Path(__file__).resolve().with_name("io_test_store.py")
+_guard_spec = importlib.util.spec_from_file_location(
+    "_io_test_store_guard", _guard_path
+)
+_guard = importlib.util.module_from_spec(_guard_spec)
+_guard_spec.loader.exec_module(_guard)
+
 
 CHILD = r"""
 import ctypes
@@ -88,6 +96,14 @@ sys.stdout.write(json.dumps({"first_save_real_clew_ledger": True,
 """
 
 
+def live_process_birth(pid):
+    try:
+        fields = Path(f"/proc/{pid}/stat").read_text().rsplit(") ", 1)[1].split()
+    except FileNotFoundError:
+        return None
+    return None if fields[0] in {"Z", "X"} else fields[19]
+
+
 def interrupted(signum, _frame):
     raise SystemExit(128 + signum)
 
@@ -101,15 +117,16 @@ def main(arguments):
         raise SystemExit(
             "usage: probe-first-observer.py [--first-event] -- COMMAND [ARGS...]"
         )
-    # Ignore any configured host/replica DSN: this fixture only mints its own.
-    for name in tuple(os.environ):
-        if name.startswith("PG") or name in {"SCITEX_STORE_DSN", "SCITEX_CARDS_DB"}:
-            os.environ.pop(name, None)
+    # Never leave a store-aware tooling import with an unset/ambient DSN.
+    # Only command children receive the subsequently minted live PG context.
+    refusal = _guard.force_unavailable_store(os.environ)
     os.environ["PGPORT"] = "5432"
     handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
     for sig in handlers:
         signal.signal(sig, interrupted)
     try:
+        from scitex_dev.store.testing import ephemeral_cluster_dsn
+
         with contextlib.ExitStack() as owned:
             authfile = owned.enter_context(
                 tempfile.NamedTemporaryFile(prefix="io-pgpass-")
@@ -127,6 +144,12 @@ def main(arguments):
             project = owned.enter_context(
                 tempfile.TemporaryDirectory(prefix="io-first-observer-")
             )
+            with (socket_directory.parent / "data/postmaster.pid").open() as identity:
+                postmaster_pid = int(identity.readline().strip())
+            postmaster_birth = live_process_birth(postmaster_pid)
+            if postmaster_birth is None:
+                raise RuntimeError("private PG postmaster is not live")
+            scope = "owned-io-" + uuid.uuid4().hex
             environment = {
                 **os.environ,
                 "SCITEX_STORE_DSN": dsn,
@@ -134,8 +157,16 @@ def main(arguments):
                 "PGUSER": "postgres",
                 "PGDATABASE": "postgres",
                 "SCITEX_CARDS_DB": dsn,
-                "SCITEX_CLEW_PROJECT": "owned-first-io-probe",
+                "SCITEX_CLEW_PROJECT": scope,
+                "SCITEX_IO_TEST_PG_REQUIRED": "1",
+                "SCITEX_IO_TEST_PG_DSN": dsn,
+                "SCITEX_IO_TEST_PG_ROOT": str(socket_directory.parent),
+                "SCITEX_IO_TEST_PG_ROOT_ID": _guard.directory_identity(
+                    socket_directory.parent
+                ),
+                "SCITEX_IO_TEST_PG_SCOPE": scope,
             }
+            _guard.validate_private_environment(environment)
             try:
                 if first_event:
                     subprocess.run(
@@ -156,10 +187,16 @@ def main(arguments):
                     signal.signal(sig, signal.SIG_IGN)
         if socket_directory.exists():
             raise RuntimeError("private PG socket survived teardown")
-        sys.stdout.write(json.dumps({"private_pg_teardown": True}) + "\n")
+        if live_process_birth(postmaster_pid) == postmaster_birth:
+            raise RuntimeError("owned private PG postmaster survived teardown")
+        sys.stdout.write(
+            json.dumps({"private_pg_teardown": True, "owned_postmaster_not_live": True})
+            + "\n"
+        )
     finally:
         for sig, handler in handlers.items():
             signal.signal(sig, handler)
+        refusal.cleanup()
 
 
 if __name__ == "__main__":

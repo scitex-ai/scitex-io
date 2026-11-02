@@ -87,3 +87,19 @@ the required org-CPU label. No runner configuration was changed. Qualification
 uses the same declared budget of four, while ordinary repository CI retains its
 own caller configuration. Test selection, coverage and operation deadlines stay
 unchanged.
+
+
+### Ordinary pytest store guard
+
+Before test modules load, ordinary/local pytest replaces inherited store
+configuration with an owned, unavailable Unix-socket target and an empty owned
+password file; no host/fleet default is contacted. This does not claim database
+persistence coverage. Explicit per-test private fixtures can still override
+that configuration. The native mandatory PG wrapper instead supplies a live
+private context for first-citation and whole-suite persistence checks.
+
+The shared stdlib-only guard validates native context markers against the
+actual root's device/inode/UID/mode, owned live Unix socket, exact DSN/process
+routing, empty password file and isolated scope. An invalid expected context
+fails visibly; there is no fallback or skip. The guard is part of the pinned
+native helper source closure.
