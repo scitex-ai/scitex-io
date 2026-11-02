@@ -6,6 +6,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 CONTEXT = ROOT / ".github/ci/release-context.sh"
 EXECUTOR = ROOT / ".github/ci/exec-in-sif.sh"
@@ -95,3 +97,46 @@ def test_native_wrapper_requires_verified_image_and_runtime_context():
     )
     # Assert
     assert result.returncode != 0 and "SCITEX_CI_SIF" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("entries", "allocated", "expected"),
+    [
+        (10000, 1073741824, "10"),
+        (10001, 0, "60"),
+        (113918, 16009404416, "60"),
+        (200000, 34359738368, "60"),
+    ],
+)
+def test_reviewed_cleanup_budget_bounds(entries, allocated, expected):
+    # Arrange
+    body = f'printf "BUDGET=%s\\n" "$(owned_cleanup_budget {entries} {allocated})"'
+    # Act
+    result = run_body(body)
+    # Assert
+    assert f"BUDGET={expected}" in result.stdout and result.returncode == 0
+
+
+@pytest.mark.parametrize(("entries", "allocated"), [(200001, 0), (1, 34359738369)])
+def test_cleanup_budget_refuses_unreviewed_size(entries, allocated):
+    # Arrange
+    body = f"owned_cleanup_budget {entries} {allocated}"
+    # Act
+    result = run_body(body)
+    # Assert
+    assert result.returncode != 0
+
+
+def test_cleanup_survey_counts_directory_entries():
+    # Arrange
+    body = """python3 - <<'PYTHON'
+import os
+from pathlib import Path
+root = Path(os.environ["TMPDIR"])
+for index in range(10001):
+    (root / str(index)).mkdir()
+PYTHON"""
+    # Act
+    result = run_body(body)
+    # Assert
+    assert result.returncode == 0 and "budget_seconds=60" in result.stderr

@@ -18,6 +18,37 @@ owned_birth() {
     printf '%s' "${20}"
 }
 
+# IO's full all/dev environment is a reviewed large job-temp class. This is
+# a filesystem cleanup budget, independent of product/kernel test deadlines.
+owned_cleanup_budget() {
+    local entries="$1" allocated="$2"
+    [[ "$entries" =~ ^[0-9]+$ && "$allocated" =~ ^[0-9]+$ ]] || return 1
+    if (( entries <= 10000 && allocated <= 1073741824 )); then
+        printf '10'
+    elif (( entries <= 200000 && allocated <= 34359738368 )); then
+        printf '60'
+    else
+        return 1
+    fi
+}
+
+owned_cleanup_plan() {
+    local metrics='' survey_status=0 entries='' allocated='' budget=''
+    metrics="$(/usr/bin/timeout 10s /usr/bin/find "$OWNED_TMPDIR" -xdev -printf '%b\n' |
+        awk '{entries++; allocated+=$1*512} END {printf "%.0f %.0f", entries, allocated}')" || survey_status=$?
+    if [ "$survey_status" -ne 0 ]; then
+        echo "::error::owned cleanup survey failed (status=$survey_status); root retained" >&2
+        return 1
+    fi
+    read -r entries allocated <<< "$metrics"
+    budget="$(owned_cleanup_budget "$entries" "$allocated")" || {
+        echo "::error::owned cleanup exceeds reviewed profile (entries=$entries allocated_bytes=$allocated); root retained" >&2
+        return 1
+    }
+    echo "owned cleanup: entries=$entries allocated_bytes=$allocated budget_seconds=$budget" >&2
+    printf '%s' "$budget"
+}
+
 cleanup_owned_tmp() {
     local result=$? cleanup_result=0 current_id='' attempt=0
     trap - EXIT INT TERM
@@ -38,13 +69,28 @@ cleanup_owned_tmp() {
         current_id="$(stat -c '%d:%i:%u:%a' -- "$OWNED_TMPDIR" 2>/dev/null)" || cleanup_result=1
         if [ "$cleanup_result" -eq 0 ] && [ ! -L "$OWNED_TMPDIR" ] && [ -d "$OWNED_TMPDIR" ] &&
            [ -n "$OWNED_TMP_ID" ] && [ "$current_id" = "$OWNED_TMP_ID" ]; then
-            /usr/bin/timeout --signal=TERM --kill-after=2s 10s \
-                /usr/bin/rm -rf --one-file-system -- "$OWNED_TMPDIR" || cleanup_result=$?
+            local cleanup_budget='' removal_started=0
+            if cleanup_budget="$(owned_cleanup_plan)"; then
+                # Surveying may take time. Recheck the exact root immediately
+                # before removal; no metadata/content inspection relaxes ownership.
+                current_id="$(stat -c '%d:%i:%u:%a' -- "$OWNED_TMPDIR" 2>/dev/null)" || cleanup_result=1
+                if [ "$cleanup_result" -eq 0 ] && [ ! -L "$OWNED_TMPDIR" ] &&
+                   [ "$current_id" = "$OWNED_TMP_ID" ]; then
+                    removal_started=$SECONDS
+                    /usr/bin/timeout --signal=TERM --kill-after=2s "${cleanup_budget}s" \
+                        /usr/bin/rm -rf --one-file-system -- "$OWNED_TMPDIR" || cleanup_result=$?
+                    echo "owned cleanup: removal_status=$cleanup_result elapsed_seconds=$((SECONDS-removal_started))" >&2
+                else
+                    cleanup_result=1
+                fi
+            else
+                cleanup_result=1
+            fi
         else
             cleanup_result=1
         fi
         if [ "$cleanup_result" -ne 0 ]; then
-            echo "::error::owned temporary cleanup refused or failed" >&2
+            echo "::error::owned temporary cleanup refused or failed (status=$cleanup_result expected=$OWNED_TMP_ID actual=$current_id)" >&2
             [ "$result" -ne 0 ] || result=1
         fi
     fi

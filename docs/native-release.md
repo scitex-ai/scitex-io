@@ -20,3 +20,21 @@ This migration is not yet registered for publication. The IO native profile,
 its complete helper closure and actual immutable-image execution must qualify
 before its central registration and final caller pin are approved. No tag or
 publication is performed by adding these source files.
+
+
+### Owned cleanup resource policy
+
+The normal complete `.[all,dev]` environment measured 113,918 regular files
+and about 16.0 GB allocated on the E846 image. The former ten-second deletion
+budget returned status 124 with the exact root identity unchanged; tests had
+passed. This is a filesystem cleanup limit, separate from product, kernel and
+test subprocess deadlines.
+
+IO now surveys **all entries, including directories**, and allocated blocks
+without following links or crossing filesystems, with a ten-second survey bound.
+Reviewed roots with at most 10,000 entries and 1 GiB keep a ten-second removal
+budget. Roots with at most 200,000 entries and 32 GiB receive sixty seconds.
+Unknown or larger roots are retained and fail the job; there is no automatic
+extension beyond this profile. The inode, UID, mode, symlink, process-birth,
+child-group and one-filesystem guards remain, and root identity is checked again
+after the survey. Both survey/removal failure evidence survives outer cleanup.
