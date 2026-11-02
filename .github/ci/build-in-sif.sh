@@ -1,69 +1,39 @@
 #!/usr/bin/env bash
-# Runs INSIDE the reused scitex-ci SIF (apptainer exec — invoked via
-# exec-in-sif.sh). Builds scitex-io's wheel + sdist into ./dist/.
-#
-# WHY build in the SIF: the self-hosted Spartan runner has no Python on the
-# bare node (the whole reason the old `actions/setup-python@v5` step failed:
-# "version 3.x not found for this OS"). The SIF bakes python 3.11/3.12/3.13 +
-# pip + uv at /opt/venv-<ver>, exactly like the working pytest-matrix CI.
-#
-# `python -m build` needs the `build` frontend, which is NOT baked in the SIF
-# (only scitex-dev[all,dev] deps are). Mirror run-in-sif.sh: install `build`
-# into a writable --target on node-local /tmp and put it on PYTHONPATH. The
-# SIF's /opt/venv-* are root-owned + RO and the compute-node HOME is RO inside
-# the container, so a normal install fails Permission denied — a --target on
-# writable scratch sidesteps both.
-#
-# Fail-loud (operator directive): a missing interpreter or a failed build is a
-# HARD error, never a silent fallback.
+# Whole source distribution and wheel, plus isolated actual-wheel imports.
 set -euo pipefail
-
 V="${1:-3.12}"
-VENV="/opt/venv-$V"
-PY="$VENV/bin/python"
-test -x "$PY" || {
-    echo "::error::baked python missing in $VENV — rebuild the SIF: scitex-container apptainer build ci-cpu"
-    exit 1
-}
-
+[ "$V" = 3.12 ]
+PY="/opt/venv-$V/bin/python"
+test -x "$PY"
+: "${GITHUB_RUN_ID:?}" "${GITHUB_RUN_ATTEMPT:?}" "${RELEASE_TAG:?}" "${RELEASE_COMMIT:?}"
 export LC_ALL=C.UTF-8 LANG=C.UTF-8
+export PATH="/opt/venv-$V/bin:$PATH"
+SCRATCH_PREFIX="/tmp/io-build-$V-"
+source .github/ci/release-context.sh
 
-# Writable scratch (the runner's TMPDIR=~/.cache/tmp is a host path that does
-# NOT resolve inside the container). Node-local /tmp is writable + ephemeral.
-TMPDIR="/tmp/build-scitex_io-${GITHUB_RUN_ID:-0}-${GITHUB_RUN_ATTEMPT:-0}-$V"
-export TMPDIR
-rm -rf "$TMPDIR"
-mkdir -p "$TMPDIR/site" "$TMPDIR/uv-cache"
-
-# The compute-node $HOME is RO inside the container — point every cache the
-# installer might touch at the writable scratch (else uv/pip die creating
-# ~/.cache).
-export UV_CACHE_DIR="$TMPDIR/uv-cache"
-export XDG_CACHE_HOME="$TMPDIR"
-export PIP_CACHE_DIR="$TMPDIR/pip-cache"
-
-# A VIRTUAL_ENV leaked from the runner profile (~/.env-3.11) is a broken
-# symlink in here; unset it so no tool follows it.
-unset VIRTUAL_ENV || true
-
-export PATH="$VENV/bin:$PATH"
-echo "build: py=$("$PY" -V) target=$TMPDIR/site"
-
-# Install the PEP 517 build frontend into the writable target (uv fast path,
-# pip safety net), then build with it. Clean dist/ first so only the freshly
-# built artifacts are uploaded.
-uv pip install --python "$PY" --target="$TMPDIR/site" build ||
-    "$PY" -m pip install --target="$TMPDIR/site" build
-
-export PYTHONPATH="$TMPDIR/site${PYTHONPATH:+:$PYTHONPATH}"
-
-rm -rf dist
-"$PY" -m build --outdir dist
-
-echo "=== built artifacts ==="
-ls -l dist
-# fail-loud: refuse to continue the pipeline with an empty dist/.
-test -n "$(ls -A dist 2>/dev/null)" || {
-    echo "::error::python -m build produced no artifacts in dist/"
-    exit 1
+driver_body() {
+    [ ! -e dist ] && [ ! -L dist ] || { echo '::error::stale release output refused' >&2; exit 1; }
+    "$PY" -m venv "$TMPDIR/build-venv"
+    local build_python="$TMPDIR/build-venv/bin/python"
+    uv pip install --python "$build_python" build hatchling
+    "$build_python" -m build --no-isolation --outdir dist
+    local wheels=(dist/*.whl)
+    [ "${#wheels[@]}" -eq 1 ] && [ -f "${wheels[0]}" ]
+    "$PY" -m venv "$TMPDIR/wheel-venv"
+    local wheel_python="$TMPDIR/wheel-venv/bin/python"
+    uv pip install --python "$wheel_python" "${wheels[0]}"
+    "$wheel_python" -m pip check
+    "$wheel_python" -I - "$TMPDIR/wheel-venv" <<'PY'
+from pathlib import Path
+import sys
+import scitex_io
+from scitex_io._save_modules._yaml import _save_yaml
+from scitex_io._observers import register_post_save_hook
+root=Path(sys.argv[1]).resolve()
+assert Path(scitex_io.__file__).resolve().is_relative_to(root)
+assert callable(_save_yaml) and callable(register_post_save_hook)
+print('Actual isolated whole IO wheel imports passed')
+PY
+    "$PY" -I .github/ci/release-identity.py write-proof --tag "$RELEASE_TAG" --commit "$RELEASE_COMMIT"
 }
+run_owned_body

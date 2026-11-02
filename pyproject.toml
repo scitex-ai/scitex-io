@@ -105,6 +105,10 @@ db = [
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "pytest-xdist>=3.0.0",
+    "build>=1.0",
+    "hatchling",
+    "catboost",
     "matplotlib",
     "plotly",
     "Pillow",
