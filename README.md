@@ -115,6 +115,11 @@ assert sio.load("data.custom") == "hello"
 
 </details>
 
+`import scitex_io` keeps metadata and observer providers lazy. Automatic
+provenance observers activate before the first IO access/event; manual hook
+registration preserves actual callback registration order. See
+[the native release contract](docs/native-release.md) for qualification details.
+
 ## Installation
 
 ```bash

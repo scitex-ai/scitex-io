@@ -1036,6 +1036,12 @@ def _run_public_preflight_child(tmp_path, missing, body):
 
     prefix = """
 import sys
+import time
+_t0 = time.monotonic()
+def _phase(name):
+    sys.stderr.write(f"CHILD_PHASE {name} seconds={time.monotonic()-_t0:.6f} mono={time.monotonic():.6f}" + chr(10))
+    sys.stderr.flush()
+_phase("python-entered")
 sys.path[:] = PATHS
 import importlib.abc
 import json
@@ -1044,7 +1050,9 @@ from pathlib import Path
 missing = MISSING
 if missing in ('zarr.codecs', 'zarr.storage'):
     # Keep genuine core Zarr available; refuse only the requested component.
+    _phase("before-zarr")
     import zarr
+    _phase("after-zarr")
     for module_name in tuple(sys.modules):
         if module_name == missing or module_name.startswith(missing + '.'):
             del sys.modules[module_name]
@@ -1053,18 +1061,32 @@ class MissingBackend(importlib.abc.MetaPathFinder):
         if missing and (fullname == missing or fullname.startswith(missing + '.')):
             raise ImportError('controlled missing backend: ' + fullname, name=fullname)
 sys.meta_path.insert(0, MissingBackend())
+_phase("before-scitex-io")
 import scitex_io as sio
+_phase("after-scitex-io")
 assert Path(sio.__file__).resolve() == Path(EXPECTED_SOURCE)
 """
     script = prefix.replace("PATHS", repr(sys.path), 1)
     script = script.replace("MISSING", repr(missing), 1)
     script = script.replace("EXPECTED_SOURCE", repr(str(Path(sio.__file__).resolve())), 1)
     script += "\n" + _textwrap.dedent(body)
-    result = _subproc.run(
-        [_sys_module.executable, "-I", "-S", "-B", "-c", script],
-        cwd=tmp_path, capture_output=True, text=True, timeout=7,
-        env={**_os_module.environ, "SCITEX_DIR": str(tmp_path / "state")},
-    )
+    import time as _phase_time
+
+    _phase_parent_start = _phase_time.monotonic()
+    try:
+        result = _subproc.run(
+            [_sys_module.executable, "-I", "-S", "-B", "-c", script],
+            cwd=tmp_path, capture_output=True, text=True, timeout=7,
+            env={**_os_module.environ, "SCITEX_DIR": str(tmp_path / "state")},
+        )
+    except _subproc.TimeoutExpired as observed_timeout:
+        sys.stderr.write(
+            f"IO_TEST_PARENT_PHASE start_mono={_phase_parent_start:.6f} "
+            f"elapsed={_phase_time.monotonic()-_phase_parent_start:.6f}\n"
+        )
+        captured = observed_timeout.stderr or b""
+        sys.stderr.write(captured.decode() if isinstance(captured, bytes) else captured)
+        raise
     return result, json.loads(result.stdout or "null")
 
 

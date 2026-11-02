@@ -985,11 +985,19 @@ def test_cold_helper_import_refuses_before_optional_annotations(missing_dependen
 
     script = """
 import sys
+import time
+_t0 = time.monotonic()
+def _phase(name):
+    sys.stderr.write(f"CHILD_PHASE {name} seconds={time.monotonic()-_t0:.6f} mono={time.monotonic():.6f}" + chr(10))
+    sys.stderr.flush()
+_phase("python-entered")
 sys.path[:] = PATHS
 import importlib
 import importlib.abc
 import json
+_phase("before-scitex-io")
 import scitex_io
+_phase("after-scitex-io")
 missing = MISSING
 class MissingFeature(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
@@ -1007,10 +1015,22 @@ else:
     raise AssertionError('missing dependency was advertised as available')
 """.replace("PATHS", repr(sys.path), 1).replace("MISSING", repr(missing_dependency), 1)
     # Act
-    result = subprocess.run(
-        [sys.executable, "-I", "-S", "-B", "-c", script],
-        cwd=tmp_path, capture_output=True, text=True, timeout=7,
-    )
+    import time as _phase_time
+
+    _phase_parent_start = _phase_time.monotonic()
+    try:
+        result = subprocess.run(
+            [sys.executable, "-I", "-S", "-B", "-c", script],
+            cwd=tmp_path, capture_output=True, text=True, timeout=7,
+        )
+    except subprocess.TimeoutExpired as observed_timeout:
+        sys.stderr.write(
+            f"IO_TEST_PARENT_PHASE start_mono={_phase_parent_start:.6f} "
+            f"elapsed={_phase_time.monotonic()-_phase_parent_start:.6f}\n"
+        )
+        captured = observed_timeout.stderr or b""
+        sys.stderr.write(captured.decode() if isinstance(captured, bytes) else captured)
+        raise
     # Assert: ImportError is the public optional-feature refusal, not AttributeError.
     import json
 

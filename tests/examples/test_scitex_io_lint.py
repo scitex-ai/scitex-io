@@ -27,13 +27,47 @@ HOOK_SCRIPT = (
 
 def _run_hook(payload: dict, timeout: float = 30.0) -> subprocess.CompletedProcess:
     """Invoke the hook script with `payload` piped to stdin."""
-    return subprocess.run(
-        [str(HOOK_SCRIPT)],
-        input=json.dumps(payload),
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-    )
+    import sys
+    import time
+
+    # Test-only tracing names phases without printing JSON input, source text,
+    # credentials or environment values. The executable and deadline stay real.
+    trace = """_io_test_phase() {
+  local label=''
+  case "$1" in
+    INPUT=*) label=read-input ;;
+    FILE=*) label=json-input ;;
+    scitex-dev*'--severity error'*) label=error-lint ;;
+    scitex-dev*'--severity warning'*) label=warning-lint ;;
+    'exit 0') label=complete ;;
+    *) return 0 ;;
+  esac
+  printf 'IO_TEST_HOOK_PHASE %s wall=%s\\n' "$label" "$EPOCHREALTIME" >&2
+}
+trap '_io_test_phase "$BASH_COMMAND"' DEBUG
+"""
+    with tempfile.TemporaryDirectory(prefix="io-hook-phase-") as temporary:
+        trace_file = Path(temporary) / "phase.bash"
+        trace_file.write_text(trace)
+        trace_file.chmod(0o600)
+        started = time.monotonic()
+        try:
+            return subprocess.run(
+                [str(HOOK_SCRIPT)],
+                input=json.dumps(payload),
+                text=True,
+                capture_output=True,
+                timeout=timeout,
+                env={**os.environ, "BASH_ENV": str(trace_file)},
+            )
+        except subprocess.TimeoutExpired as observed_timeout:
+            sys.stderr.write(
+                f"IO_TEST_PARENT_PHASE hook_start_mono={started:.6f} "
+                f"elapsed={time.monotonic()-started:.6f}\n"
+            )
+            captured = observed_timeout.stderr or b""
+            sys.stderr.write(captured.decode() if isinstance(captured, bytes) else captured)
+            raise
 
 
 class TestHookScript:

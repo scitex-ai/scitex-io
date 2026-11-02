@@ -105,6 +105,12 @@ db = [
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "pytest-xdist>=3.0.0",
+    "build>=1.0",
+    "hatchling",
+    "catboost",
+    "scitex-dev>=0.62.7",  # public owned PostgreSQL testing SPI
+    "scitex-clew==0.21.0",  # actual observer consumer integration controls
     "matplotlib",
     "plotly",
     "Pillow",
