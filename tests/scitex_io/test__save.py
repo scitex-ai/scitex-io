@@ -661,6 +661,25 @@ def test_save_pickle_without_track_arg_still_works(cwd_tmp):
 # end-to-end behaviour.
 
 
+def _save_from_owned_script(cwd_tmp, obj):
+    """Exercise real caller-script routing inside this test's owned directory.
+
+    Changing cwd alone leaves the caller frame pointing at this shared test
+    module, so xdist workers otherwise overwrite the same module_out/x.csv.
+    Run a real temporary script in-process to preserve the repeat-save and
+    cache contracts while giving each fixture its own script output target.
+    """
+    import runpy
+
+    script = cwd_tmp / "save_example.py"
+    script.write_text(
+        "import scitex_io as sio\n"
+        "sio.save(obj, './x.csv', symlink_from_cwd=True, "
+        "env_detector=lambda: 'script')\n"
+    )
+    runpy.run_path(str(script), init_globals={"obj": obj})
+
+
 def test_double_save_does_not_self_loop_cwd_anchor(cwd_tmp):
     """After two saves, the cwd anchor symlink target is NOT its own basename."""
     # Arrange
@@ -669,8 +688,8 @@ def test_double_save_does_not_self_loop_cwd_anchor(cwd_tmp):
     import pandas as pd
 
     df = pd.DataFrame({"a": [1]})
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    _save_from_owned_script(cwd_tmp, df)
+    _save_from_owned_script(cwd_tmp, df)
     # Act
     link_target = os.readlink(cwd_tmp / "x.csv")
     # Assert
@@ -683,8 +702,8 @@ def test_double_save_does_not_self_loop_routed_target(cwd_tmp):
     import pandas as pd
 
     df = pd.DataFrame({"a": [1]})
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    _save_from_owned_script(cwd_tmp, df)
+    _save_from_owned_script(cwd_tmp, df)
     # Act
     # Resolve the cwd anchor — must succeed (no Errno 40).
     resolved = Path(cwd_tmp / "x.csv").resolve()
@@ -698,11 +717,11 @@ def test_double_save_then_third_save_does_not_raise(cwd_tmp):
     import pandas as pd
 
     df = pd.DataFrame({"a": [1]})
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    _save_from_owned_script(cwd_tmp, df)
+    _save_from_owned_script(cwd_tmp, df)
     completed = False
     # Act
-    sio.save(df, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    _save_from_owned_script(cwd_tmp, df)
     completed = True
     # Assert
     assert completed
@@ -715,8 +734,8 @@ def test_double_save_content_round_trip_matches(cwd_tmp):
 
     df_first = pd.DataFrame({"a": [1]})
     df_second = pd.DataFrame({"a": [2]})
-    sio.save(df_first, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
-    sio.save(df_second, "./x.csv", symlink_from_cwd=True, env_detector=_env("script"))
+    _save_from_owned_script(cwd_tmp, df_first)
+    _save_from_owned_script(cwd_tmp, df_second)
     # Act
     loaded = sio.load(str(cwd_tmp / "x.csv"))
     # Assert
