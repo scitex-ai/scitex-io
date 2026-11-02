@@ -22,9 +22,9 @@ def shell(body):
     )
 
 
-def run_body(body):
+def run_body(body, timeout=15):
     return subprocess.run(
-        ["bash", "-c", shell(body)], capture_output=True, text=True, timeout=15
+        ["bash", "-c", shell(body)], capture_output=True, text=True, timeout=timeout
     )
 
 
@@ -129,7 +129,7 @@ def test_cleanup_budget_refuses_unreviewed_size(entries, allocated):
 
 def test_cleanup_survey_counts_directory_entries():
     # Arrange
-    body = """python3 - <<'PYTHON'
+    body = """python3 -I -S - <<'PYTHON'
 import os
 from pathlib import Path
 root = Path(os.environ["TMPDIR"])
@@ -137,6 +137,8 @@ for index in range(10001):
     (root / str(index)).mkdir()
 PYTHON"""
     # Act
-    result = run_body(body)
+    # The new filesystem fixture has its reviewed 60s removal budget,
+    # plus 15s for arranging real directories. Product deadlines are separate.
+    result = run_body(body, timeout=75)
     # Assert
     assert result.returncode == 0 and "budget_seconds=60" in result.stderr
