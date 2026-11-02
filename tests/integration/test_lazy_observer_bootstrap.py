@@ -58,7 +58,7 @@ build-backend = "hatchling.build"
 [project]
 name = "io-probe-consumer"
 version = "0.0.1"
-dependencies = ["scitex-io>=0.4.1"]
+dependencies = ["scitex-io>=0.4.2"]
 [project.entry-points."scitex_io.observers"]
 owned-consumer = "io_probe_consumer:register"
 [tool.hatch.build.targets.wheel]
