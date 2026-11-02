@@ -15,7 +15,7 @@ driver_body() {
     [ ! -e dist ] && [ ! -L dist ] || { echo '::error::stale release output refused' >&2; exit 1; }
     "$PY" -m venv "$TMPDIR/build-venv"
     local build_python="$TMPDIR/build-venv/bin/python"
-    uv pip install --python "$build_python" build hatchling
+    uv pip install --python "$build_python" build hatchling 'scitex-dev>=0.62.7'
     "$build_python" -m build --no-isolation --outdir dist
     local wheels=(dist/*.whl)
     [ "${#wheels[@]}" -eq 1 ] && [ -f "${wheels[0]}" ]
@@ -23,7 +23,8 @@ driver_body() {
     local wheel_python="$TMPDIR/wheel-venv/bin/python"
     uv pip install --python "$wheel_python" "${wheels[0]}"
     "$wheel_python" -m pip check
-    "$wheel_python" -I - "$TMPDIR/wheel-venv" <<'PY'
+    "$build_python" -I .github/ci/probe-first-observer.py -- \
+        "$wheel_python" -I - "$TMPDIR/wheel-venv" <<'PY'
 from pathlib import Path
 import sys
 import scitex_io

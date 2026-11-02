@@ -179,3 +179,15 @@ export XDG_CONFIG_HOME="$TMPDIR/config" MPLCONFIGDIR="$TMPDIR/mpl"
 export UV_CACHE_DIR="$TMPDIR/cache/uv" PIP_CACHE_DIR="$TMPDIR/cache/pip"
 export MPLBACKEND=Agg SCITEX_DEV_NO_CURRENCY_REFRESH=1
 unset VIRTUAL_ENV PYTHONHOME PYTHONPATH || true
+
+# Package installers and pre-cluster imports must also be unable to reach an
+# ambient store. The mandatory PG wrapper replaces this explicit refusal target
+# with its owned socket only for the complete suite / installed-wheel smoke.
+for io_pg_name in "${!PG@}"; do
+    unset "$io_pg_name"
+done
+: > "$TMPDIR/empty-pgpass"
+chmod 600 "$TMPDIR/empty-pgpass"
+export PGPASSFILE="$TMPDIR/empty-pgpass"
+export SCITEX_STORE_DSN="postgresql://io_ci@/io_ci?host=$TMPDIR/unavailable-store"
+export SCITEX_CARDS_DB="$SCITEX_STORE_DSN"

@@ -55,7 +55,7 @@ program = Program(len(instructions), array)
 libc = ctypes.CDLL(None, use_errno=True)
 if libc.prctl(38, 1, 0, 0, 0) != 0:        # PR_SET_NO_NEW_PRIVS
     raise OSError(ctypes.get_errno(), "cannot require no-new-privileges")
-if libc.prctl(22, 2, ctypes.byref(program)) != 0:  # PR_SET_SECCOMP, FILTER
+if libc.prctl(22, 2, ctypes.byref(program), 0, 0) != 0:  # PR_SET_SECCOMP, FILTER
     raise OSError(ctypes.get_errno(), "cannot enforce offline observer probe")
 for family in (socket.AF_INET, socket.AF_INET6):
     try:
@@ -92,7 +92,15 @@ def interrupted(signum, _frame):
     raise SystemExit(128 + signum)
 
 
-def main():
+def main(arguments):
+    first_event = arguments[:1] == ["--first-event"]
+    if first_event:
+        arguments = arguments[1:]
+    command = arguments[1:] if arguments[:1] == ["--"] else arguments
+    if not command:
+        raise SystemExit(
+            "usage: probe-first-observer.py [--first-event] -- COMMAND [ARGS...]"
+        )
     # Ignore any configured host/replica DSN: this fixture only mints its own.
     for name in tuple(os.environ):
         if name.startswith("PG") or name in {"SCITEX_STORE_DSN", "SCITEX_CARDS_DB"}:
@@ -129,14 +137,18 @@ def main():
                 "SCITEX_CLEW_PROJECT": "owned-first-io-probe",
             }
             try:
-                subprocess.run(
-                    [sys.executable, "-I", "-c", CHILD, str(socket_directory)],
-                    cwd=project,
-                    env=environment,
-                    check=True,
-                    timeout=60,
-                    close_fds=True,
-                )
+                if first_event:
+                    subprocess.run(
+                        [sys.executable, "-I", "-c", CHILD, str(socket_directory)],
+                        cwd=project,
+                        env=environment,
+                        check=True,
+                        timeout=60,
+                        close_fds=True,
+                    )
+                # The complete suite or real installed-wheel smoke shares this
+                # private cluster. It never falls back to a host/fleet DSN.
+                subprocess.run(command, env=environment, check=True, close_fds=True)
             finally:
                 # Like the reviewed native resource helper, finish owned PG
                 # teardown without a second signal interrupting it halfway.
@@ -151,4 +163,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

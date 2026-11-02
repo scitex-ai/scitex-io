@@ -20,7 +20,6 @@ driver_body() {
     # Exactly one normal all/dev resolution. No core-only fallback or deps bypass.
     uv pip install --python "$test_python" -e '.[all,dev]'
     "$test_python" -m pip check
-    "$test_python" -I .github/ci/probe-first-observer.py
     export PATH="$TMPDIR/venv/bin:$PATH" RUN_E2E=1 COVERAGE_FILE="$TMPDIR/.coverage"
     "$test_python" -c 'import matplotlib; matplotlib.use("Agg"); from matplotlib import font_manager; font_manager.fontManager'
     local workers
@@ -52,7 +51,8 @@ print(max(1, min(limits)))
 WORKERS
     )"
     echo "IO reviewed worker budget=$CI_XDIST_WORKERS effective_workers=$workers (shared host, no exclusive CPU claim)"
-    nice -n 19 ionice -c 3 "$test_python" -m pytest tests/ -n "$workers" --dist load -q \
+    "$test_python" -I .github/ci/probe-first-observer.py --first-event -- \
+        nice -n 19 ionice -c 3 "$test_python" -m pytest tests/ -n "$workers" --dist load -q \
         --cov=src/scitex_io --cov-report="xml:$TMPDIR/coverage.xml" --cov-report=term -p no:cacheprovider
 }
 run_owned_body

@@ -57,7 +57,8 @@ activation; provider imports can register callbacks without deadlocking.
 Actual installed consumer-wheel regressions cover first save/load, ordering,
 concurrent first operations and both Clew/IO import orders.
 
-The native driver also requires a first-save citation-ledger proof through
+The native driver wraps the complete suite in an owned PostgreSQL context and
+also requires a first-save citation-ledger proof through
 `scitex_dev.store.testing.ephemeral_cluster_dsn()`: a new private PostgreSQL
 cluster and Unix socket, with configured PG variables cleared and an owned
 empty password file. A fresh child imports IO first, saves a synthetic citation
@@ -66,7 +67,9 @@ creation is denied at the kernel syscall boundary; Python socket connects are
 restricted to the private socket, and native libpq receives only the validated
 private Unix-socket DSN. This is a controlled fixture, not a general sandbox
 for arbitrary untrusted code. Failure to enforce the offline boundary fails
-qualification. No host or fleet store is used, and teardown is verified.
+qualification. The installed-wheel smoke also runs in an owned private cluster. Earlier
+installer/import phases have an explicit unavailable private Unix-socket DSN,
+never an unset DSN. No host or fleet store is used, and teardown is verified.
 
 
 ### Admitted worker budget
