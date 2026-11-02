@@ -64,7 +64,7 @@ jobs:
     # preflight + admission, same as the leaf job this replaces.
     needs: [admission, preflight]
     if: needs.admission.outputs.native_authorized == 'true'
-    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@a70da3ec78a7a6f444a51b2141792350a9ecbf77
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@37259d6b408eb88590bd13902102d6b026e3e8c3
     with:
       operation: test
       source_commit: ${{ needs.preflight.outputs.commit }}
@@ -79,7 +79,7 @@ jobs:
     # github.sha divergence.
     needs: [admission, preflight, test]
     if: needs.admission.outputs.native_authorized == 'true'
-    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@a70da3ec78a7a6f444a51b2141792350a9ecbf77
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@37259d6b408eb88590bd13902102d6b026e3e8c3
     with:
       operation: build
       source_commit: ${{ needs.preflight.outputs.commit }}

@@ -18,12 +18,12 @@ driver_body() {
     # Exactly one normal all/dev resolution. No core-only fallback or deps bypass.
     uv pip install --python "$test_python" -e '.[all,dev]'
     "$test_python" -m pip check
-    export PATH="$TMPDIR/venv/bin:$PATH" RUN_E2E=1
+    export PATH="$TMPDIR/venv/bin:$PATH" RUN_E2E=1 COVERAGE_FILE="$TMPDIR/.coverage"
     "$test_python" -c 'import matplotlib; matplotlib.use("Agg"); from matplotlib import font_manager; font_manager.fontManager'
     local workers
     workers="$(nproc)"
     [ "$workers" -le 32 ] || workers=32
     nice -n 19 ionice -c 3 "$test_python" -m pytest tests/ -n "$workers" --dist load -q \
-        --cov=src/scitex_io --cov-report=xml --cov-report=term -p no:cacheprovider
+        --cov=src/scitex_io --cov-report="xml:$TMPDIR/coverage.xml" --cov-report=term -p no:cacheprovider
 }
 run_owned_body

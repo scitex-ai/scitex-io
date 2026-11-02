@@ -1,76 +1,97 @@
 """Exercise real Bash ownership/cleanup and refusal boundaries, without SIF execution."""
-from pathlib import Path
+
 import os
 import re
 import shutil
 import subprocess
+from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[2]
-CONTEXT=ROOT/'.github/ci/release-context.sh'
-EXECUTOR=ROOT/'.github/ci/exec-in-sif.sh'
+ROOT = Path(__file__).resolve().parents[2]
+CONTEXT = ROOT / ".github/ci/release-context.sh"
+EXECUTOR = ROOT / ".github/ci/exec-in-sif.sh"
 
 
 def shell(body):
-    return ('set -euo pipefail\nSCRATCH_PREFIX="/tmp/io-control-test-"\n'
-            f'source "{CONTEXT}"\n'
-            'printf "OWNED=%s\\n" "$OWNED_TMPDIR"\n'
-            'driver_body() {\n'+body+'\n}\nrun_owned_body\n')
+    return (
+        'set -euo pipefail\nSCRATCH_PREFIX="/tmp/io-control-test-"\n'
+        f'source "{CONTEXT}"\n'
+        'printf "OWNED=%s\\n" "$OWNED_TMPDIR"\n'
+        "driver_body() {\n" + body + "\n}\nrun_owned_body\n"
+    )
 
 
 def run_body(body):
-    return subprocess.run(['bash','-c',shell(body)],capture_output=True,text=True,timeout=15)
+    return subprocess.run(
+        ["bash", "-c", shell(body)], capture_output=True, text=True, timeout=15
+    )
 
 
 def owned_path(stdout):
-    match=re.search(r'^OWNED=(/tmp/io-control-test-[A-Za-z0-9]{6})$',stdout,re.M)
+    match = re.search(r"^OWNED=(/tmp/io-control-test-[A-Za-z0-9]{6})$", stdout, re.M)
     assert match is not None
     return Path(match.group(1))
 
 
 def test_normal_body_cleans_only_its_exclusive_context():
-    # Arrange / Act: real owned context creates a file and exits normally.
-    result=run_body('printf fixture > "$TMPDIR/owned.txt"')
+    # Arrange
+    body = 'printf fixture > "$TMPDIR/owned.txt"'
+    # Act
+    result = run_body(body)
     # Assert
-    assert result.returncode==0 and not owned_path(result.stdout).exists()
+    assert result.returncode == 0 and not owned_path(result.stdout).exists()
 
 
 def test_body_failure_preserves_exit_status_after_cleanup():
-    # Arrange / Act
-    result=run_body('exit 23')
+    # Arrange
+    body = "exit 23"
+    # Act
+    result = run_body(body)
     # Assert
-    assert result.returncode==23 and not owned_path(result.stdout).exists()
+    assert result.returncode == 23 and not owned_path(result.stdout).exists()
 
 
 def test_replaced_context_is_not_deleted_by_cleanup():
-    # Arrange / Act: both directories are newly owned fixtures, not user state.
-    result=run_body('mv "$TMPDIR" "$TMPDIR.moved"; mkdir "$TMPDIR"; printf keep > "$TMPDIR/sentinel"')
-    original=owned_path(result.stdout)
+    # Arrange
+    body = 'mv "$TMPDIR" "$TMPDIR.moved"; mkdir "$TMPDIR"; printf keep > "$TMPDIR/sentinel"'
+    # Act
+    result = run_body(body)
+    original = owned_path(result.stdout)
     try:
         # Assert
-        assert result.returncode!=0 and (original/'sentinel').read_text()=='keep'
+        assert result.returncode != 0 and (original / "sentinel").read_text() == "keep"
     finally:
         shutil.rmtree(original)
-        shutil.rmtree(Path(str(original)+'.moved'))
+        shutil.rmtree(Path(str(original) + ".moved"))
 
 
 def test_native_wrapper_refuses_unknown_driver_before_runtime_use():
-    # Arrange / Act
-    result=subprocess.run(['bash',str(EXECUTOR),'unknown.sh','3.12'],capture_output=True,text=True,timeout=5)
+    # Arrange
+    command = ["bash", str(EXECUTOR), "unknown.sh", "3.12"]
+    # Act
+    result = subprocess.run(command, capture_output=True, text=True, timeout=5)
     # Assert
-    assert result.returncode!=0 and 'unregistered release driver' in result.stderr
+    assert result.returncode != 0 and "unregistered release driver" in result.stderr
 
 
 def test_native_wrapper_refuses_invalid_interpreter_before_runtime_use():
-    # Arrange / Act
-    result=subprocess.run(['bash',str(EXECUTOR),'run-in-sif.sh','3.12;false'],capture_output=True,text=True,timeout=5)
+    # Arrange
+    command = ["bash", str(EXECUTOR), "run-in-sif.sh", "3.12;false"]
+    # Act
+    result = subprocess.run(command, capture_output=True, text=True, timeout=5)
     # Assert
-    assert result.returncode!=0
+    assert result.returncode != 0
 
 
 def test_native_wrapper_requires_verified_image_and_runtime_context():
     # Arrange: no actual image, runtime, or credentials can be reached.
-    env={k:v for k,v in os.environ.items() if not k.startswith('SCITEX_CI_')}
+    env = {k: v for k, v in os.environ.items() if not k.startswith("SCITEX_CI_")}
     # Act
-    result=subprocess.run(['bash',str(EXECUTOR),'run-in-sif.sh','3.12'],env=env,capture_output=True,text=True,timeout=5)
+    result = subprocess.run(
+        ["bash", str(EXECUTOR), "run-in-sif.sh", "3.12"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
     # Assert
-    assert result.returncode!=0 and 'SCITEX_CI_SIF' in result.stderr
+    assert result.returncode != 0 and "SCITEX_CI_SIF" in result.stderr
