@@ -30,6 +30,37 @@ Format is auto-detected from the file extension:
 One function for save, one for load — 30+ formats work the same way.
 
 
+Editing ZIP Bundles
+-------------------
+
+``scitex_io.bundle.ZipBundle`` edits named members without interpreting their
+schema. Append mode retains untouched payloads, their ZIP metadata and the
+archive comment. Repeated writes to one name commit its final value once.
+An exception or explicit ``close()`` discards pending changes; ``mode="w"``
+intentionally replaces the archive contents.
+
+This example uses a temporary directory and leaves existing research files alone:
+
+.. code-block:: python
+
+   from pathlib import Path
+   from tempfile import TemporaryDirectory
+   from scitex_io.bundle import ZipBundle
+
+   with TemporaryDirectory() as directory:
+       path = Path(directory) / "example.plot.zip"
+       with ZipBundle(path, "w") as bundle:
+           bundle.write_json("spec.json", {"title": "Initial"})
+           bundle.write_bytes("payload/data.csv", b"x,y\n1,2\n")
+       with ZipBundle(path, "a") as bundle:
+           spec = bundle.read_json()
+           spec["title"] = "Updated"
+           bundle.write_json("spec.json", spec)
+       with ZipBundle(path) as bundle:
+           assert bundle.read_json()["title"] == "Updated"
+           assert bundle.read_bytes("payload/data.csv") == b"x,y\n1,2\n"
+
+
 List Available Formats
 ----------------------
 

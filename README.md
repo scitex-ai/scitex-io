@@ -72,6 +72,14 @@ assert params_loaded == params_orig
 ```
 
 
+### Editing ZIP bundles
+
+Use `scitex_io.bundle.ZipBundle` to update an existing ZIP bundle with
+`mode="a"`. Untouched payloads, member metadata and archive comments are retained.
+Changes commit on successful context exit; an exception or explicit `close()`
+discards pending changes. `mode="w"` intentionally replaces the archive contents.
+See the [runnable ZIP example](docs/sphinx/quickstart.rst#editing-zip-bundles).
+
 <details>
 <summary><b>Supported Formats (30+) and Customization</b></summary>
 

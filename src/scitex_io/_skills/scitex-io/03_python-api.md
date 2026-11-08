@@ -7,8 +7,8 @@ tags: [scitex-io-python-api]
 
 # Python API
 
-All public symbols are importable from the top-level `scitex_io`
-package (or, via the umbrella, `scitex.io`).
+Core functions below are available from `scitex_io` (or the umbrella's
+`scitex.io`). ZIP bundle operations use the `scitex_io.bundle` namespace.
 
 ## Core I/O
 
@@ -25,6 +25,24 @@ Common kwargs: `symlink_from_cwd=True`, `symlink_to=<path>`,
 `use_caller_path=True` (resolve from the outer caller, for wrappers).
 
 Deep dive: [10_save-and-load.md](10_save-and-load.md).
+
+## ZIP bundle updates
+
+For an existing ZIP bundle, append mode preserves untouched payloads, member
+metadata and the archive comment:
+
+```python
+from scitex_io.bundle import ZipBundle
+
+with ZipBundle("existing.plot.zip", mode="a") as bundle:
+    spec = bundle.read_json("spec.json")
+    spec["title"] = "Updated"
+    bundle.write_json("spec.json", spec)
+```
+
+Changes commit on successful context exit. Exceptions or an explicit `close()`
+discard pending changes. Use `mode="w"` only to intentionally replace contents.
+This API edits ZIP members; it does not migrate legacy bundle schemas.
 
 ## Format registry
 
