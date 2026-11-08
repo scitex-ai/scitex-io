@@ -76,6 +76,8 @@ class ZipBundle:
         self.compression = compression
         self._zipfile: Optional[zipfile.ZipFile] = None
         self._cache: Dict[str, bytes] = {}
+        self._member_info: Dict[str, zipfile.ZipInfo] = {}
+        self._archive_comment = b""
         self._pending_writes: Dict[str, bytes] = {}
         self._temp_path: Optional[Path] = None
         self._closed = False
@@ -87,12 +89,23 @@ class ZipBundle:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit context manager with atomic commit on success."""
-        if exc_type is None and self.mode in ("w", "a"):
-            self._atomic_commit()
-        self.close()
+        try:
+            if exc_type is None and self.mode in ("w", "a"):
+                self._atomic_commit()
+        finally:
+            self.close()
 
     def _open(self) -> None:
         """Open the zip bundle."""
+        if self._zipfile is not None and not self._closed:
+            raise RuntimeError("Bundle is already opened")
+        self._zipfile = None
+        self._closed = False
+        self._cache.clear()
+        self._pending_writes.clear()
+        self._member_info.clear()
+        self._archive_comment = b""
+        self._temp_path = None
         if self.mode == "r":
             if not self.path.exists():
                 raise FileNotFoundError(f"Bundle not found: {self.path}")
@@ -103,8 +116,10 @@ class ZipBundle:
         elif self.mode == "a":
             if self.path.exists():
                 with zipfile.ZipFile(self.path, "r") as zf:
-                    for name in zf.namelist():
-                        self._cache[name] = zf.read(name)
+                    self._archive_comment = zf.comment
+                    for info in zf.infolist():
+                        self._cache[info.filename] = zf.read(info)
+                        self._member_info[info.filename] = info
             self._temp_path = Path(tempfile.mktemp(suffix=self.path.suffix))
             self._zipfile = zipfile.ZipFile(self._temp_path, "w", self.compression)
         else:
@@ -115,15 +130,23 @@ class ZipBundle:
         if self._zipfile and not self._closed:
             self._zipfile.close()
             self._closed = True
-            if self._temp_path and self._temp_path.exists():
-                if self.mode in ("w", "a") and not self.path.exists():
-                    self._temp_path.unlink()
+        if self._temp_path and self._temp_path.exists():
+            if self.mode in ("w", "a"):
+                self._temp_path.unlink()
 
     def _atomic_commit(self) -> None:
         """Atomically commit writes by renaming temp file."""
-        if self._temp_path is None:
+        if self._temp_path is None or self._closed:
             return
 
+        # Commit the complete logical archive, not just modified members.
+        # Staging writes in memory also avoids duplicate entries on updates.
+        self._zipfile.comment = self._archive_comment
+        for name, data in self._cache.items():
+            entry = self._member_info.get(name, name)
+            if name in self._pending_writes:
+                entry = name
+            self._zipfile.writestr(entry, data)
         self._zipfile.close()
         self._closed = True
 
@@ -177,6 +200,11 @@ class ZipBundle:
             return self._pending_writes[name]
         if name in self._cache:
             return self._cache[name]
+
+        if self.mode in ("w", "a"):
+            for arc_name, data in self._cache.items():
+                if arc_name.endswith(".d/" + name):
+                    return data
 
         if self._zipfile is None:
             raise RuntimeError("Bundle not opened")
@@ -262,10 +290,19 @@ class ZipBundle:
         """
         if self.mode == "r":
             raise RuntimeError("Cannot write in read mode")
+        if self._closed:
+            raise ValueError("Cannot write to a closed bundle")
+        if self._zipfile is None:
+            raise RuntimeError("Bundle not opened")
+
+        # Retain write-time byte values even if a caller later mutates a buffer.
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        elif not isinstance(data, bytes):
+            data = memoryview(data).tobytes()
 
         self._pending_writes[name] = data
         self._cache[name] = data
-        self._zipfile.writestr(name, data)
 
     def write_text(self, name: str, text: str, encoding: str = "utf-8") -> None:
         """Write text to file in bundle.
