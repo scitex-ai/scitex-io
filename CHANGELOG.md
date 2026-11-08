@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-11-08
+
 ### Fixed
 - Preserve untouched ZIP members, their metadata and archive comments when
   updating a `ZipBundle` in append mode. Repeated writes commit the final value
