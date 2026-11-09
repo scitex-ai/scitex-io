@@ -1,0 +1,71 @@
+name: native-qualification
+
+# Existing promoted source only. This workflow has no publisher or release job.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing vX.Y.Z tag already promoted to protected main'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+concurrency:
+  group: io-native-qualification-${{ inputs.tag }}
+  cancel-in-progress: false
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
+
+jobs:
+  admission:
+    uses: scitex-ai/.github/.github/workflows/runner-admission.yml@8c646081e9f1352077d3d8674052cce7ec75a1b7
+    with:
+      runs_on: '["self-hosted","Linux","X64","scitex-org-cpu"]'
+
+  preflight:
+    needs: admission
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      commit: ${{ steps.identity.outputs.commit }}
+      version: ${{ steps.identity.outputs.version }}
+    steps:
+      - name: Require confirmed organization membership
+        env:
+          AUTHORIZED: ${{ needs.admission.outputs.native_authorized }}
+        run: test "$AUTHORIZED" = true
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the declared release-boundary fixture builder
+        run: python -m pip install 'build>=1.0' hatchling
+      - name: Check the release identity and archive refusal controls
+        run: python .github/ci/test_release_identity.py
+      - id: identity
+        name: Resolve the existing tag and promoted project version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python .github/ci/release-identity.py resolve --tag "$RELEASE_TAG"
+
+  test:
+    needs: [admission, preflight]
+    if: needs.admission.outputs.native_authorized == 'true'
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@2b0b12881eeb7222c9c7bd67c46ee4c785b0fb16
+    with:
+      operation: test
+      source_commit: ${{ needs.preflight.outputs.commit }}
+      release_tag: ${{ needs.preflight.outputs.tag }}
+
+  build:
+    needs: [admission, preflight, test]
+    if: needs.admission.outputs.native_authorized == 'true'
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@2b0b12881eeb7222c9c7bd67c46ee4c785b0fb16
+    with:
+      operation: build
+      source_commit: ${{ needs.preflight.outputs.commit }}
+      release_tag: ${{ needs.preflight.outputs.tag }}
