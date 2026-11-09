@@ -124,7 +124,13 @@ promoted to protected main. Its admission and preflight reuse the release
 identity checks. The accepted shared executor runs the complete native test
 matrix, then builds and verifies the wheel and source distribution. Its version
 jobs run one at a time; the registered versions, full dependency profiles and
-operation deadlines remain unchanged.
+operation deadlines remain unchanged. The registered company IO executor
+admits only compute-03, where its complete native profile was qualified. This
+host admission applies to both the release and read-only qualification routes;
+it does not limit the public library's platform support. Other hosts require
+complete qualification before admission is widened. Prior compute-04 failures
+remain failed evidence, and a new source still needs its own full native test
+and build results before release readiness can be claimed.
 
 ```bash
 gh workflow run native-qualification.yml --ref main -f tag=v0.4.3

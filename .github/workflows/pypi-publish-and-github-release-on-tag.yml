@@ -58,13 +58,13 @@ jobs:
 
   test:
     # Registered shared leaf executor (Infrastructure-owned), pinned below to
-    # accepted central PR #101. Its IO image/runtime and ten-helper source
+    # an immutable central revision. Its IO image/runtime and ten-helper source
     # closure were qualified before activation; typed caller inputs are fixed.
     # DAG + AUTHORIZATION PRESERVED: no test executes without release-identity
     # preflight + admission, same as the leaf job this replaces.
     needs: [admission, preflight]
     if: needs.admission.outputs.native_authorized == 'true'
-    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@e4bfcdaad61a29b00616222d5503da21f61b55af
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@cbc143882b3ea1279fa241be92d269902e6ab91a
     with:
       operation: test
       source_commit: ${{ needs.preflight.outputs.commit }}
@@ -79,7 +79,7 @@ jobs:
     # github.sha divergence.
     needs: [admission, preflight, test]
     if: needs.admission.outputs.native_authorized == 'true'
-    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@e4bfcdaad61a29b00616222d5503da21f61b55af
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@cbc143882b3ea1279fa241be92d269902e6ab91a
     with:
       operation: build
       source_commit: ${{ needs.preflight.outputs.commit }}
