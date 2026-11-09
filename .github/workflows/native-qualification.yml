@@ -55,7 +55,7 @@ jobs:
   test:
     needs: [admission, preflight]
     if: needs.admission.outputs.native_authorized == 'true'
-    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@2b0b12881eeb7222c9c7bd67c46ee4c785b0fb16
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@103621f4449a39079d66216b01191e581aad53d7
     with:
       operation: test
       source_commit: ${{ needs.preflight.outputs.commit }}
@@ -64,7 +64,7 @@ jobs:
   build:
     needs: [admission, preflight, test]
     if: needs.admission.outputs.native_authorized == 'true'
-    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@2b0b12881eeb7222c9c7bd67c46ee4c785b0fb16
+    uses: scitex-ai/.github/.github/workflows/leaf-release-sif.yml@103621f4449a39079d66216b01191e581aad53d7
     with:
       operation: build
       source_commit: ${{ needs.preflight.outputs.commit }}
