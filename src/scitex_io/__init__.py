@@ -134,6 +134,11 @@ _LAZY_ATTRS: dict[str, str] = {
     # scitex_io itself never names them). See _hooks.py.
     "register_post_save_hook": "._observers",
     "register_post_load_hook": "._observers",
+    # Loud provenance-loss accounting (counters, scope, strict mode).
+    "observer_failures": "._observers",
+    "reset_observer_failures": "._observers",
+    "provenance_scope": "._observers",
+    "ProvenanceError": "._observers",
     # Runtime-facing view of the STX-IO raw-IO detection rules (canonical
     # module+attr, not AST-shaped) — see _linter/rules.py.
     "iter_io_bypass_targets": "._linter.rules",
