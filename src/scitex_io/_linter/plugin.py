@@ -1,4 +1,4 @@
-"""Linter plugin for scitex-io: IO-specific rules (IO001-IO015, PA001-PA005).
+"""Linter plugin for scitex-io: IO-specific rules (IO001-IO019, PA001-PA005).
 
 Registered via entry point 'scitex_dev.linter.plugins' so scitex-linter
 discovers these rules automatically when scitex-io is installed.
@@ -11,6 +11,13 @@ extension a user has added via `register_saver` / `register_loader`.
 
 STX-IO014's checker (``_UnknownExtChecker``) lives in
 ``_linter/ext_checker.py`` — extracted to stay under the 512-line cap.
+
+Raw file I/O that bypasses stx.io (STX-PA002 bare ``open()``, STX-IO016-019
+pathlib / shutil / os.rename, PIL ``.save`` -> STX-IO012) is detected by
+``RawIOChecker`` in ``_linter/raw_io.py``. Those rules carry
+``scope="research-script"`` (scitex-dev >= 0.63.0 SPI), so the ENGINE limits
+them to research scripts. The payload declares the ``raw-io`` capability,
+which scitex-dev requires for ``project-type: research`` projects.
 """
 
 from .ext_checker import (  # noqa: F401 (re-exported for callers/tests)
@@ -18,11 +25,12 @@ from .ext_checker import (  # noqa: F401 (re-exported for callers/tests)
     _builtin_extensions,
     _UnknownExtChecker,
 )
+from .raw_io import bind_raw_io_checker, make_raw_io_rules
 
 
 def get_plugin():
     """Return scitex-io linter rules, call mappings, and checkers."""
-    from scitex_dev.linter._rules._base import Rule
+    from scitex_dev.linter.spi import SCOPE_RESEARCH_SCRIPT, Rule
 
     def _io(id_, msg, sug):
         """Build an IO Rule with the register-handler hint appended."""
@@ -148,18 +156,10 @@ def get_plugin():
         requires="scitex",
     )
 
-    PA002 = Rule(
-        id="STX-PA002",
-        severity="warning",
-        category="path",
-        message="`open()` detected — use `stx.io.save()`/`stx.io.load()` which includes auto-logging",
-        suggestion=(
-            "Replace `open(path)` with `stx.io.load(path)` or `stx.io.save(obj, path)`.\n"
-            "  stx.io automatically logs all I/O operations for provenance tracking."
-            + _REGISTER_HINT
-        ),
-        requires="scitex",
-    )
+    # PA002 (bare open()) + IO016-IO019 (pathlib / shutil / os.rename):
+    # emitted by RawIOChecker, scoped to research scripts by the engine.
+    raw = make_raw_io_rules(Rule, SCOPE_RESEARCH_SCRIPT, _REGISTER_HINT)
+    PA002 = raw["PA002"]
 
     PA003 = Rule(
         id="STX-PA003",
@@ -207,6 +207,10 @@ def get_plugin():
         ("numpy", "loadtxt"): IO002,
         ("np", "genfromtxt"): IO002,
         ("numpy", "genfromtxt"): IO002,
+        ("np", "fromfile"): IO002,
+        ("numpy", "fromfile"): IO002,
+        # ndarray.tofile(path) — raw binary dump (counterpart of np.fromfile)
+        (None, "tofile"): IO001,
         # IO003 pandas read_*
         ("pd", "read_csv"): IO003,
         ("pandas", "read_csv"): IO003,
@@ -236,6 +240,8 @@ def get_plugin():
         (None, "to_feather"): IO004,
         (None, "to_html"): IO004,
         (None, "to_orc"): IO004,
+        ("pd", "ExcelWriter"): IO004,
+        ("pandas", "ExcelWriter"): IO004,
         # IO005 pickle
         ("pickle", "dump"): IO005,
         ("pickle", "dumps"): IO005,
@@ -266,6 +272,12 @@ def get_plugin():
         # IO011 scipy.io
         ("sio", "savemat"): IO011,
         ("sio", "loadmat"): IO011,
+        # any alias of scipy.io (`import scipy.io as spio` resolves here) and
+        # the unaliased `scipy.io.savemat(...)` (engine sees module "io").
+        ("scipy.io", "savemat"): IO011,
+        ("scipy.io", "loadmat"): IO011,
+        ("io", "savemat"): IO011,
+        ("io", "loadmat"): IO011,
         # IO012 image I/O
         ("cv2", "imwrite"): IO012,
         ("cv2", "imread"): IO012,
@@ -306,8 +318,18 @@ def get_plugin():
             PA003,
             PA004,
             PA005,
+            raw["IO016"],
+            raw["IO017"],
+            raw["IO018"],
+            raw["IO019"],
         ],
         "call_rules": call_rules,
         "axes_hints": {},
-        "checkers": [_UnknownExtChecker],
+        "checkers": [
+            _UnknownExtChecker,
+            bind_raw_io_checker(raw, call_rules, IO012),
+        ],
+        # scitex-dev requires this for `project-type: research` (fails loud
+        # when no installed plugin declares it).
+        "capabilities": ["raw-io"],
     }

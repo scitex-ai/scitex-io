@@ -7,6 +7,38 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-16
+
+### Added
+- Linter: own the raw-file-I/O rules that keep research scripts on
+  `stx.io` (provenance). `RawIOChecker` emits STX-PA002 (bare `open()` /
+  `io.open` / `codecs.open`, moved from the scitex-dev engine and now also
+  caught in helpers above `main`), STX-IO016 (pathlib write), STX-IO017
+  (pathlib read), STX-IO018 (`shutil.copy/copy2/copyfile/copytree/move`) and
+  STX-IO019 (`os.rename/replace/remove/unlink`, `Path.rename/replace/unlink`
+  on a data path). These carry `scope="research-script"`, which scitex-dev
+  applies: research scripts only, never tests or library code. The plugin
+  declares the `raw-io` capability scitex-dev requires for research projects.
+- Linter: PIL `img.save(path)` -> STX-IO012; `np.fromfile` -> IO002,
+  `arr.tofile` -> IO001, `pd.ExcelWriter` -> IO004; `scipy.io.savemat/loadmat`
+  under any alias -> IO011; bare calls of from-imported readers/writers get
+  the same rule as the attribute form.
+- Requires `scitex-dev>=0.63.0` (`Rule.scope` plugin SPI).
+
+### Fixed
+- Linter: STX-IO014 read the extension registry through a wrong relative
+  import, so a hard-coded fallback list ALWAYS ran — `.parquet`, `.feather`
+  and user-registered extensions were reported as unknown. The live registry
+  is now used and a broken registry fails loudly.
+- Observers: provenance loss is loud. A raising post-save/post-load hook is
+  counted and WARNed once per (kind, hook, error) instead of being logged at
+  debug level; `SCITEX_IO_STRICT_PROVENANCE=1` raises `ProvenanceError`.
+  New public API: `observer_failures()`, `reset_observer_failures()`,
+  `provenance_scope()`, `ProvenanceError`. Glob loads fire one post-load hook
+  per matched file, and `save()` fires a post-save hook for every file it
+  writes (CSV/legend sidecars, figrecipe recipe files). Missing outputs and
+  failed sidecar scans are reported as provenance loss (#188).
+
 ## [0.4.3] — 2026-11-08
 
 ### Fixed

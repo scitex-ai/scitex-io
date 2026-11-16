@@ -512,48 +512,39 @@ def test_unknownextchecker_direct_chk_source_1_import_scitex_as_stx():
 
 
 
-def test_builtin_extensions_fallback_csv_in_exts(attr_restore):
-    # Arrange
+def test_builtin_extensions_broken_registry_raises_loudly(attr_restore):
+    # Arrange — the registry is in-package; a broken one is a bug, not a
+    # reason to silently substitute a hard-coded extension list.
     import scitex_io._linter.plugin as mod
     import scitex_io._registry as reg
-    # Clobber the registry tier attrs so the function raises and hits except
+
     attr_restore.set(reg, "_builtin_savers", None)
     # Act
-    exts = mod._builtin_extensions()
+    try:
+        mod._builtin_extensions()
+        raised = None
+    except AttributeError as exc:
+        raised = exc
     # Assert
-    assert ".csv" in exts
+    assert isinstance(raised, AttributeError)
 
 
-def test_builtin_extensions_fallback_h5_in_exts(attr_restore):
+def test_builtin_extensions_reads_live_registry_parquet():
+    # Arrange — `.parquet` was missing from the old hard-coded fallback,
+    # which ALWAYS ran because of a wrong relative import.
+    # Act
+    exts = _builtin_extensions()
+    # Assert
+    assert ".parquet" in exts
+
+
+def test_io014_parquet_extension_not_flagged():
     # Arrange
-    import scitex_io._linter.plugin as mod
-    import scitex_io._registry as reg
-    attr_restore.set(reg, "_builtin_savers", None)
+    src = "import scitex as stx\nstx.io.save(df, './out.parquet')\n"
     # Act
-    exts = mod._builtin_extensions()
+    ids = _ids(lint_source(src))
     # Assert
-    assert ".h5" in exts
+    assert "STX-IO014" not in ids
 
-
-def test_builtin_extensions_fallback_exts_is_set(attr_restore):
-    # Arrange
-    import scitex_io._linter.plugin as mod
-    import scitex_io._registry as reg
-    attr_restore.set(reg, "_builtin_savers", None)
-    # Act
-    exts = mod._builtin_extensions()
-    # Assert
-    assert isinstance(exts, set)
-
-
-def test_builtin_extensions_fallback_png_in_exts(attr_restore):
-    # Arrange
-    import scitex_io._linter.plugin as mod
-    import scitex_io._registry as reg
-    attr_restore.set(reg, "_builtin_savers", None)
-    # Act
-    exts = mod._builtin_extensions()
-    # Assert
-    assert ".png" in exts
 
 

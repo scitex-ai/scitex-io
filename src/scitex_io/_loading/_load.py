@@ -11,6 +11,7 @@ __FILE__ = __file__
 __DIR__ = os.path.dirname(__FILE__)
 # ----------------------------------------
 
+import contextvars
 import glob
 from pathlib import Path
 from typing import Any, Union
@@ -37,21 +38,34 @@ def load(
 ) -> Any:
     """Public wrapper around :func:`_load_impl` that fires post-load hooks.
 
-    Glob expansion is handled inside ``_load_impl``; the inner
-    per-file recursion already routes through ``load`` so each match
-    fires its own hook. Only the outer non-glob path fires once here.
+    Every file that is actually read fires exactly one post-load hook:
+    a single-file load fires here; a glob load fires once per matched
+    file (the per-file recursion re-enters ``load``) and never for the
+    pattern itself. Hooks receive the file's realpath.
     """
     result = _load_impl(
         lpath, ext=ext, show=show, verbose=verbose, cache=cache, **kwargs
     )
-    # Notify observers (clew, audit, …) for non-glob loads. Glob calls
-    # recurse through load() and fire per-file. See _hooks.
-    is_glob = isinstance(lpath, str) and ("*" in lpath or "?" in lpath or "[" in lpath)
-    if not is_glob:
+    if not _is_glob(lpath):
         from .._observers import fire_post_load
 
-        fire_post_load(Path(lpath), result)
+        fire_post_load(Path(lpath), result, {"glob": _GLOB_PATTERN.get()})
     return result
+
+
+_GLOB_PATTERN: contextvars.ContextVar = contextvars.ContextVar(
+    "scitex_io_glob_pattern", default=None
+)
+
+
+def _is_glob(lpath) -> bool:
+    """Glob iff it has glob metacharacters AND is not an existing literal path.
+
+    A literal file named ``a[1].csv`` must load as itself (and fire its
+    hook) rather than be expanded as a character class matching nothing.
+    """
+    s = str(lpath)
+    return any(c in s for c in "*?[") and not os.path.lexists(s)
 
 
 def _load_impl(
@@ -125,15 +139,29 @@ def _load_impl(
             log.debug(f"[DEBUG] After Path conversion: {lpath}")
 
     # Check if it's a glob pattern
-    if "*" in lpath or "?" in lpath or "[" in lpath:
+    if _is_glob(lpath):
         # Handle glob pattern
         matched_files = sorted(glob.glob(lpath))
         if not matched_files:
             raise FileNotFoundError(f"No files found matching pattern: {lpath}")
-        # Load all matched files
+        # Load all matched files; each re-enters load() and fires its own
+        # post-load hook, tagged with the originating pattern.
         results = []
-        for file_path in matched_files:
-            results.append(load(file_path, show=show, verbose=verbose, **kwargs))
+        token = _GLOB_PATTERN.set(lpath)
+        try:
+            for file_path in matched_files:
+                results.append(
+                    load(
+                        file_path,
+                        ext=ext,
+                        show=show,
+                        verbose=verbose,
+                        cache=cache,
+                        **kwargs,
+                    )
+                )
+        finally:
+            _GLOB_PATTERN.reset(token)
         return results
 
     # Handle broken symlinks - os.path.exists() returns False for broken symlinks

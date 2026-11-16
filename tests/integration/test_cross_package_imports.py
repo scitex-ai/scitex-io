@@ -34,6 +34,7 @@ CROSS_PACKAGE_IMPORTS = [
     "scitex_dev.cli",
     "scitex_dev.linter._rules._base",
     "scitex_dev.linter.checker",
+    "scitex_dev.linter.spi",
     "scitex_logging",
     "scitex_stats._utils._normalizers",
     "scitex_stats._dataclasses",

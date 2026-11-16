@@ -39,6 +39,10 @@ _ALIAS_TO_CANONICAL = {
     "np": "numpy",
     "pd": "pandas",
     "sio": "scipy.io",
+    # ("io", "savemat"/"loadmat") matches the unaliased `scipy.io.savemat(...)`
+    # (the AST matcher sees the last module segment); stdlib `io` has no
+    # such attribute, so the only real target is scipy.io.
+    "io": "scipy.io",
     "plt": "matplotlib.pyplot",
     "Image": "PIL.Image",
     # cPickle: py2-only real module; in py3 it's always an alias for

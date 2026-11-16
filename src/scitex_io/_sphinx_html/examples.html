@@ -411,7 +411,7 @@ automatically tracked for reproducibility:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">scitex</span>
 
 <span class="nd">@scitex</span><span class="o">.</span><span class="n">session</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">=</span><span class="n">scitex</span><span class="o">.</span><span class="n">INJECTED</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">=</span><span class="n">scitex</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">INJECTED</span><span class="p">):</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">scitex</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;input.csv&quot;</span><span class="p">)</span>     <span class="c1"># auto-tracked by clew</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
     <span class="n">scitex</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s2">&quot;output.csv&quot;</span><span class="p">)</span>   <span class="c1"># auto-tracked by clew</span>
