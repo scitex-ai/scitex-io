@@ -46,6 +46,10 @@ def save(
 
 - Format auto-detected from extension
 - `makedirs=True` creates parent directories
+- `track=False` / `derived_from=[path or loaded obj, ...]` are observer
+  keywords (never reach the format handler): `derived_from` declares the
+  inputs this output was computed from, for scitex-clew's level-2 minimal
+  back-trace — see [17_provenance-hooks](17_provenance-hooks.md)
 - Returns `Path` to saved file, or `False` on error
 
 ### Auto path routing
