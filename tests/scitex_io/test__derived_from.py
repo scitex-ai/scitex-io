@@ -20,8 +20,27 @@ import pytest
 
 import scitex_io
 from scitex_io._derived_from import loaded_from, resolve_derived_from
-from scitex_io._observers import register_post_save_hook
+from scitex_io._observers import (
+    _post_load_hooks,
+    _post_save_hooks,
+    register_post_save_hook,
+    reset_observer_failures,
+)
 from scitex_io._registry import register_saver, unregister_saver
+
+
+@pytest.fixture
+def hooks():
+    """Run with ONLY the test's own hooks (entry-point observers saved/restored)."""
+    scitex_io._ensure_observers_activated()
+    saved_save, saved_load = list(_post_save_hooks), list(_post_load_hooks)
+    _post_save_hooks.clear()
+    _post_load_hooks.clear()
+    reset_observer_failures()
+    yield
+    _post_save_hooks[:] = saved_save
+    _post_load_hooks[:] = saved_load
+    reset_observer_failures()
 
 
 @pytest.fixture
