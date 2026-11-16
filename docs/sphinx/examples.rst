@@ -219,7 +219,7 @@ automatically tracked for reproducibility:
    import scitex
 
    @scitex.session
-   def main(CONFIG=scitex.INJECTED):
+   def main(CONFIG=scitex.session.INJECTED):
        data = scitex.io.load("input.csv")     # auto-tracked by clew
        result = process(data)
        scitex.io.save(result, "output.csv")   # auto-tracked by clew

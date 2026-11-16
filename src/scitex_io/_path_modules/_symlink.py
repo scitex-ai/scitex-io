@@ -48,6 +48,22 @@ def _is_self_link(target, link_path):
     return _os.path.abspath(target) == _os.path.abspath(link_path)
 
 
+def _link(target, link_path):
+    """``ln -sfr target link_path``; warn on failure, note it for provenance.
+
+    A created link is recorded on the active save's write capture so the
+    post-save hook payload carries the ``symlink -> target`` relation (the
+    target realpath is what observers hash). A failed ``ln`` is logged at
+    WARNING rather than ignored.
+    """
+    from .._observers._capture import note_symlink
+
+    if not sh(["ln", "-sfr", f"{target}", f"{link_path}"], verbose=False):
+        logger.warning(f"symlink creation failed: {link_path} -> {target}")
+        return
+    note_symlink(link_path)
+
+
 def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
     """Create a symbolic link from the current working directory.
 
@@ -75,7 +91,7 @@ def _symlink(spath, spath_cwd, symlink_from_cwd, verbose, spath_final=None):
             return
         _os.makedirs(_os.path.dirname(spath_cwd), exist_ok=True)
         sh(["rm", "-f", f"{spath_cwd}"], verbose=False)
-        sh(["ln", "-sfr", f"{target}", f"{spath_cwd}"], verbose=False)
+        _link(target, spath_cwd)
         if verbose:
             logger.success(f"(Symlinked to: {spath_cwd})")
 
@@ -100,11 +116,11 @@ def _symlink_to(spath_final, symlink_to, verbose):
             return
         _os.makedirs(_os.path.dirname(symlink_to), exist_ok=True)
         sh(["rm", "-f", f"{symlink_to}"], verbose=False)
-        sh(["ln", "-sfr", f"{spath_final}", f"{symlink_to}"], verbose=False)
+        _link(spath_final, symlink_to)
         if verbose:
             logger.success(f"(Symlinked to: {symlink_to})")
 
 
-__all__ = ["sh", "_symlink", "_symlink_to", "_is_self_link"]
+__all__ = ["sh", "_link", "_symlink", "_symlink_to", "_is_self_link"]
 
 # EOF
