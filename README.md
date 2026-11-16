@@ -128,6 +128,13 @@ provenance observers activate before the first IO access/event; manual hook
 registration preserves actual callback registration order. See
 [the native release contract](docs/native-release.md) for qualification details.
 
+Provenance loss is loud: if an observer hook raises, the failure is counted in
+`scitex_io.observer_failures()` and logged as a WARNING (once per kind, with
+the traceback). Set `SCITEX_IO_STRICT_PROVENANCE=1` to raise
+`scitex_io.ProvenanceError` instead. Hooks fire for every file a save writes,
+sidecars included, and for each file of a glob load. See
+[17_provenance-hooks](src/scitex_io/_skills/scitex-io/17_provenance-hooks.md).
+
 ## Installation
 
 ```bash
@@ -541,7 +548,7 @@ the umbrella with `pip install scitex[io]` to use as
 import scitex
 
 @scitex.session
-def main(CONFIG=scitex.INJECTED):
+def main(CONFIG=scitex.session.INJECTED):
     data = scitex.io.load("input.csv")     # auto-tracked by clew
     result = process(data)
     scitex.io.save(result, "output.csv")   # auto-tracked by clew

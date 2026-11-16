@@ -63,7 +63,7 @@ save(df, spath); df = load(spath)
 # 3. Use @scitex.session (CONFIG.SDIR_RUN is the canonical path)
 import scitex
 @scitex.session
-def main(CONFIG=scitex.INJECTED):
+def main(CONFIG=scitex.session.INJECTED):
     scitex.io.save(df, "results.csv")
     return scitex.io.load(CONFIG.SDIR_RUN / "results.csv")
 ```

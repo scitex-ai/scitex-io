@@ -77,6 +77,7 @@ rule and the empirical verification table.
 * [14_glob](14_glob.md) — Pattern matching with natural sort
 * [15_supported-formats](15_supported-formats.md) — All 30+ format tables
 * [16_path-resolution](16_path-resolution.md) — Auto save-path, scitex.path utilities
+* [17_provenance-hooks](17_provenance-hooks.md) — Post-save/load observer hooks, `observer_failures()`, strict provenance mode
 
 ### Standards
 * [21_linting-rules](21_linting-rules.md) — STX-IO001..014 + STX-PA001..005 lint rules
