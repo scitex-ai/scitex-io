@@ -7,7 +7,27 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Linter: own the raw-file-I/O rules that keep research scripts on
+  `stx.io` (provenance). `RawIOChecker` emits STX-PA002 (bare `open()` /
+  `io.open` / `codecs.open`, moved from the scitex-dev engine and now also
+  caught in helpers above `main`), STX-IO016 (pathlib write), STX-IO017
+  (pathlib read), STX-IO018 (`shutil.copy/copy2/copyfile/copytree/move`) and
+  STX-IO019 (`os.rename/replace/remove/unlink`, `Path.rename/replace/unlink`
+  on a data path). These carry `scope="research-script"`, which scitex-dev
+  applies: research scripts only, never tests or library code. The plugin
+  declares the `raw-io` capability scitex-dev requires for research projects.
+- Linter: PIL `img.save(path)` -> STX-IO012; `np.fromfile` -> IO002,
+  `arr.tofile` -> IO001, `pd.ExcelWriter` -> IO004; `scipy.io.savemat/loadmat`
+  under any alias -> IO011; bare calls of from-imported readers/writers get
+  the same rule as the attribute form.
+- Requires `scitex-dev>=0.63.0` (`Rule.scope` plugin SPI).
+
 ### Fixed
+- Linter: STX-IO014 read the extension registry through a wrong relative
+  import, so a hard-coded fallback list ALWAYS ran — `.parquet`, `.feather`
+  and user-registered extensions were reported as unknown. The live registry
+  is now used and a broken registry fails loudly.
 - Preserve untouched ZIP members, their metadata and archive comments when
   updating a `ZipBundle` in append mode. Repeated writes commit the final value
   once; failed transactions discard pending archives and preserve the original.

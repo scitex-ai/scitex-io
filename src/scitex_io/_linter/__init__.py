@@ -5,6 +5,8 @@ source layout stays organized by responsibility — see PS-108.
 
   plugin.py       — get_plugin(): rules, call_rules, checkers (entry point)
   ext_checker.py  — STX-IO014 unknown-extension AST checker
+  raw_io.py       — raw file I/O bypassing stx.io (PA002, IO016-IO019,
+                    PIL .save); research-script scoped by the engine
   rules.py        — module+attr shaped IO-bypass targets for callers
 """
 
