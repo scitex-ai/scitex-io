@@ -6,7 +6,7 @@ description: |
   which files fire them, the payload, and how provenance loss is made
   loud: observer_failures(), provenance_scope(), and
   SCITEX_IO_STRICT_PROVENANCE=1.
-tags: [scitex-io-provenance, scitex-io-hooks, scitex-io, scitex-package]
+tags: [scitex-io-provenance-hooks, scitex-io-provenance, scitex-io-hooks, scitex-io, scitex-package]
 ---
 
 # Provenance hooks
