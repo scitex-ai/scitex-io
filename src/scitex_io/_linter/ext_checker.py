@@ -25,85 +25,27 @@ def _builtin_extensions():
 
     Pulled live from the registry so newly registered (user) handlers count
     as 'known' too — IO014 only fires for genuinely unknown extensions.
-    Falls back to a hardcoded set if the registry can't be imported.
-    """
-    try:
-        # _builtin_handlers populates the builtin tier at import time.
-        from . import _builtin_handlers  # noqa: F401
-        from . import _registry as reg  # noqa: WPS433 (intra-package)
 
-        exts = set()
-        for tier in (
-            reg._builtin_savers,
-            reg._builtin_loaders,
-            reg._user_savers,
-            reg._user_loaders,
-        ):
-            exts.update(tier.keys())
-        # Composite extension (e.g. .pkl.gz) — track stem too.
-        exts.discard("")
-        return exts
-    except Exception:
-        return {
-            ".csv",
-            ".tsv",
-            ".xls",
-            ".xlsx",
-            ".xlsm",
-            ".xlsb",
-            ".npy",
-            ".npz",
-            ".pkl",
-            ".pickle",
-            ".pkl.gz",
-            ".joblib",
-            ".pt",
-            ".pth",
-            ".mat",
-            ".cbm",
-            ".json",
-            ".yaml",
-            ".yml",
-            ".xml",
-            ".bib",
-            ".txt",
-            ".md",
-            ".tex",
-            ".log",
-            ".rst",
-            ".py",
-            ".sh",
-            ".css",
-            ".js",
-            ".cfg",
-            ".ini",
-            ".toml",
-            ".html",
-            ".hdf5",
-            ".h5",
-            ".zarr",
-            ".db",
-            ".con",
-            ".mp4",
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".gif",
-            ".tiff",
-            ".tif",
-            ".svg",
-            ".pdf",
-            ".docx",
-            ".vhdr",
-            ".vmrk",
-            ".edf",
-            ".bdf",
-            ".gdf",
-            ".cnt",
-            ".egi",
-            ".eeg",
-            ".set",
-        }
+    The registry is part of THIS package, so a failed import is a real bug
+    and propagates. (It used to be caught by a broad ``except`` and replaced
+    by a hard-coded list — and the relative import pointed at the
+    non-existent ``scitex_io._linter._registry``, so the fallback ALWAYS
+    ran: user-registered extensions and ``.parquet``/``.feather`` were
+    wrongly reported as unknown by STX-IO014.)
+    """
+    from .. import _builtin_handlers  # noqa: F401  (populates the builtin tier)
+    from .. import _registry as reg
+
+    exts = set()
+    for tier in (
+        reg._builtin_savers,
+        reg._builtin_loaders,
+        reg._user_savers,
+        reg._user_loaders,
+    ):
+        exts.update(tier.keys())
+    exts.discard("")
+    return exts
 
 
 # ---------------------------------------------------------------------------
