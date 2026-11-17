@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-11-18
+
 ### Fixed
 - Notebooks executed headless (`jupyter nbconvert --execute`, `papermill`,
   `jupyter execute`, nbclient scripts) now save relative paths to
