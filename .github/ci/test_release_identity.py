@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 import unittest
 import zipfile
 
@@ -36,6 +37,10 @@ class RealIOArtifacts(unittest.TestCase):
         raw = command('git', '-C', str(ROOT), 'archive', 'HEAD')
         with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
             archive.extractall(cls.repo, filter='data')
+        cls.version = tomllib.loads((cls.repo/'pyproject.toml').read_text())['project']['version']
+        cls.tag = 'v' + cls.version
+        major, minor, patch = cls.version.split('.')
+        cls.wrong_tag = f'v{major}.{minor}.{int(patch) + 1}'
         # The fixture owns Git object history, not user-specific init hooks.
         command('git', 'init', '--template=', '--initial-branch=main', '--object-format=sha1', '-q', cwd=cls.repo)
         command('git', 'config', 'user.name', 'Release qualification', cwd=cls.repo)
@@ -63,7 +68,7 @@ class RealIOArtifacts(unittest.TestCase):
         return result
 
     def test_actual_complete_wheel_sdist_matches_real_source(self):
-        result=identity.artifact_proof(self.dist,'v0.4.2',self.commit,'123','1',source_root=self.repo)
+        result=identity.artifact_proof(self.dist,self.tag,self.commit,'123','1',source_root=self.repo)
         self.assertGreater(result['source_membership']['wheel_public_members'],190)
 
     def test_source_bytes_modified_with_valid_RECORD_are_refused(self):
@@ -96,21 +101,21 @@ class RealIOArtifacts(unittest.TestCase):
         target=self.owned_dist('linked')
         path=target/self.wheel.name;path.unlink();path.symlink_to(self.wheel)
         with self.assertRaisesRegex(ValueError,'regular file'):
-            identity.artifact_proof(target,'v0.4.2',self.commit,'123','1',source_root=self.repo)
+            identity.artifact_proof(target,self.tag,self.commit,'123','1',source_root=self.repo)
 
     def test_wrong_tag_version_is_refused(self):
         with self.assertRaises(ValueError):
-            identity.artifact_proof(self.dist,'v0.4.3',self.commit,'123','1',source_root=self.repo)
+            identity.artifact_proof(self.dist,self.wrong_tag,self.commit,'123','1',source_root=self.repo)
 
     def test_tag_newline_is_refused(self):
         with self.assertRaisesRegex(ValueError,'identity is malformed'):
-            identity.artifact_proof(self.dist,'v0.4.2\n',self.commit,'123','1',source_root=self.repo)
+            identity.artifact_proof(self.dist,self.tag + '\n',self.commit,'123','1',source_root=self.repo)
 
     def test_extra_distribution_file_is_refused(self):
         target=self.owned_dist('extra')
         (target/'unexpected.txt').write_text('owned control')
         with self.assertRaisesRegex(ValueError,'exactly one wheel'):
-            identity.artifact_proof(target,'v0.4.2',self.commit,'123','1',source_root=self.repo)
+            identity.artifact_proof(target,self.tag,self.commit,'123','1',source_root=self.repo)
 
     def test_source_commit_drift_is_refused(self):
         with (self.repo/'README.md').open('a') as stream:stream.write('\nOwned source drift control.\n')
@@ -133,8 +138,8 @@ class RealIOArtifacts(unittest.TestCase):
                 if move_after and count>1:
                     return {**snapshot,'protected':False}
                 return snapshot
-            if path==prefix+'/git/ref/tags/v0.4.2':
-                return {'ref':'refs/tags/v0.4.2','object':{'type':'commit','sha':self.commit}}
+            if path==prefix+'/git/ref/tags/'+self.tag:
+                return {'ref':'refs/tags/'+self.tag,'object':{'type':'commit','sha':self.commit}}
             if path==prefix+'/compare/'+self.commit+'...'+main:
                 return {'base_commit':{'sha':self.commit},'status':'identical' if main==self.commit else 'ahead'}
             if path==prefix+'/contents/pyproject.toml?ref='+self.commit:
@@ -145,20 +150,20 @@ class RealIOArtifacts(unittest.TestCase):
         return query
 
     def test_real_metadata_resolves_existing_tag_and_qualified_main(self):
-        self.assertEqual(identity.resolve('v0.4.2',self.source_query()),
-            {'tag':'v0.4.2','commit':self.commit,'version':'0.4.2'})
+        self.assertEqual(identity.resolve(self.tag,self.source_query()),
+            {'tag':self.tag,'commit':self.commit,'version':self.version})
 
     def test_unprotected_main_refuses_before_native_selection(self):
         with self.assertRaisesRegex(ValueError,'main is not protected'):
-            identity.resolve('v0.4.2',self.source_query(protected=False))
+            identity.resolve(self.tag,self.source_query(protected=False))
 
     def test_main_protection_change_during_resolution_is_refused(self):
         with self.assertRaisesRegex(ValueError,'main changed'):
-            identity.resolve('v0.4.2',self.source_query(move_after=True))
+            identity.resolve(self.tag,self.source_query(move_after=True))
 
     def test_forged_metadata_Git_blob_is_refused(self):
         with self.assertRaisesRegex(ValueError,'Git identity differs'):
-            identity.resolve('v0.4.2',self.source_query(bad_blob=True))
+            identity.resolve(self.tag,self.source_query(bad_blob=True))
 
 
 if __name__=='__main__':
