@@ -839,37 +839,27 @@ class TestEnvironmentDetect:
         # Act
         _name, dir_ = get_notebook_info_simple()
         # Assert
-        assert dir_ == str(tmp_path)
+        assert dir_ == os.path.realpath(tmp_path)
 
-    def test_notebook_path_argv_fallback_name_equals_via_argv_ipynb(
+    def test_notebook_path_kernel_argv_ipynb_is_not_a_source(
         self, tmp_path, env_save_restore, argv_restore
     ):
+        # sys.argv in a kernel is ipykernel_launcher's; never the notebook (#197)
         # Arrange
         nb = tmp_path / "via_argv.ipynb"
         nb.write_text("{}")
         env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        env_save_restore.delete("JPY_SESSION_NAME")
         sys.argv[:] = ["jupyter", str(nb)]
         # Act
-        name, _dir = get_notebook_info_simple()
+        result = get_notebook_info_simple()
         # Assert
-        assert name == "via_argv.ipynb"
-
-    def test_notebook_path_argv_fallback_dir_equals_str_tmp_path(
-        self, tmp_path, env_save_restore, argv_restore
-    ):
-        # Arrange
-        nb = tmp_path / "via_argv.ipynb"
-        nb.write_text("{}")
-        env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
-        sys.argv[:] = ["jupyter", str(nb)]
-        # Act
-        _name, dir_ = get_notebook_info_simple()
-        # Assert
-        assert dir_ == str(tmp_path)
+        assert result == (None, None)
 
     def test_notebook_path_none_when_no_signal(self, env_save_restore, argv_restore):
         # Arrange
         env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+        env_save_restore.delete("JPY_SESSION_NAME")
         sys.argv[:] = ["pytest"]
         # Act
         result = get_notebook_info_simple()

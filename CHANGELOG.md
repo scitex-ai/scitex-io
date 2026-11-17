@@ -7,6 +7,25 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Notebooks executed headless (`jupyter nbconvert --execute`, `papermill`,
+  `jupyter execute`, nbclient scripts) now save relative paths to
+  `<notebook dir>/<stem>_out/` instead of `<cwd>/notebook_out/`. The notebook
+  is resolved by the new `scitex_io._notebook.resolve_notebook`, with the same
+  order as scitex-session 0.4.0: `$SCITEX_NOTEBOOK_PATH` > `__vsc_ipynb_file__`
+  > `__session__` / `$JPY_SESSION_NAME` > a `.ipynb` on the launching
+  process's command line that contains the running cell > a Jupyter-server
+  query. The kernel's own `sys.argv` (never the notebook) and the
+  non-standard `__notebook__` / optional `ipynbname` probes are no longer
+  consulted. Shared conformance vectors
+  (`tests/scitex_io/conformance/notebook-path-vectors.json`) are kept
+  byte-identical with scitex-session. The fallback WARNING now names the
+  sources tried (#197).
+
+### Changed
+- New runtime dependency `scitex-context>=0.1.4` (pure stdlib) for the
+  Jupyter-server query.
+
 ## [0.6.0] — 2026-11-17
 
 ### Added

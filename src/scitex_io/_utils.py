@@ -359,61 +359,20 @@ def get_notebook_info_simple():
     """Return ``(notebook_filename, notebook_directory)`` or ``(None, None)``.
 
     Used by ``scitex_io.save`` to route notebook artefacts to the canonical
-    ``<notebook_dir>/<stem>_out/<file>`` location. Detection layers (first
-    truthy hit wins):
-
-    1. Explicit env-var override ``SCITEX_NOTEBOOK_PATH`` — set by CI /
-       nbconvert wrappers when the notebook path can't be discovered from
-       inside the kernel.
-    2. VS Code Jupyter — ``__vsc_ipynb_file__`` injected into the user
-       namespace by the VS Code Jupyter extension.
-    3. JupyterLab / classic notebook — ``__session__`` global, plus
-       ``ipynbname.path()`` if the optional ``ipynbname`` package is
-       installed (it queries the running Jupyter server).
-    4. Fallback to scanning ``sys.argv`` for a ``*.ipynb`` arg (handles
-       ``jupyter nbconvert demo.ipynb`` invocations from tools that
-       forward argv to the kernel).
+    ``<notebook_dir>/<stem>_out/<file>`` location. The notebook is located by
+    :func:`scitex_io._notebook.resolve_notebook` (```` >
+    VS Code ``__vsc_ipynb_file__`` > Jupyter ``__session__`` /
+    ```` > a ``.ipynb`` on the launching process's command
+    line that contains the running cell > a Jupyter-server query), the same
+    rule scitex-session uses.
 
     Returns a 2-tuple, never a dict (callers unpack it).
     """
     import os
-    import sys
 
-    # 1) Explicit override.
-    explicit = os.environ.get("SCITEX_NOTEBOOK_PATH")
-    if explicit and os.path.exists(explicit):
-        path = os.path.abspath(explicit)
-        return os.path.basename(path), os.path.dirname(path) or None
+    from ._notebook import resolve_notebook
 
-    # 2/3) IPython user namespace (VS Code, JupyterLab).
-    try:
-        ip = get_ipython()  # type: ignore[name-defined]
-    except NameError:
-        ip = None
-    if ip is not None:
-        ns = getattr(ip, "user_ns", {}) or {}
-        for key in ("__vsc_ipynb_file__", "__session__", "__notebook__"):
-            candidate = ns.get(key)
-            if isinstance(candidate, str) and candidate.endswith(".ipynb"):
-                if os.path.exists(candidate):
-                    path = os.path.abspath(candidate)
-                    return os.path.basename(path), os.path.dirname(path) or None
-
-        # ipynbname (best-effort) — only available if the user opted in.
-        try:
-            import ipynbname  # type: ignore
-
-            path = str(ipynbname.path())
-            if path.endswith(".ipynb") and os.path.exists(path):
-                return os.path.basename(path), os.path.dirname(path) or None
-        except (ImportError, Exception):
-            pass
-
-    # 4) sys.argv last-ditch (nbconvert running outside a kernel sometimes
-    # passes the path positionally).
-    for arg in sys.argv:
-        if isinstance(arg, str) and arg.endswith(".ipynb") and os.path.exists(arg):
-            path = os.path.abspath(arg)
-            return os.path.basename(path), os.path.dirname(path) or None
-
-    return None, None
+    path = resolve_notebook().get("path")
+    if path is None:
+        return None, None
+    return os.path.basename(path), os.path.dirname(path) or None
