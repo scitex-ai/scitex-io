@@ -148,6 +148,17 @@ def save(
         Resolve the anchor from the calling script, not the immediate
         caller — needed when ``save`` is wrapped by a library. Default
         ``False``.
+    track : bool, optional (keyword)
+        Forwarded to post-save observers only; ``False`` asks a provenance
+        observer (scitex-clew) not to record this file. Default ``True``.
+    derived_from : path or list of paths / loaded objects, optional (keyword)
+        Declare the inputs this output was computed from. Each item is a
+        file path or an object returned by :func:`scitex_io.load` (resolved
+        to the file it was loaded from). Forwarded to post-save observers
+        as a list of realpaths under ``kwargs["derived_from"]`` for the
+        primary file and every sidecar; scitex-clew uses it for its level-2
+        minimal back-trace. Omitted = undeclared (never inferred). Raises
+        before writing if an item cannot be resolved exactly.
     **kwargs
         Passed through to the per-format handler.
 
@@ -156,6 +167,9 @@ def save(
     Path or None
         Path to saved file on success, ``None``/``False`` on error.
     """
+    # Bound before ``try`` so the failure report below can name it even
+    # when the error is raised before path resolution.
+    spath = None
     try:
         # ``track`` is a scitex-io / observer concept, NOT a format-handler
         # argument. Pop it before any dispatch so it never reaches the
@@ -163,6 +177,14 @@ def save(
         # kwargs and would raise on an unexpected ``track=``). It is handed
         # back to the post-save hook below so clew can gate tracking on it.
         track = kwargs.pop("track", True)
+        # ``derived_from`` is likewise an observer concept: the declared
+        # inputs this output was computed from (paths or objects returned by
+        # ``load``). Resolved to existing realpaths BEFORE anything is
+        # written, so a bad declaration fails the save instead of recording a
+        # wrong edge. ``None`` = undeclared; nothing is ever inferred.
+        from ._derived_from import resolve_derived_from
+
+        derived_from = resolve_derived_from(kwargs.pop("derived_from", None))
 
         if isinstance(specified_path, Path):
             specified_path = str(specified_path)
@@ -401,9 +423,13 @@ def save(
         # raises ProvenanceError) — never silently swallowed.
         from ._observers import fire_post_save_capture
 
-        # Re-attach ``track`` so observers (clew) can honour it. It was
-        # popped above to keep it out of the format handlers.
-        fire_post_save_capture(capture, obj, {**kwargs, "track": track})
+        # Re-attach ``track`` (and a ``derived_from`` declaration, when one
+        # was made) so observers (clew) can honour them. They were popped
+        # above to keep them out of the format handlers.
+        hook_kwargs = {**kwargs, "track": track}
+        if derived_from is not None:
+            hook_kwargs["derived_from"] = derived_from
+        fire_post_save_capture(capture, obj, hook_kwargs)
         return saved_path
 
     except Exception as e:

@@ -46,6 +46,8 @@ def save(
 
 - Format auto-detected from extension
 - `makedirs=True` creates parent directories
+- Observer kwargs `track=False`, `derived_from=[path|loaded obj]` (declared
+  inputs, clew level-2 slice) — see [17_provenance-hooks](17_provenance-hooks.md)
 - Returns `Path` to saved file, or `False` on error
 
 ### Auto path routing

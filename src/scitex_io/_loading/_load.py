@@ -16,14 +16,14 @@ import glob
 from pathlib import Path
 from typing import Any, Union
 
+import scitex_logging as slogging
+
 from .._registry import get_loader  # noqa: F401
 from ._load_cache import (
     cache_data,
     get_cached_data,
     load_npy_cached,
 )
-
-import scitex_logging as slogging
 
 log = slogging.getLogger(__name__)
 
@@ -50,6 +50,11 @@ def load(
         from .._observers import fire_post_load
 
         fire_post_load(Path(lpath), result, {"glob": _GLOB_PATTERN.get()})
+        # Identity registry so ``save(..., derived_from=[result])`` can name
+        # this file by handing back the object (see _derived_from).
+        from .._derived_from import register_loaded
+
+        register_loaded(result, os.path.realpath(str(lpath)))
     return result
 
 

@@ -8,6 +8,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `save(obj, path, derived_from=[...])`: declare the inputs an output was
+  computed from (file paths, or objects returned by `load()` -- resolved to
+  their source file through a weakref identity registry). Forwarded to
+  post-save observers as realpaths in `kwargs["derived_from"]` for the
+  primary and every sidecar; scitex-clew uses it for `slice(level=2)`.
+  Never inferred; unresolvable items raise before anything is written.
 - Linter: own the raw-file-I/O rules that keep research scripts on
   `stx.io` (provenance). `RawIOChecker` emits STX-PA002 (bare `open()` /
   `io.open` / `codecs.open`, moved from the scitex-dev engine and now also
@@ -24,6 +30,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 - Requires `scitex-dev>=0.63.0` (`Rule.scope` plugin SPI).
 
 ### Fixed
+- `save()` failure report no longer raises `UnboundLocalError` (masking the
+  real error) when the failure happens before path resolution.
 - Linter: STX-IO014 read the extension registry through a wrong relative
   import, so a hard-coded fallback list ALWAYS ran — `.parquet`, `.feather`
   and user-registered extensions were reported as unknown. The live registry
