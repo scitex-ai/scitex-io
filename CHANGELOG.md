@@ -7,17 +7,7 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
-- Provenance capture gap: the public convenience savers (`save_text`,
-  `save_image`, `save_mp4`, `save_listed_dfs_as_csv`,
-  `save_listed_scalars_as_csv`, and every `scitex_io._save_modules.save_<fmt>`)
-  resolved to raw format handlers and never fired the post-save hook, so a
-  file written with `stx.io.save_text(text, "/abs/REPORT.md")` under
-  `@stx.session` was not recorded by scitex-clew (paper-scitex-clew E1,
-  2026-11-17). They now capture their writes like `save()` and fire the hook
-  once per written file with its realpath, for relative and absolute paths
-  alike; `track=` / `derived_from=` are honoured. Where they write is
-  unchanged.
+## [0.6.0] — 2026-11-17
 
 ### Added
 - `save(obj, path, derived_from=[...])`: declare the inputs an output was
@@ -25,7 +15,28 @@ versions follow [Semantic Versioning](https://semver.org/).
   their source file through a weakref identity registry). Forwarded to
   post-save observers as realpaths in `kwargs["derived_from"]` for the
   primary and every sidecar; scitex-clew uses it for `slice(level=2)`.
-  Never inferred; unresolvable items raise before anything is written.
+  Never inferred; unresolvable items raise before anything is written (#192).
+
+### Fixed
+- Provenance capture gap: the public convenience savers (`save_text`,
+  `save_image`, `save_mp4`, `save_listed_dfs_as_csv`,
+  `save_listed_scalars_as_csv`, and every `scitex_io._save_modules.save_<fmt>`)
+  resolved to raw format handlers and never fired the post-save hook, so a
+  file written with `stx.io.save_text(text, "/abs/REPORT.md")` under
+  `@stx.session` was not recorded by scitex-clew. They now capture their
+  writes like `save()` and fire the hook once per written file with its
+  realpath, for relative and absolute paths alike; `track=` /
+  `derived_from=` are honoured. Where they write is unchanged (#193).
+- `save()` failure report no longer raises `UnboundLocalError` (masking the
+  real error) when the failure happens before path resolution (#192).
+
+### Changed
+- The generated Sphinx HTML (`docs/sphinx/_build`) is no longer tracked; CI
+  and Read the Docs build it (#191).
+
+## [0.5.0] — 2026-11-16
+
+### Added
 - Linter: own the raw-file-I/O rules that keep research scripts on
   `stx.io` (provenance). `RawIOChecker` emits STX-PA002 (bare `open()` /
   `io.open` / `codecs.open`, moved from the scitex-dev engine and now also
@@ -42,12 +53,22 @@ versions follow [Semantic Versioning](https://semver.org/).
 - Requires `scitex-dev>=0.63.0` (`Rule.scope` plugin SPI).
 
 ### Fixed
-- `save()` failure report no longer raises `UnboundLocalError` (masking the
-  real error) when the failure happens before path resolution.
 - Linter: STX-IO014 read the extension registry through a wrong relative
   import, so a hard-coded fallback list ALWAYS ran — `.parquet`, `.feather`
   and user-registered extensions were reported as unknown. The live registry
   is now used and a broken registry fails loudly.
+- Observers: provenance loss is loud. A raising post-save/post-load hook is
+  counted and WARNed once per (kind, hook, error) instead of being logged at
+  debug level; `SCITEX_IO_STRICT_PROVENANCE=1` raises `ProvenanceError`.
+  New public API: `observer_failures()`, `reset_observer_failures()`,
+  `provenance_scope()`, `ProvenanceError`. Glob loads fire one post-load hook
+  per matched file, and `save()` fires a post-save hook for every file it
+  writes (CSV/legend sidecars, figrecipe recipe files). Missing outputs and
+  failed sidecar scans are reported as provenance loss (#188).
+
+## [0.4.3] — 2026-11-08
+
+### Fixed
 - Preserve untouched ZIP members, their metadata and archive comments when
   updating a `ZipBundle` in append mode. Repeated writes commit the final value
   once; failed transactions discard pending archives and preserve the original.

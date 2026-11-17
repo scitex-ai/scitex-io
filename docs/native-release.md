@@ -115,3 +115,31 @@ actual root's device/inode/UID/mode, owned live Unix socket, exact DSN/process
 routing, empty password file and isolated scope. An invalid expected context
 fails visibly; there is no fallback or skip. The guard is part of the pinned
 native helper source closure.
+
+
+### Qualification without publication
+
+The `native-qualification` workflow accepts an **existing** `vX.Y.Z` tag already
+promoted to protected main. Its admission and preflight reuse the release
+identity checks. The accepted shared executor runs the complete native test
+matrix, then builds and verifies the wheel and source distribution. Its version
+jobs run one at a time; the registered versions, full dependency profiles and
+operation deadlines remain unchanged. The registered company IO executor
+admits only compute-03, where its complete native profile was qualified. This
+host admission applies to both the release and read-only qualification routes;
+it does not limit the public library's platform support. Other hosts require
+complete qualification before admission is widened. Prior compute-04 failures
+remain failed evidence, and a new source still needs its own full native test
+and build results before release readiness can be claimed.
+
+```bash
+gh workflow run native-qualification.yml --ref main -f tag=v0.4.3
+```
+
+This workflow has read-only repository permissions and no publisher, PyPI
+environment, OIDC publishing grant or GitHub release job. It does not change the
+tag or retry its original release attempt. Read the new run's actual test and
+build results before claiming qualification; a queued or successful preflight
+alone is not acceptance. Other workflows and user jobs can still compete for
+the host's disk. Publication remains a separate release operation with its
+original identity and artifact gates.
