@@ -17,7 +17,6 @@ import json
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -87,9 +86,8 @@ EXPECTED = [
 ]
 
 
-@pytest.fixture(scope="module")
-def recorded_outputs(tmp_path_factory):
-    work = tmp_path_factory.mktemp("clew-capture")
+def _run_session_script(work):
+    """Run the @session script in ``work``; return clew's recorded outputs."""
     (work / "capture_script.py").write_text(SCRIPT)
     env = {
         **{k: v for k, v in os.environ.items() if not k.startswith("PG")},
@@ -106,16 +104,16 @@ def recorded_outputs(tmp_path_factory):
         text=True,
         timeout=600,
     )
-    assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-4000:]
+    if result.returncode != 0:
+        raise RuntimeError(result.stdout[-4000:] + result.stderr[-4000:])
     line = [ln for ln in result.stdout.splitlines() if ln.startswith("CLEW_OUTPUTS ")]
-    return work, set(json.loads(line[-1].split(" ", 1)[1]))
+    return set(json.loads(line[-1].split(" ", 1)[1]))
 
 
-@pytest.mark.parametrize("fname", EXPECTED)
-def test_clew_records_helper_write_as_session_output(fname, recorded_outputs):
+def test_clew_records_every_helper_write_as_session_output(tmp_path):
     # Arrange
-    work, outputs = recorded_outputs
+    expected = {os.path.realpath(tmp_path / fname) for fname in EXPECTED}
     # Act
-    expected = os.path.realpath(Path(work) / fname)
+    outputs = _run_session_script(tmp_path)
     # Assert
-    assert expected in outputs
+    assert sorted(expected - outputs) == []
