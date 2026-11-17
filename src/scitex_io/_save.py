@@ -54,13 +54,16 @@ logger = _getLogger(__name__)
 _NOTEBOOK_PATH_WARNED = False
 
 
-def _warn_notebook_path_unresolved_once(fallback_sdir: str) -> None:
-    """Emit a one-time hint when notebook-name detection fails.
+def _warn_notebook_path_unresolved_once(
+    fallback_sdir: str, reason: Union[str, None] = None
+) -> None:
+    """Emit a one-time WARNING when the kernel's notebook cannot be found.
 
-    Triggered when ``scitex_io.save`` runs inside a notebook but
-    ``get_notebook_info_simple()`` couldn't recover the notebook stem.
-    Falling back to ``<cwd>/notebook_out/`` is correct but surprising
-    — explain the canonical convention and how to opt in.
+    Triggered when ``scitex_io.save`` runs inside a Jupyter kernel but
+    :func:`scitex_io._notebook.resolve_notebook` finds no notebook (see its
+    docstring for the sources tried). The relative save then falls back to
+    ``<cwd>/notebook_out/`` -- documented, but not the canonical
+    ``<notebook_dir>/<stem>_out/`` -- so say so, say why, and say how to fix it.
 
     Silenced for the rest of the process by:
       - ``SCITEX_IO_QUIET_NOTEBOOK_WARN=1`` env var, OR
@@ -76,9 +79,10 @@ def _warn_notebook_path_unresolved_once(fallback_sdir: str) -> None:
     msg = (
         "scitex_io: notebook path could not be auto-detected; saving to "
         f"{fallback_sdir!r} instead of <notebook_dir>/<stem>_out/.\n"
+        f"  Sources tried: {reason or 'none'}.\n"
         "  Canonical convention: <dir>/<stem>.ipynb -> sio.save(obj, 'name.ext') "
         "-> <dir>/<stem>_out/name.ext\n"
-        "  Fix by setting SCITEX_NOTEBOOK_PATH before running, e.g.:\n"
+        "  Fix by setting SCITEX_NOTEBOOK_PATH for the kernel, e.g.:\n"
         "    SCITEX_NOTEBOOK_PATH=demo.ipynb jupyter nbconvert --execute --inplace demo.ipynb\n"
         "  Silence this hint with SCITEX_IO_QUIET_NOTEBOOK_WARN=1.\n"
         "  Or pass an absolute path to bypass routing: sio.save(obj, '/abs/path.ext').\n"
@@ -219,31 +223,31 @@ def save(
         if specified_path.startswith("/"):
             spath = specified_path
         else:
-            from ._utils import detect_environment, get_notebook_info_simple
+            from ._utils import detect_environment
 
             if env_detector is None:
                 env_detector = detect_environment
             env_type = env_detector()
 
             if env_type == "jupyter":
-                # Defensive: get_notebook_info_simple was historically a stub
-                # that returned a dict — unpacking it as a 2-tuple iterated
-                # the dict keys, producing `notebook_name='path'`,
-                # `notebook_dir='name'`, and every notebook saved to
-                # `<cwd>/name/path_out/`. Guard against any non-tuple shape.
-                info = get_notebook_info_simple()
-                if isinstance(info, tuple) and len(info) == 2:
-                    notebook_name, notebook_dir = info
-                else:
-                    notebook_name, notebook_dir = None, None
-                if notebook_name:
-                    notebook_base = _os.path.splitext(notebook_name)[0]
+                # Same resolution rule as scitex-session (see _notebook.py),
+                # so save() and @session agree on <notebook>_out/.
+                from ._notebook import resolve_notebook
+
+                resolved = resolve_notebook()
+                notebook_path = resolved.get("path")
+                if notebook_path:
+                    notebook_base = _os.path.splitext(
+                        _os.path.basename(notebook_path)
+                    )[0]
                     sdir = _os.path.join(
-                        notebook_dir or _os.getcwd(), f"{notebook_base}_out"
+                        _os.path.dirname(notebook_path), f"{notebook_base}_out"
                     )
                 else:
                     sdir = _os.path.join(_os.getcwd(), "notebook_out")
-                    _warn_notebook_path_unresolved_once(sdir)
+                    _warn_notebook_path_unresolved_once(
+                        sdir, resolved.get("reason")
+                    )
                 spath = _os.path.join(sdir, specified_path)
 
             elif env_type == "script":
