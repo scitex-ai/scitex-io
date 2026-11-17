@@ -142,7 +142,12 @@ from scitex_io import (
 ```
 
 These are the targeted savers behind `save()`'s extension dispatch;
-call directly for advanced flags.
+call directly for advanced flags. Each one fires the post-save hook
+(scitex-clew records the file as a session output) with the written
+file's realpath, for relative and absolute paths alike, and accepts
+`track=` / `derived_from=` like `save()`. Unlike `save()`, a relative
+path is relative to the current working directory (no `<script>_out/`
+anchoring). See [17_provenance-hooks.md](17_provenance-hooks.md).
 
 ## See also
 

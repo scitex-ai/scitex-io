@@ -24,8 +24,20 @@ is silently incomplete, so scitex-io makes every loss visible.
 | `save(obj, "x.csv")` | one call for `x.csv` |
 | `save(fig, "fig.png")` | one call for `fig.png` **and one per sidecar** (`fig.csv`, `fig_for_sigmaplot.csv`, `fig_<ax>_legend.png`, figrecipe `fig.yaml` + data files) |
 | `save(..., symlink_from_cwd=True / symlink_to=...)` | no extra call; the link is listed in the target's payload `symlinks` |
+| `save_text(text, "/abs/REPORT.md")` / `save_text(text, "./REPORT.md")` and every other public `save_*` helper (`save_image`, `save_mp4`, `save_listed_dfs_as_csv`, `save_listed_scalars_as_csv`, `scitex_io._save_modules.save_<fmt>`) | one call per written file, exactly like `save()` |
 | `load("x.csv")` / `load("./link.csv")` | one call, `path` = the realpath of the target |
 | `load("data/*.csv")` | one call **per matched file**, never for the pattern |
+
+**Every write through scitex-io's public API is observed**, whatever the
+path form: `path` is always the realpath, for relative and absolute
+destinations alike. The `save_*` helpers keep their own path semantics
+(relative = relative to the current working directory, NOT caller-anchored
+like `save()`), and accept `track=` / `derived_from=` like `save()`.
+`save_optuna_study_as_csv_and_pngs` writes through `save()` and fires per
+file. STX-PA001 still discourages absolute paths (portability), but
+capture does not depend on following that lint. Writes that bypass
+scitex-io entirely (`open(...).write`, `df.to_csv`) are NOT observed —
+that is what the STX-IO raw-IO lint rules flag.
 
 Sidecars are detected two ways: scitex-io's own writers note the files
 they write, and the primary's directory is compared before and after the
