@@ -7,6 +7,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-11-18
+
+Ships the 0.6.1 changes below (0.6.1 was tagged but never published).
+
 ### Fixed
 - Test-only: the headless-notebook tests give their kernels a private
   `$TMPDIR` / `$JUPYTER_RUNTIME_DIR`. jupyter_client sets the sticky bit on
