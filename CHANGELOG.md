@@ -7,6 +7,33 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-11-17
+
+### Added
+- `save(obj, path, derived_from=[...])`: declare the inputs an output was
+  computed from (file paths, or objects returned by `load()` -- resolved to
+  their source file through a weakref identity registry). Forwarded to
+  post-save observers as realpaths in `kwargs["derived_from"]` for the
+  primary and every sidecar; scitex-clew uses it for `slice(level=2)`.
+  Never inferred; unresolvable items raise before anything is written (#192).
+
+### Fixed
+- Provenance capture gap: the public convenience savers (`save_text`,
+  `save_image`, `save_mp4`, `save_listed_dfs_as_csv`,
+  `save_listed_scalars_as_csv`, and every `scitex_io._save_modules.save_<fmt>`)
+  resolved to raw format handlers and never fired the post-save hook, so a
+  file written with `stx.io.save_text(text, "/abs/REPORT.md")` under
+  `@stx.session` was not recorded by scitex-clew. They now capture their
+  writes like `save()` and fire the hook once per written file with its
+  realpath, for relative and absolute paths alike; `track=` /
+  `derived_from=` are honoured. Where they write is unchanged (#193).
+- `save()` failure report no longer raises `UnboundLocalError` (masking the
+  real error) when the failure happens before path resolution (#192).
+
+### Changed
+- The generated Sphinx HTML (`docs/sphinx/_build`) is no longer tracked; CI
+  and Read the Docs build it (#191).
+
 ## [0.5.0] — 2026-11-16
 
 ### Added

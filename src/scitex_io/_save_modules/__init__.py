@@ -66,6 +66,16 @@ _LAZY_NAMES: dict[str, tuple[str, str]] = {
 
 __all__ = list(_LAZY_NAMES)
 
+# Public helpers that already route every write through ``scitex_io.save``
+# (which fires the post-save hook itself). Every OTHER public name resolves
+# to a raw handler and is wrapped with ``tracked_save_helper`` so a direct
+# call (``stx.io.save_text(text, "/abs/REPORT.md")``) reaches provenance
+# observers exactly like ``save()`` — relative or absolute path alike.
+# ``save()``'s own dispatch never goes through these names (the registry in
+# ``_builtin_handlers`` points at the submodule functions), so wrapping them
+# cannot double-report a ``save()`` call.
+_ROUTED_THROUGH_SAVE = frozenset({"save_optuna_study_as_csv_and_pngs"})
+
 
 def __getattr__(name: str):
     """Resolve a save-handler attribute on first access (PEP 562).
@@ -76,25 +86,24 @@ def __getattr__(name: str):
     """
     spec = _LAZY_NAMES.get(name)
     if spec is None:
-        raise AttributeError(
-            f"module {__name__!r} has no attribute {name!r}"
-        )
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     module_path, attr_name = spec
     try:
         module = _importlib.import_module(module_path)
         value = getattr(module, attr_name, None)
         if value is None:
-            raise ImportError(
-                f"module {module_path!r} has no attribute {attr_name!r}"
-            )
+            raise ImportError(f"module {module_path!r} has no attribute {attr_name!r}")
     except Exception as exc:
         _warnings.warn(
-            f"scitex_io: {name} not available "
-            f"(missing optional dependency: {exc})",
+            f"scitex_io: {name} not available (missing optional dependency: {exc})",
             ImportWarning,
             stacklevel=2,
         )
         value = None
+    if value is not None and name not in _ROUTED_THROUGH_SAVE:
+        from .._observers._tracked import tracked_save_helper
+
+        value = tracked_save_helper(value)
     globals()[name] = value
     return value
 
