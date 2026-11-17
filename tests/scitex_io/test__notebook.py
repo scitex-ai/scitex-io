@@ -35,11 +35,23 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _child_env(**extra):
-    """Environment for child processes: this one minus notebook signals."""
+def _child_env(scratch: Path, **extra):
+    """Environment for child processes: this one minus notebook signals.
+
+    Temporary and Jupyter runtime files go under ``scratch`` (the test's own
+    tmp dir). jupyter_client writes each kernel's connection file into
+    ``$TMPDIR`` (or the runtime dir) and then sets the STICKY BIT on that
+    directory; pointed at the suite's shared ``$TMPDIR`` it changes a
+    directory the test does not own (the release driver refuses to clean up
+    a scratch root whose mode changed from 700 to 1700).
+    """
     env = dict(os.environ)
     for key in ("SCITEX_NOTEBOOK_PATH", "JPY_SESSION_NAME", "JPY_PARENT_PID"):
         env.pop(key, None)
+    own_tmp = scratch / "child-tmp"
+    own_tmp.mkdir(parents=True, exist_ok=True)
+    env["TMPDIR"] = str(own_tmp)
+    env["JUPYTER_RUNTIME_DIR"] = str(own_tmp / "jupyter-runtime")
     env["PYTHONPATH"] = os.pathsep.join(
         p for p in (str(SRC), env.get("PYTHONPATH", "")) if p
     )
@@ -66,7 +78,7 @@ def vector_results(tmp_path_factory):
         ],
         capture_output=True,
         text=True,
-        env=_child_env(),
+        env=_child_env(parent),
         cwd=str(parent),
         timeout=300,
     )
@@ -140,7 +152,7 @@ def _run(cmd, work: Path, **env) -> None:
     proc = subprocess.run(
         cmd,
         cwd=str(work),
-        env=_child_env(**env),
+        env=_child_env(work.parent, **env),
         capture_output=True,
         text=True,
         timeout=300,
@@ -347,3 +359,30 @@ def test_jupyter_execute_cli_saves_to_notebook_out_dir(layout):
     _run(cmd, work)
     # Assert
     assert _where_saved(nb, work) == NEXT_TO_NOTEBOOK
+
+
+def test_headless_kernel_leaves_suite_tmpdir_mode_unchanged(layout):
+    # Arrange -- jupyter_client sets the sticky bit on the directory holding
+    # a kernel's connection file; that must never be the suite's own $TMPDIR
+    import tempfile
+
+    work, nb = layout
+    suite_tmp = tempfile.gettempdir()
+    before = os.stat(suite_tmp).st_mode
+    # Act
+    _run(
+        [
+            sys.executable,
+            "-m",
+            "nbconvert",
+            "--to",
+            "notebook",
+            "--execute",
+            str(nb),
+            "--output-dir",
+            str(work),
+        ],
+        work,
+    )
+    # Assert
+    assert os.stat(suite_tmp).st_mode == before

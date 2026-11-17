@@ -16,7 +16,10 @@ def save_optuna_study_as_csv_and_pngs(study, sdir):
     except ImportError:  # optional: pip install scitex-io[all]
         optuna = None
 
-    from .._save import save
+    # The public entry point registers the built-in handlers (.csv, .png)
+    # on first access; ``.._save.save`` alone does not, so a fresh process
+    # calling this helper first failed with "No save handler for '.csv'".
+    from .. import save
 
     ## Trials DataFrame
     trials_df = study.trials_dataframe()

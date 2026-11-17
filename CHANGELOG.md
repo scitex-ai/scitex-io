@@ -7,7 +7,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.6.1] — 2026-11-18
+### Fixed
+- Test-only: the headless-notebook tests give their kernels a private
+  `$TMPDIR` / `$JUPYTER_RUNTIME_DIR`. jupyter_client sets the sticky bit on
+  the directory that holds a kernel's connection file, which turned the
+  release driver's owned scratch root from mode 700 into 1700, and the driver
+  then refused to clean it up. That failed the `v0.6.1` tag workflow before
+  build, so 0.6.1 was never published. 0.6.2 ships the 0.6.1 changes.
+- `save_optuna_study_as_csv_and_pngs` called before anything else touched
+  the `scitex_io` public API failed with "No save handler registered for
+  '.csv'". It now goes through the public `save`, which registers the
+  built-in handlers.
+
+## [0.6.1] — 2026-11-18 (tagged, not published)
 
 ### Fixed
 - Notebooks executed headless (`jupyter nbconvert --execute`, `papermill`,
