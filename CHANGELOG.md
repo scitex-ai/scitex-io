@@ -7,6 +7,18 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Provenance capture gap: the public convenience savers (`save_text`,
+  `save_image`, `save_mp4`, `save_listed_dfs_as_csv`,
+  `save_listed_scalars_as_csv`, and every `scitex_io._save_modules.save_<fmt>`)
+  resolved to raw format handlers and never fired the post-save hook, so a
+  file written with `stx.io.save_text(text, "/abs/REPORT.md")` under
+  `@stx.session` was not recorded by scitex-clew (paper-scitex-clew E1,
+  2026-11-17). They now capture their writes like `save()` and fire the hook
+  once per written file with its realpath, for relative and absolute paths
+  alike; `track=` / `derived_from=` are honoured. Where they write is
+  unchanged.
+
 ### Added
 - `save(obj, path, derived_from=[...])`: declare the inputs an output was
   computed from (file paths, or objects returned by `load()` -- resolved to
