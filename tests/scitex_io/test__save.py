@@ -85,6 +85,7 @@ def test_notebook_info_returns_2_tuple_shape_len_info_is_2(env_save_restore):
 def test_notebook_info_none_when_no_signal(env_save_restore, argv_restore):
     # Arrange
     env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+    env_save_restore.delete("JPY_SESSION_NAME")
     sys.argv[:] = ["pytest", "test_x.py"]
     # Act
     info = get_notebook_info_simple()
@@ -130,16 +131,22 @@ def test_notebook_info_env_var_falls_through_when_path_missing(
     assert info == (None, None)
 
 
-def test_notebook_info_finds_ipynb_in_argv(tmp_path, env_save_restore, argv_restore):
+def test_notebook_info_ignores_ipynb_in_own_argv(
+    tmp_path, env_save_restore, argv_restore
+):
+    # Inside a kernel sys.argv is the kernel's own command line; a .ipynb
+    # there is not evidence of the running notebook (issue #197). Only the
+    # LAUNCHING process's argv counts, and only if it holds the running cell.
     # Arrange
     nb = tmp_path / "fromargv.ipynb"
     nb.write_text("{}")
     env_save_restore.delete("SCITEX_NOTEBOOK_PATH")
+    env_save_restore.delete("JPY_SESSION_NAME")
     sys.argv[:] = ["nbconvert", str(nb)]
     # Act
-    name, _ = get_notebook_info_simple()
+    info = get_notebook_info_simple()
     # Assert
-    assert name == "fromargv.ipynb"
+    assert info == (None, None)
 
 
 # ===========================================================================

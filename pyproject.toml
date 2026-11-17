@@ -61,6 +61,10 @@ dependencies = [
     # who relied on `file1.txt, file2.txt, …, file10.txt` ordering.
     # Make natsort a hard runtime dep so the documented behaviour holds.
     "natsort>=8.0",
+    # The last notebook source of _notebook.resolve_notebook (a Jupyter
+    # server query) -- the same call scitex-session makes, so save() and
+    # @session resolve a kernel's notebook identically. Pure stdlib.
+    "scitex-context>=0.1.4",
 ]
 
 [project.optional-dependencies]
@@ -143,6 +147,14 @@ dev = [
     "piexif",             # JPEG metadata sidecar in _image_csv_handler
     "markdown",           # md handler
     "html2text",          # html2md handler
+    # tests/scitex_io/test__notebook.py executes real notebooks in real
+    # kernels (nbclient / nbconvert / papermill / jupyter execute) and runs
+    # the shared notebook-path vectors in a real IPython shell
+    "ipykernel",
+    "nbclient",
+    "nbconvert",
+    "nbformat",
+    "papermill",
     "ruamel.yaml",        # YAML round-trip tests
     "kaleido",            # plotly static image export (png/jpeg/svg/pdf)
     "python-docx",        # .docx loader tests

@@ -83,22 +83,35 @@ kernel runs in a separate process from the notebook UI / nbconvert
 driver.
 
 **Detection layers** (first hit wins, see
-`scitex_io._utils.get_notebook_info_simple`):
+`scitex_io._notebook.resolve_notebook`):
 
-1. `SCITEX_NOTEBOOK_PATH` env var — explicit override, the only
-   reliable signal under `jupyter nbconvert`.
+1. `SCITEX_NOTEBOOK_PATH` env var — explicit override (relative paths
+   resolve against the kernel's cwd; must be an existing `.ipynb`).
 2. `__vsc_ipynb_file__` — VS Code Jupyter injects this into the
    user namespace.
-3. `__session__` / `__notebook__` globals — set by some classic
-   notebook setups.
-4. Optional `ipynbname` package — queries the running Jupyter server.
-5. `sys.argv` scan — last-ditch for tools that pass the path.
+3. `__session__` global / `$JPY_SESSION_NAME` — set for kernels a
+   Jupyter server (Lab / Notebook) starts.
+4. A `*.ipynb` argument of the process that LAUNCHED the kernel
+   (`$JPY_PARENT_PID`, else the parent pid), relative to that
+   process's cwd — covers `jupyter nbconvert --execute`, `papermill`,
+   `jupyter execute` and nbclient scripts. Accepted only when that
+   notebook's code cells contain the cell being executed, so a
+   launcher naming a different notebook is never trusted. (The kernel's
+   own `sys.argv` is `ipykernel_launcher -f …` and is never used.)
+5. A running Jupyter server is asked which notebook owns the kernel
+   (`scitex_context.get_notebook_path`).
+
+This is the SAME rule scitex-session uses for `@session` in a notebook,
+so `save()` and the session agree on `<stem>_out/`. Both repositories
+run the byte-identical `tests/**/conformance/notebook-path-vectors.json`
+(+ `run_notebook_vectors.py`); a change to the rule must update both
+implementations and those files in both repositories together.
 
 **If none match**, scitex-io falls back to `<cwd>/notebook_out/` and
-emits a one-time stderr hint. Silence with
-`SCITEX_IO_QUIET_NOTEBOOK_WARN=1`.
+logs a one-time WARNING naming the sources it tried and how to fix it.
+Silence with `SCITEX_IO_QUIET_NOTEBOOK_WARN=1`.
 
-**Recommended for CI / nbconvert / book builders:**
+**Explicit override (e.g. a launcher that hides the notebook path):**
 
 ```bash
 SCITEX_NOTEBOOK_PATH=demo.ipynb \
