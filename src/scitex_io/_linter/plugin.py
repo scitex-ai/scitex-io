@@ -1,7 +1,8 @@
-"""Linter plugin for scitex-io: IO-specific rules (IO001-IO019, PA001-PA005, I003).
+"""Linter plugin for scitex-io: IO-specific rules (IO001-IO019, PA001-PA005, I003, S007).
 
-STX-I003 (``import pickle``) moved here from the scitex-dev engine; see
-``_linter/import_checker.py``.
+STX-I003 (``import pickle``) and STX-S007 (``load_configs()`` naming) moved
+here from the scitex-dev engine; see ``_linter/import_checker.py`` and
+``_linter/config_naming.py``.
 
 Registered via entry point 'scitex_dev.linter.plugins' so scitex-linter
 discovers these rules automatically when scitex-io is installed.
@@ -28,6 +29,7 @@ from .ext_checker import (  # noqa: F401 (re-exported for callers/tests)
     _builtin_extensions,
     _UnknownExtChecker,
 )
+from .config_naming import S007_SPEC, bind_config_naming_checker
 from .import_checker import I003_SPEC, bind_pickle_import_checker
 from .raw_io import bind_raw_io_checker, make_raw_io_rules
 
@@ -39,6 +41,8 @@ def get_plugin():
 
     # STX-I003 (`import pickle`) — handed over from the scitex-dev engine.
     I003 = Rule(**I003_SPEC)
+    # STX-S007 (`load_configs()` naming) — handed over from the engine too.
+    S007 = Rule(**S007_SPEC)
 
     def _io(id_, msg, sug):
         """Build an IO Rule with the register-handler hint appended."""
@@ -331,6 +335,7 @@ def get_plugin():
             raw["IO018"],
             raw["IO019"],
             I003,
+            S007,
         ],
         "call_rules": call_rules,
         "axes_hints": {},
@@ -338,6 +343,7 @@ def get_plugin():
             _UnknownExtChecker,
             bind_raw_io_checker(raw, call_rules, IO012),
             bind_pickle_import_checker(I003, spi),
+            bind_config_naming_checker(S007, spi),
         ],
         # scitex-dev requires this for `project-type: research` (fails loud
         # when no installed plugin declares it).
