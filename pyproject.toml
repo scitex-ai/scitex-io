@@ -65,6 +65,9 @@ dependencies = [
     # server query) -- the same call scitex-session makes, so save() and
     # @session resolve a kernel's notebook identically. Pure stdlib.
     "scitex-context>=0.1.4",
+    # Thin `scitex` core (PROTOTYPE): makes `import scitex as stx; stx.io` work
+    # from `pip install scitex-io` alone. Stdlib-only, so no cycle and no weight.
+    "scitex>=3.0.0.dev0,<4",
 ]
 
 [project.optional-dependencies]
@@ -199,6 +202,9 @@ all = [
 
 [project.scripts]
 scitex-io = "scitex_io._cli:main"
+
+[project.entry-points."scitex.modules"]
+io = "scitex_io"
 
 [project.entry-points."scitex_dev.docs"]
 scitex-io = "scitex_io"
