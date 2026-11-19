@@ -7,6 +7,9 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-11-19
+
+### Added
 - **Linter: `STX-I003` (`import pickle`) and `STX-S007` (`load_configs()` naming) now owned and emitted by scitex-io** (moved from the
   scitex-dev engine, which yields it to this plugin). Same ids, severities,
   messages and gates, so findings are unchanged; proven identical with
